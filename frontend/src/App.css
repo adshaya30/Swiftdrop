@@ -1,0 +1,46 @@
+.home-page {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100svh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.welcome-card {
+  width: min(100%, 34rem);
+  padding: clamp(2rem, 7vw, 4rem);
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #e5eaf0;
+  border-radius: 1.25rem;
+  box-shadow: 0 1.25rem 3.5rem rgb(28 52 84 / 8%);
+}
+
+.brand-mark {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1.5rem;
+  place-items: center;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #2563eb;
+  border-radius: 0.9rem;
+}
+
+.welcome-card h1 {
+  margin: 0;
+  color: #172033;
+  font-size: clamp(2rem, 7vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.welcome-subtitle {
+  margin: 0.9rem 0 0;
+  color: #5d6b80;
+  font-size: clamp(1rem, 3vw, 1.125rem);
+  line-height: 1.6;
+}

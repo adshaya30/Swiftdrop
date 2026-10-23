@@ -1,0 +1,148 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-swiftdrop}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SERVER_PORT: "8080"
+    healthcheck: &app-healthcheck
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  auth-service:
+    build:
+      context: ./backend/auth-service
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment: &database-environment
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-swiftdrop}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  parcel-service:
+    build:
+      context: ./backend/parcel-service
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment: &database-rabbit-environment
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-swiftdrop}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+    depends_on: &database-rabbit-dependencies
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  pricing-service:
+    build:
+      context: ./backend/pricing-service
+    ports:
+      - "127.0.0.1:8083:8080"
+    environment: *database-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  delivery-service:
+    build:
+      context: ./backend/delivery-service
+    ports:
+      - "127.0.0.1:8084:8080"
+    environment: *database-rabbit-environment
+    depends_on: *database-rabbit-dependencies
+    healthcheck: *app-healthcheck
+
+  tracking-service:
+    build:
+      context: ./backend/tracking-service
+    ports:
+      - "127.0.0.1:8085:8080"
+    environment: *database-rabbit-environment
+    depends_on: *database-rabbit-dependencies
+    healthcheck: *app-healthcheck
+
+ 
+  notification-service:
+    build:
+      context: ./backend/notification-service
+    ports:
+      - "127.0.0.1:8086:8080"
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+    
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

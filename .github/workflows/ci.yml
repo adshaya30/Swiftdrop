@@ -1,0 +1,110 @@
+name: SwiftDrop CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build production frontend
+        run: npm run build
+
+  backend:
+    name: Backend - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - parcel-service
+          - pricing-service
+          - delivery-service
+          - tracking-service
+          - notification-service
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: swiftdrop_test
+          POSTGRES_USER: swiftdrop_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U swiftdrop_test -d swiftdrop_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/swiftdrop_test
+      SPRING_DATASOURCE_USERNAME: swiftdrop_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/${{ matrix.service }}/pom.xml
+
+      - name: Build and test ${{ matrix.service }}
+        working-directory: backend/${{ matrix.service }}
+        run: bash ./mvnw --batch-mode --no-transfer-progress verify
+
+  compose-validation:
+    name: Validate Docker Compose configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate root Compose file
+        shell: bash
+        run: |
+          # Compose requires these interpolation variables; generated run-specific
+          # values are used only for config validation and are never written to disk.
+          export POSTGRES_USER="${GITHUB_REPOSITORY_OWNER:-ci}"
+          export POSTGRES_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export RABBITMQ_USER="${GITHUB_REPOSITORY_OWNER:-ci}"
+          export RABBITMQ_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker compose --file compose.yaml config --quiet
