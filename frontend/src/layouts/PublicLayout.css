@@ -1,0 +1,74 @@
+/* PublicLayout – background, branding and shell styles */
+
+.pub-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle animated background glow */
+.pub-layout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 40%, rgba(37, 99, 235, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14, 165, 133, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Top brand strip */
+.pub-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.pub-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.pub-brand-name {
+  color: #f8fafc;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Centred content area */
+.pub-main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer */
+.pub-footer {
+  text-align: center;
+  padding: 1rem;
+  color: rgba(148, 163, 184, 0.6);
+  font-size: 0.8125rem;
+  position: relative;
+  z-index: 1;
+}
