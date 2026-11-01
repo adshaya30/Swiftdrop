@@ -8,5 +8,6 @@ public enum UserRole {
     CUSTOMER,
     MERCHANT,
     DRIVER,
+    COURIER,
     ADMIN
 }

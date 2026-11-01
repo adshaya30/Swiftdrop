@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PublicLayout from './layouts/PublicLayout';
 import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
 import './App.css';
 
 function App() {
@@ -20,9 +21,9 @@ function App() {
                   <p className="welcome-subtitle">
                     Parcel Delivery &amp; Courier Management System
                   </p>
-                  <div style={{ marginTop: '2rem' }}>
+                  <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                     <Link
-                      to="/register"
+                      to="/login"
                       style={{
                         display: 'inline-block',
                         padding: '0.75rem 1.75rem',
@@ -34,7 +35,23 @@ function App() {
                         transition: 'background 0.2s ease',
                       }}
                     >
-                      Register as Customer &rarr;
+                      Sign In &rarr;
+                    </Link>
+                    <Link
+                      to="/register"
+                      style={{
+                        display: 'inline-block',
+                        padding: '0.75rem 1.75rem',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '0.5rem',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        transition: 'background 0.2s ease',
+                      }}
+                    >
+                      Register as Customer
                     </Link>
                   </div>
                 </section>
@@ -52,15 +69,12 @@ function App() {
             }
           />
 
-          {/* Login stub – navigates here after successful registration (Feature 2) */}
+          {/* Customer Login – FR-AUTH-003, FR-AUTH-004, FR-AUTH-005 */}
           <Route
             path="/login"
             element={
               <PublicLayout>
-                <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>
-                  <h1 style={{ color: '#f8fafc', marginBottom: '0.5rem' }}>Sign In</h1>
-                  <p>Login is coming in Feature 2.</p>
-                </div>
+                <LoginPage />
               </PublicLayout>
             }
           />
@@ -74,6 +88,3 @@ function App() {
 }
 
 export default App;
-
-
-
