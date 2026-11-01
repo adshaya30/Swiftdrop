@@ -56,7 +56,7 @@ export interface ApiError {
  * Does NOT return tokens (registration ≠ login).
  */
 export async function registerCustomer(payload: RegistrationPayload): Promise<UserSummary> {
-  const response = await api.post<UserSummary>('/api/v1/auth/register', payload);
+  const response = await api.post<UserSummary>('/auth/register', payload);
   return response.data;
 }
 
@@ -66,6 +66,41 @@ export async function registerCustomer(payload: RegistrationPayload): Promise<Us
  * Refresh token is set in HttpOnly cookie 'sd_refresh'.
  */
 export async function loginCustomer(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>('/api/v1/auth/login', payload);
+  const response = await api.post<LoginResponse>('/auth/login', payload);
   return response.data;
+}
+
+/**
+ * POST /api/v1/auth/refresh
+ * Rotates the refresh token (from sd_refresh HttpOnly cookie) and returns a new access token.
+ * Requires X-Requested-With: SwiftDrop header.
+ */
+export async function refreshToken(): Promise<LoginResponse> {
+  const response = await api.post<LoginResponse>(
+    '/auth/refresh',
+    {},
+    {
+      headers: {
+        'X-Requested-With': 'SwiftDrop',
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * POST /api/v1/auth/logout
+ * Revokes the active refresh token family and clears the sd_refresh HttpOnly cookie.
+ * Requires X-Requested-With: SwiftDrop header.
+ */
+export async function logoutCustomer(): Promise<void> {
+  await api.post(
+    '/auth/logout',
+    {},
+    {
+      headers: {
+        'X-Requested-With': 'SwiftDrop',
+      },
+    }
+  );
 }

@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /**
  * Entity representing an issued refresh token.
- * Stores only the SHA-256 hash of the opaque token value.
+ * Stores only the SHA-256 hash (64 hex characters) of the opaque token value.
  * SRS v2.1 – FR-AUTH-007, Section 6.3
  */
 @Entity
@@ -14,17 +14,21 @@ import java.util.UUID;
 public class RefreshToken {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "family_id")
+    @Column(name = "family_id", nullable = false)
     private UUID familyId;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 256)
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt = Instant.now();
 
     @Column(name = "issued_at", nullable = false)
     private Instant issuedAt = Instant.now();
@@ -32,7 +36,7 @@ public class RefreshToken {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    @Column(name = "family_created_at")
+    @Column(name = "family_created_at", nullable = false)
     private Instant familyCreatedAt = Instant.now();
 
     @Column(name = "used_at")
@@ -56,12 +60,14 @@ public class RefreshToken {
         this.expiresAt = expiresAt;
         this.userAgent = userAgent;
         this.ipAddress = ipAddress;
-        this.issuedAt = Instant.now();
-        this.familyCreatedAt = Instant.now();
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.issuedAt = now;
+        this.familyCreatedAt = now;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
@@ -71,6 +77,9 @@ public class RefreshToken {
 
     public String getTokenHash() { return tokenHash; }
     public void setTokenHash(String tokenHash) { this.tokenHash = tokenHash; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     public Instant getIssuedAt() { return issuedAt; }
     public void setIssuedAt(Instant issuedAt) { this.issuedAt = issuedAt; }
@@ -93,4 +102,3 @@ public class RefreshToken {
     public String getIpAddress() { return ipAddress; }
     public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
 }
-

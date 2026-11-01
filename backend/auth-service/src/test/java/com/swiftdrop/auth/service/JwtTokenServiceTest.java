@@ -20,7 +20,7 @@ class JwtTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtTokenService = new JwtTokenService("src/test/resources/certs/private_key.pem", objectMapper);
+        jwtTokenService = new JwtTokenService("classpath:certs/test_private_key.pem", objectMapper);
     }
 
     @Test
@@ -98,14 +98,21 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    @DisplayName("Reject missing or invalid private key path on initialization")
-    void rejectMissingOrInvalidPrivateKey() {
-        assertThatThrownBy(() -> new JwtTokenService("", objectMapper))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JWT private key path is not configured");
+    @DisplayName("Blank path generates ephemeral RSA key pair in development")
+    void blankPath_generatesEphemeralKey() {
+        JwtTokenService ephemeralService = new JwtTokenService("", objectMapper);
+        UUID userId = UUID.randomUUID();
+        String token = ephemeralService.issueAccessToken(userId, "CUSTOMER", false, null);
 
+        Map<String, Object> claims = ephemeralService.parseAndVerifyToken(token);
+        assertThat(claims.get("sub")).isEqualTo(userId.toString());
+    }
+
+    @Test
+    @DisplayName("Reject invalid non-existent private key path")
+    void rejectInvalidPrivateKeyPath() {
         assertThatThrownBy(() -> new JwtTokenService("/non/existent/path/to/key.pem", objectMapper))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("does not exist");
     }
 }
-

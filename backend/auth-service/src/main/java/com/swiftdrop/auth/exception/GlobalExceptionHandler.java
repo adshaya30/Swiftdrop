@@ -66,6 +66,42 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
+    // HTTP 401 – Unauthenticated (FR-AUTH-007)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthenticated(
+            UnauthenticatedException ex, HttpServletRequest request) {
+
+        log.warn("Unauthenticated request at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(problem(
+                        HttpStatus.UNAUTHORIZED,
+                        "UNAUTHENTICATED",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Invalid or Missing Header (FR-AUTH-007, FR-AUTH-008)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidHeaderException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidHeader(
+            InvalidHeaderException ex, HttpServletRequest request) {
+
+        log.warn("Invalid or missing header at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_REQUEST",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
     // HTTP 429 – Account locked (FR-AUTH-005)
     // -----------------------------------------------------------------------
 

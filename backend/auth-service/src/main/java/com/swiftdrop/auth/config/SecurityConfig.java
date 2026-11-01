@@ -13,13 +13,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Security configuration for the auth-service.
- * <ul>
- *   <li>Registration endpoint is public (no JWT required).</li>
- *   <li>Actuator health is public for orchestration liveness checks.</li>
- *   <li>All other endpoints are protected (JWT validation will be added in Feature 2).</li>
- *   <li>CSRF disabled – stateless REST API; tokens are the CSRF countermeasure.</li>
- * </ul>
- * SRS v2.1 – FR-AUTH-001
+ * Public endpoints: register, login, refresh, logout, actuator health.
+ * SRS v2.1 – FR-AUTH-001, FR-AUTH-003, FR-AUTH-007, FR-AUTH-008
  */
 @Configuration
 @EnableWebSecurity
@@ -31,11 +26,16 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                // Public authentication endpoints (do not require Bearer JWT)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/logout"
+                ).permitAll()
                 // Actuator health for orchestration
                 .requestMatchers("/actuator/health").permitAll()
-                // All other requests require authentication (JWT to be added later)
+                // All other requests require authentication
                 .anyRequest().authenticated()
             );
         return http.build();

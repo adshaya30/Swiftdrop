@@ -9,7 +9,10 @@ import com.swiftdrop.auth.dto.response.LoginResult;
 import com.swiftdrop.auth.dto.response.LoginUserSummary;
 import com.swiftdrop.auth.dto.response.UserResponse;
 import com.swiftdrop.auth.exception.*;
+import com.swiftdrop.auth.dto.response.RefreshResult;
 import com.swiftdrop.auth.service.LoginService;
+import com.swiftdrop.auth.service.RefreshTokenService;
+import jakarta.servlet.http.Cookie;
 import com.swiftdrop.auth.service.RegistrationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +48,9 @@ class AuthControllerTest {
 
     @MockBean
     private LoginService loginService;
+
+    @MockBean
+    private RefreshTokenService refreshTokenService;
 
     @Test
     @DisplayName("POST /api/v1/auth/register - 201 Created with valid payload")
@@ -293,5 +299,102 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    // =======================================================================
+    // Refresh Token Rotation (FR-AUTH-007) MockMvc Tests
+    // =======================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/auth/refresh - 400 when X-Requested-With header is missing")
+    void refresh_missingHeader_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .cookie(new Cookie("sd_refresh", "some-token")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/refresh - 401 when sd_refresh cookie is missing")
+    void refresh_missingCookie_returns401() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "SwiftDrop"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/refresh - 200 with rotated token and new cookie on valid rotation")
+    void refresh_validToken_returns200AndSetsNewCookie() throws Exception {
+        UUID userId = UUID.randomUUID();
+        LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
+        LoginResponse response = new LoginResponse("new-jwt-token", 900, summary);
+        RefreshResult result = new RefreshResult(response, "new-opaque-refresh-token");
+
+        when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "SwiftDrop")
+                        .cookie(new Cookie("sd_refresh", "valid-raw-refresh-token")))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("sd_refresh=new-opaque-refresh-token")))
+                .andExpect(jsonPath("$.accessToken").value("new-jwt-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(900));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/refresh - 200 without new cookie during concurrent grace window")
+    void refresh_concurrentGrace_returns200WithoutNewCookie() throws Exception {
+        UUID userId = UUID.randomUUID();
+        LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
+        LoginResponse response = new LoginResponse("grace-jwt-token", 900, summary);
+        RefreshResult result = new RefreshResult(response, null); // null indicates grace window hit
+
+        when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("X-Requested-With", "SwiftDrop")
+                        .cookie(new Cookie("sd_refresh", "used-raw-refresh-token")))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+                .andExpect(jsonPath("$.accessToken").value("grace-jwt-token"));
+    }
+
+    // =======================================================================
+    // Logout (FR-AUTH-008) MockMvc Tests
+    // =======================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/auth/logout - 400 when X-Requested-With header is missing")
+    void logout_missingHeader_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/logout - 204 No Content and clears cookie when cookie is present")
+    void logout_withCookie_returns204AndClearsCookie() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("X-Requested-With", "SwiftDrop")
+                        .cookie(new Cookie("sd_refresh", "active-raw-token")))
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("Max-Age=0")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/logout - 204 No Content even when no cookie is present")
+    void logout_withoutCookie_returns204AndClearsCookie() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("X-Requested-With", "SwiftDrop"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("Max-Age=0")));
     }
 }
