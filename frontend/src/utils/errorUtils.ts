@@ -62,3 +62,4 @@ export function extractApiError(error: unknown, fallbackMessage = 'An unexpected
     fieldErrors: {},
   };
 }
+

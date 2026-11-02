@@ -37,3 +37,4 @@ export function getRoleHomePath(role?: string | null): string {
   }
   return '/';
 }
+
