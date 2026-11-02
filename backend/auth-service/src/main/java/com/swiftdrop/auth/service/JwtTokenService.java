@@ -138,15 +138,10 @@ public class JwtTokenService {
 
     private RSAPrivateKey loadPrivateKey(String pathStr) {
         if (pathStr == null || pathStr.isBlank()) {
-            log.warn("DEVELOPMENT NOTICE: No JWT_PRIVATE_KEY_PATH configured. Using ephemeral in-memory 2048-bit RSA key pair for development.");
-            try {
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-                kpg.initialize(2048);
-                KeyPair kp = kpg.generateKeyPair();
-                return (RSAPrivateKey) kp.getPrivate();
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to generate ephemeral RSA key pair: " + e.getMessage(), e);
-            }
+            throw new IllegalStateException(
+                    "JWT private signing key configuration is missing. " +
+                    "Set 'jwt.private-key-path' or environment variable 'JWT_PRIVATE_KEY_PATH'. " +
+                    "Ephemeral key generation is forbidden in auth-service per SRS Section 3.6.");
         }
 
         try {

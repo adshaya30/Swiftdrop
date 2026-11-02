@@ -1,0 +1,89 @@
+.sd-error-card {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.sd-error-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.sd-error-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.sd-error-text {
+  flex: 1;
+}
+
+.sd-error-title {
+  display: block;
+  font-weight: 600;
+  color: #f87171;
+  margin-bottom: 0.25rem;
+}
+
+.sd-error-detail {
+  margin: 0;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+
+.sd-error-dismiss {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.sd-error-dismiss:hover {
+  color: #f1f5f9;
+}
+
+.sd-error-fields {
+  margin: 0.75rem 0 0 2rem;
+  padding: 0;
+  font-size: 0.85rem;
+  color: #fca5a5;
+}
+
+.sd-error-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sd-error-trace {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.sd-error-retry-btn {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sd-error-retry-btn:hover {
+  background: #b91c1c;
+}
