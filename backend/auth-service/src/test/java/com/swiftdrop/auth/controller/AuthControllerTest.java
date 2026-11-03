@@ -57,6 +57,9 @@ class AuthControllerTest {
     @MockBean
     private GoogleOAuthService googleOAuthService;
 
+    @MockBean
+    private com.swiftdrop.auth.service.JwtTokenService jwtTokenService;
+
     @Test
     @DisplayName("POST /api/v1/auth/register - 201 Created with valid payload")
     void register_success_returns201() throws Exception {
