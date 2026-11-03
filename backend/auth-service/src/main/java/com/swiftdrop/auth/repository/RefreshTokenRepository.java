@@ -44,6 +44,15 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     boolean isFamilyRevoked(@Param("familyId") UUID familyId);
 
     /**
+     * Revokes all active refresh tokens for a user across all families.
+     * SRS v2.1 – FR-AUTH-013 (Password Change)
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RefreshToken r SET r.revokedAt = :revokedAt WHERE r.userId = :userId AND r.revokedAt IS NULL")
+    int revokeAllByUserId(@Param("userId") UUID userId, @Param("revokedAt") Instant revokedAt);
+
+    /**
      * Purges refresh tokens whose retention deadline has passed (expires_at <= cutoff).
      * Bounded by limit to prevent long-running table locks during periodic cleanup.
      * SRS v2.1 – FR-AUTH-026

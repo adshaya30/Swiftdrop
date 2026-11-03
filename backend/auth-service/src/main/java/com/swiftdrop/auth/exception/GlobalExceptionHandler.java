@@ -227,6 +227,78 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
+    // HTTP 400 – Invalid Current Password (FR-AUTH-013)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCurrentPassword(
+            InvalidCurrentPasswordException ex, HttpServletRequest request) {
+
+        log.warn("Invalid current password attempt at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_CURRENT_PASSWORD",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – New Password Same As Current (FR-AUTH-013)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(PasswordSameAsCurrentException.class)
+    public ResponseEntity<Map<String, Object>> handlePasswordSameAsCurrent(
+            PasswordSameAsCurrentException ex, HttpServletRequest request) {
+
+        log.warn("New password same as current at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "NEW_PASSWORD_SAME_AS_CURRENT",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Social Account Password Change Not Supported (FR-AUTH-013)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(SocialAccountPasswordChangeException.class)
+    public ResponseEntity<Map<String, Object>> handleSocialAccountPasswordChange(
+            SocialAccountPasswordChangeException ex, HttpServletRequest request) {
+
+        log.warn("Attempted password change on social account at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "SOCIAL_ACCOUNT_PASSWORD_NOT_SUPPORTED",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 404 – User Not Found (FR-AUTH-012)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUserNotFound(
+            UserNotFoundException ex, HttpServletRequest request) {
+
+        log.warn("User not found at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(problem(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
     // HTTP 400 – Bean Validation (@Valid)
     // -----------------------------------------------------------------------
 

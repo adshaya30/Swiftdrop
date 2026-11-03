@@ -5,6 +5,8 @@ import AppLayout from './layouts/AppLayout';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import ProfilePage from './pages/ProfilePage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -129,25 +131,6 @@ function RolePortalPlaceholder({ title, description, icon }: { title: string; de
   );
 }
 
-/**
- * Integration stub for Member 2 change-password workflow (FR-AUTH-003).
- */
-function ChangePasswordPlaceholder() {
-  const { user } = useAuth();
-  return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', textAlign: 'center' }}>
-      <h2>Password Change Required</h2>
-      <p style={{ color: '#94a3b8', margin: '1rem 0' }}>
-        User <strong>{user?.fullName}</strong> must update their temporary password before continuing.
-      </p>
-      <EmptyState
-        icon="🔑"
-        title="Change Password Endpoint Contract"
-        description="This route is protected by Member 1 mustChangePassword guard. The form implementation connects to Member 2's PATCH /api/v1/users/password endpoint."
-      />
-    </div>
-  );
-}
 
 function App() {
   return (
@@ -191,13 +174,25 @@ function App() {
             }
           />
 
-          {/* Forced Password Change (Contract for Member 2) */}
+          {/* Profile Management (FR-AUTH-012) */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ProfilePage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Change Password / Forced Password Change (FR-AUTH-013, FR-AUTH-014) */}
           <Route
             path="/change-password"
             element={
               <ProtectedRoute>
                 <AppLayout>
-                  <ChangePasswordPlaceholder />
+                  <ChangePasswordPage />
                 </AppLayout>
               </ProtectedRoute>
             }

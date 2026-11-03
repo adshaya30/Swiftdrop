@@ -71,15 +71,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
           {/* User Profile & Sign Out */}
           <div className="sd-user-controls">
-            <div className="sd-user-info" aria-label="Logged in user profile">
+            <Link to="/profile" className="sd-user-info" aria-label="Logged in user profile" style={{ textDecoration: 'none', cursor: 'pointer' }}>
               <span className="sd-user-avatar" aria-hidden="true">
                 {user?.fullName?.charAt(0).toUpperCase() || 'U'}
               </span>
               <div className="sd-user-meta">
                 <span className="sd-user-name">{user?.fullName || 'User'}</span>
-                <span className="sd-user-id">ID: {user?.id?.slice(0, 8)}…</span>
+                <span className="sd-user-id">Profile &rarr;</span>
               </div>
-            </div>
+            </Link>
 
             <button
               type="button"
@@ -107,6 +107,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Mobile Dropdown Navigation */}
         {mobileMenuOpen && (
           <nav className="sd-mobile-menu" aria-label="Mobile Navigation">
+            <NavLink
+              to="/profile"
+              className="sd-mobile-item"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              My Profile
+            </NavLink>
             {visibleNavItems.map(item => (
               <NavLink
                 key={item.path}

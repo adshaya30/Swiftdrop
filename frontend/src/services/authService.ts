@@ -27,6 +27,8 @@ export interface LoginUserSummary {
   id: string;
   fullName: string;
   role: string;
+  email?: string;
+  authProvider?: string;
   mustChangePassword?: boolean;
   merchantStatus?: string;
   merchantId?: string;
@@ -41,6 +43,35 @@ export interface LoginResponse {
 
 export interface AuthConfig {
   googleEnabled: boolean;
+}
+
+export interface MerchantSummary {
+  id: string;
+  businessName: string;
+  status: string;
+  discountPercent: number;
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  authProvider: string;
+  mustChangePassword: boolean;
+  createdAt: string;
+  merchant?: MerchantSummary | null;
+}
+
+export interface UpdateProfilePayload {
+  fullName: string;
+  phone?: string | null;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface ApiError {
@@ -116,4 +147,30 @@ export async function logoutCustomer(): Promise<void> {
 export async function getAuthConfig(): Promise<AuthConfig> {
   const response = await api.get<AuthConfig>('/auth/config');
   return response.data;
+}
+
+/**
+ * GET /api/v1/me
+ * Retrieves authenticated user profile (FR-AUTH-012).
+ */
+export async function getProfile(): Promise<UserProfile> {
+  const response = await api.get<UserProfile>('/me');
+  return response.data;
+}
+
+/**
+ * PUT /api/v1/me
+ * Updates editable profile fields (fullName, phone) (FR-AUTH-012).
+ */
+export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
+  const response = await api.put<UserProfile>('/me', payload);
+  return response.data;
+}
+
+/**
+ * POST /api/v1/me/change-password
+ * Changes password and invalidates all active sessions (FR-AUTH-013).
+ */
+export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
+  await api.post('/me/change-password', payload);
 }
