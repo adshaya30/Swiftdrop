@@ -28,8 +28,13 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+const resolvedBaseUrl = rawBaseUrl
+  ? (rawBaseUrl.endsWith("/api/v1") ? rawBaseUrl : `${rawBaseUrl.replace(/\/+$/, "")}/api/v1`)
+  : "/api/v1";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
+  baseURL: resolvedBaseUrl,
   headers: {
     "Content-Type": "application/json",
   },

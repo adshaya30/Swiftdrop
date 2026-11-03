@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import {
   adminService,
@@ -6,6 +7,7 @@ import {
   type CreateUserPayload,
   type EditUserPayload,
 } from '../services/adminService';
+import { extractApiError } from '../utils/errorUtils';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import './AdminUsersPage.css';
@@ -88,16 +90,43 @@ export default function AdminUsersPage() {
       setUsers(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load user directory');
+    } catch (err: unknown) {
+      const apiErr = extractApiError(err, 'Failed to load user directory');
+      setError(apiErr.detail);
     } finally {
       setLoading(false);
     }
   }, [page, roleFilter, statusFilter, searchQuery]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    let ignore = false;
+    adminService
+      .listUsers({
+        page,
+        size: pageSize,
+        role: roleFilter || undefined,
+        status: statusFilter || undefined,
+        search: searchQuery || undefined,
+      })
+      .then((response) => {
+        if (!ignore) {
+          setUsers(response.content);
+          setTotalPages(response.totalPages);
+          setTotalElements(response.totalElements);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          const apiErr = extractApiError(err, 'Failed to load user directory');
+          setError(apiErr.detail);
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [page, roleFilter, statusFilter, searchQuery]);
 
   // Handle open create modal
   const handleOpenCreateModal = () => {
@@ -149,9 +178,9 @@ export default function AdminUsersPage() {
         title: `Account Created for ${res.user.fullName}`,
       });
       fetchUsers();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to create user.';
-      setCreateError(msg);
+    } catch (err: unknown) {
+      const apiErr = extractApiError(err, 'Failed to create user.');
+      setCreateError(apiErr.detail);
     } finally {
       setCreateSubmitting(false);
     }
@@ -196,8 +225,9 @@ export default function AdminUsersPage() {
       await adminService.editUser(selectedUser.id, payload);
       setShowEditModal(false);
       fetchUsers();
-    } catch (err: any) {
-      setEditError(err?.response?.data?.message || err?.message || 'Failed to update user.');
+    } catch (err: unknown) {
+      const apiErr = extractApiError(err, 'Failed to update user.');
+      setEditError(apiErr.detail);
     } finally {
       setEditSubmitting(false);
     }
@@ -208,8 +238,9 @@ export default function AdminUsersPage() {
     try {
       await adminService.activateUser(target.id);
       fetchUsers();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to activate user.');
+    } catch (err: unknown) {
+      const apiErr = extractApiError(err, 'Failed to activate user.');
+      alert(apiErr.detail);
     }
   };
 
@@ -230,8 +261,11 @@ export default function AdminUsersPage() {
       await adminService.deactivateUser(selectedUser.id);
       setShowDeactivateModal(false);
       fetchUsers();
-    } catch (err: any) {
-      const errCode = err?.response?.data?.code;
+    } catch (err: unknown) {
+      let errCode: string | undefined;
+      if (axios.isAxiosError(err)) {
+        errCode = err.response?.data?.code;
+      }
       if (errCode === 'COURIER_HAS_ACTIVE_DELIVERIES') {
         setDeactivateError(
           'Cannot deactivate courier: The courier currently has deliveries in progress. All active deliveries must be completed or reassigned first.'
@@ -243,7 +277,8 @@ export default function AdminUsersPage() {
       } else if (errCode === 'SELF_DEACTIVATION_NOT_ALLOWED') {
         setDeactivateError('You cannot deactivate your own administrator account.');
       } else {
-        setDeactivateError(err?.response?.data?.message || 'Failed to deactivate user.');
+        const apiErr = extractApiError(err, 'Failed to deactivate user.');
+        setDeactivateError(apiErr.detail);
       }
     } finally {
       setDeactivateSubmitting(false);
@@ -273,8 +308,9 @@ export default function AdminUsersPage() {
         title: `Password Reset for ${selectedUser.fullName}`,
       });
       fetchUsers();
-    } catch (err: any) {
-      setResetError(err?.response?.data?.message || 'Failed to reset user password.');
+    } catch (err: unknown) {
+      const apiErr = extractApiError(err, 'Failed to reset user password.');
+      setResetError(apiErr.detail);
     } finally {
       setResetSubmitting(false);
     }
