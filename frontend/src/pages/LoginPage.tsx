@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getAuthConfig, type ApiError } from '../services/authService';
@@ -16,6 +16,23 @@ interface FormErrors {
   general?: string;
 }
 
+function getOAuthErrorMessage(errorParam: string | null): string | undefined {
+  if (errorParam === 'google_denied') {
+    return 'Google sign-in was cancelled or access was denied.';
+  }
+  if (errorParam === 'account_exists') {
+    return 'An account already exists with this email address. Please sign in with your email and password.';
+  }
+  if (errorParam === 'account_deactivated') {
+    return 'Your account has been deactivated. Please contact customer support.';
+  }
+  if (errorParam === 'google_failed') {
+    return 'Google authentication failed. Please try again or sign in with your email.';
+  }
+
+  return undefined;
+}
+
 /**
  * Customer Login Page — /login
  * SRS v2.1 – FR-AUTH-003, FR-AUTH-004, FR-AUTH-005, FR-AUTH-009, FR-AUTH-010, FR-AUTH-011
@@ -26,37 +43,20 @@ interface FormErrors {
  */
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { login } = useAuth();
 
   const [form, setForm] = useState<LoginForm>({
     email: '',
     password: '',
   });
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<FormErrors>(() => {
+    const oauthError = getOAuthErrorMessage(new URLSearchParams(window.location.search).get('error'));
+    return oauthError ? { general: oauthError } : {};
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
-
-  // Parse error query param from Google OAuth redirect (FR-AUTH-009, FR-AUTH-010)
-  useEffect(() => {
-    const errorParam = searchParams.get('error');
-    if (errorParam === 'google_denied') {
-      setErrors({ general: 'Google sign-in was cancelled or access was denied.' });
-    } else if (errorParam === 'account_exists') {
-      setErrors({
-        general:
-          'An account already exists with this email address. Please sign in with your email and password.',
-      });
-    } else if (errorParam === 'account_deactivated') {
-      setErrors({ general: 'Your account has been deactivated. Please contact customer support.' });
-    } else if (errorParam === 'google_failed') {
-      setErrors({
-        general: 'Google authentication failed. Please try again or sign in with your email.',
-      });
-    }
-  }, [searchParams]);
 
   // Check public auth configuration for Google OAuth availability (FR-AUTH-011)
   useEffect(() => {
