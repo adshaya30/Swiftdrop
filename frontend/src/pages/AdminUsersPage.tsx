@@ -75,6 +75,15 @@ export default function AdminUsersPage() {
   // Copy temporary password indicator
   const [copied, setCopied] = useState(false);
 
+  const getApiErrorCode = (err: unknown): string | undefined => {
+    if (!axios.isAxiosError(err) || !err.response?.data || typeof err.response.data !== 'object') {
+      return undefined;
+    }
+
+    const data = err.response.data as { code?: unknown };
+    return typeof data.code === 'string' ? data.code : undefined;
+  };
+
   // Fetch users function
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -99,34 +108,14 @@ export default function AdminUsersPage() {
   }, [page, roleFilter, statusFilter, searchQuery]);
 
   useEffect(() => {
-    let ignore = false;
-    adminService
-      .listUsers({
-        page,
-        size: pageSize,
-        role: roleFilter || undefined,
-        status: statusFilter || undefined,
-        search: searchQuery || undefined,
-      })
-      .then((response) => {
-        if (!ignore) {
-          setUsers(response.content);
-          setTotalPages(response.totalPages);
-          setTotalElements(response.totalElements);
-          setLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          const apiErr = extractApiError(err, 'Failed to load user directory');
-          setError(apiErr.detail);
-          setLoading(false);
-        }
-      });
+    const timeoutId = setTimeout(() => {
+      void fetchUsers();
+    }, 0);
+
     return () => {
-      ignore = true;
+      clearTimeout(timeoutId);
     };
-  }, [page, roleFilter, statusFilter, searchQuery]);
+  }, [fetchUsers]);
 
   // Handle open create modal
   const handleOpenCreateModal = () => {
@@ -262,10 +251,7 @@ export default function AdminUsersPage() {
       setShowDeactivateModal(false);
       fetchUsers();
     } catch (err: unknown) {
-      let errCode: string | undefined;
-      if (axios.isAxiosError(err)) {
-        errCode = err.response?.data?.code;
-      }
+      const errCode = getApiErrorCode(err);
       if (errCode === 'COURIER_HAS_ACTIVE_DELIVERIES') {
         setDeactivateError(
           'Cannot deactivate courier: The courier currently has deliveries in progress. All active deliveries must be completed or reassigned first.'
@@ -985,4 +971,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
