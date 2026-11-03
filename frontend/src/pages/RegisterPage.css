@@ -1,0 +1,280 @@
+/* RegisterPage – glassmorphism card, dark aesthetic */
+
+/* ---- Card container ---- */
+.reg-card {
+  width: min(100%, 28rem);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  padding: clamp(1.75rem, 6vw, 2.75rem);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Headings */
+.reg-title {
+  margin: 0 0 0.375rem;
+  color: #f8fafc;
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.reg-subtitle {
+  margin: 0 0 1.75rem;
+  color: #94a3b8;
+  font-size: 0.9375rem;
+}
+
+/* General error alert */
+.reg-alert {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.625rem;
+  color: #fca5a5;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ---- Form layout ---- */
+.reg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.reg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.reg-label {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ---- Inputs ---- */
+.reg-input {
+  width: 100%;
+  padding: 0.6875rem 0.875rem;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  border-radius: 0.625rem;
+  color: #f1f5f9;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.reg-input::placeholder {
+  color: rgba(100, 116, 139, 0.55);
+}
+
+.reg-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.reg-input--error {
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.reg-input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Password wrapper */
+.reg-password-wrap {
+  position: relative;
+}
+
+.reg-input--pw {
+  padding-right: 3rem;
+}
+
+.reg-pw-toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease;
+}
+
+.reg-pw-toggle:hover,
+.reg-pw-toggle:focus-visible {
+  color: #94a3b8;
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Hint / error texts */
+.reg-hint {
+  color: #64748b;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.reg-error {
+  color: #f87171;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.reg-error::before {
+  content: '⚠';
+  font-size: 0.75rem;
+}
+
+/* ---- Buttons ---- */
+.reg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.reg-btn--primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.reg-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5);
+  transform: translateY(-1px);
+}
+
+.reg-btn--primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.reg-btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reg-btn--full {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Spinner */
+.reg-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: reg-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes reg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Login link */
+.reg-login-link {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.reg-login-link a {
+  color: #60a5fa;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.reg-login-link a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* ---- Success state ---- */
+.reg-success-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-size: 1.75rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1.25rem;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+  animation: reg-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes reg-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.reg-success-title {
+  margin: 0 0 0.75rem;
+  color: #f8fafc;
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.reg-success-body {
+  margin: 0 0 0.5rem;
+  color: #94a3b8;
+  font-size: 0.9375rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.reg-success-hint {
+  margin: 0 0 1.75rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 400px) {
+  .reg-card {
+    border-radius: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .reg-card {
+    padding: 1.25rem;
+  }
+}
