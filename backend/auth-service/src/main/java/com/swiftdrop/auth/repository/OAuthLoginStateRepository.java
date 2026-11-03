@@ -1,7 +1,9 @@
 package com.swiftdrop.auth.repository;
 
 import com.swiftdrop.auth.entity.OAuthLoginState;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,10 @@ public interface OAuthLoginStateRepository extends JpaRepository<OAuthLoginState
 
     Optional<OAuthLoginState> findByStateHash(String stateHash);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM OAuthLoginState s WHERE s.stateHash = :stateHash")
+    Optional<OAuthLoginState> findByStateHashForUpdate(@Param("stateHash") String stateHash);
+
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM OAuthLoginState s WHERE s.stateHash = :stateHash")
@@ -31,4 +37,3 @@ public interface OAuthLoginStateRepository extends JpaRepository<OAuthLoginState
     @Query("DELETE FROM OAuthLoginState s WHERE s.expiresAt <= :cutoff")
     int deleteExpiredStatesBefore(@Param("cutoff") Instant cutoff);
 }
-

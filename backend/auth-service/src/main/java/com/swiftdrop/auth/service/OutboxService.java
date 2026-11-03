@@ -35,7 +35,7 @@ public class OutboxService {
 
     /**
      * Records an audit event in the same transaction as the business operation.
-     * Guaranteed never to include passwords, hashes, refresh tokens or private keys.
+     * Guaranteed never to include passwords, hashes, refresh tokens, private keys, or PII.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordAuditEvent(String action, UUID actorId, UUID targetUserId, String targetRole, Map<String, Object> details) {
@@ -53,7 +53,8 @@ public class OutboxService {
             eventPayload.put("timestamp", now.toString());
 
             String json = objectMapper.writeValueAsString(eventPayload);
-            OutboxEvent outboxEvent = new OutboxEvent("USER", targetUserId, "audit.recorded", json);
+            OutboxEvent outboxEvent = new OutboxEvent("USER", targetUserId, "audit.recorded", "audit.recorded", json);
+            outboxEvent.setCorrelationId(eventId.toString());
             outboxEventRepository.save(outboxEvent);
 
             log.debug("Recorded audit event '{}' for user {}", action, targetUserId);
@@ -65,6 +66,7 @@ public class OutboxService {
 
     /**
      * Records a courier.changed event when a courier is created, updated, activated, or deactivated.
+     * Excludes forbidden PII (name, phone) per SRS privacy guidelines.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordCourierChangedEvent(User user, CourierProfile profile) {
@@ -74,20 +76,19 @@ public class OutboxService {
 
             Map<String, Object> eventPayload = new LinkedHashMap<>();
             eventPayload.put("eventId", eventId.toString());
-            eventPayload.put("courierId", profile.getId().toString());
+            eventPayload.put("courierId", user.getId().toString());
             eventPayload.put("userId", user.getId().toString());
-            eventPayload.put("fullName", user.getFullName());
-            eventPayload.put("phone", user.getPhone());
             eventPayload.put("vehicleType", profile.getVehicleType());
             eventPayload.put("vehicleNumber", profile.getVehicleNumber());
             eventPayload.put("status", profile.getStatus());
             eventPayload.put("timestamp", now.toString());
 
             String json = objectMapper.writeValueAsString(eventPayload);
-            OutboxEvent outboxEvent = new OutboxEvent("COURIER", profile.getId(), "courier.changed", json);
+            OutboxEvent outboxEvent = new OutboxEvent("COURIER", user.getId(), "courier.changed", "courier.changed", json);
+            outboxEvent.setCorrelationId(eventId.toString());
             outboxEventRepository.save(outboxEvent);
 
-            log.debug("Recorded courier.changed event for courierId={}", profile.getId());
+            log.debug("Recorded courier.changed event for courierId={}", user.getId());
         } catch (Exception e) {
             log.error("Failed to serialize courier.changed event for user {}: {}", user.getId(), e.getMessage(), e);
             throw new RuntimeException("Could not persist courier event", e);
@@ -98,12 +99,12 @@ public class OutboxService {
         Map<String, Object> sanitized = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : details.entrySet()) {
             String key = entry.getKey().toLowerCase();
-            if (key.contains("password") || key.contains("secret") || key.contains("token") || key.contains("hash")) {
-                continue; // strip sensitive fields
+            if (key.contains("password") || key.contains("secret") || key.contains("token") ||
+                key.contains("hash") || key.contains("email") || key.contains("phone")) {
+                continue; // strip sensitive fields and PII
             }
             sanitized.put(entry.getKey(), entry.getValue());
         }
         return sanitized;
     }
 }
-

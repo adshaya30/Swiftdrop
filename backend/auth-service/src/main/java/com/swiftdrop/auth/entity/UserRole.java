@@ -7,7 +7,6 @@ package com.swiftdrop.auth.entity;
 public enum UserRole {
     CUSTOMER,
     MERCHANT,
-    DRIVER,
     COURIER,
     ADMIN
 }

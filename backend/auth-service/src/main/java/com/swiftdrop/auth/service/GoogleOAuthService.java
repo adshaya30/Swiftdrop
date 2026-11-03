@@ -155,9 +155,9 @@ public class GoogleOAuthService {
             return new GoogleCallbackResult(frontendUrl + "/login?error=google_failed", null);
         }
 
-        // 3. Look up state in database and verify expiration
+        // 3. Atomically look up state in database with row lock (prevents concurrent race / replay attack)
         String stateHash = sha256Hex(state);
-        Optional<OAuthLoginState> stateOpt = oAuthLoginStateRepository.findByStateHash(stateHash);
+        Optional<OAuthLoginState> stateOpt = oAuthLoginStateRepository.findByStateHashForUpdate(stateHash);
         if (stateOpt.isEmpty()) {
             log.warn("OAuth state record not found (possible replay attack)");
             return new GoogleCallbackResult(frontendUrl + "/login?error=google_failed", null);

@@ -77,7 +77,7 @@ public class AdminUserService {
             }
 
             if (query != null && !query.isBlank()) {
-                String pattern = "%" + query.trim().toLowerCase() + "%";
+                String pattern = query.trim().toLowerCase() + "%";
                 var nameLike = cb.like(cb.lower(root.get("fullName")), pattern);
                 var emailLike = cb.like(cb.lower(root.get("email")), pattern);
                 predicates = cb.and(predicates, cb.or(nameLike, emailLike));
@@ -152,7 +152,7 @@ public class AdminUserService {
                 actorId,
                 savedUser.getId(),
                 targetRole.name(),
-                Map.of("email", normalisedEmail)
+                Map.of("role", targetRole.name(), "status", savedUser.getStatus().name())
         );
 
         log.info("Admin {} created user {} with role {}", actorId, savedUser.getId(), targetRole);
@@ -276,10 +276,9 @@ public class AdminUserService {
         CourierProfile courierProfile = null;
         if (user.getRole() == UserRole.COURIER) {
             courierProfile = courierProfileRepository.findByUserId(userId).orElse(null);
-            UUID courierIdToCheck = courierProfile != null ? courierProfile.getId() : userId;
 
-            // Call delivery-service cross-service dependency (Flow 4.6)
-            int activeDeliveries = deliveryServiceClient.getActiveDeliveriesCount(courierIdToCheck);
+            // Call delivery-service cross-service dependency using courier user UUID (Flow 4.6)
+            int activeDeliveries = deliveryServiceClient.getActiveDeliveriesCount(userId);
             if (activeDeliveries > 0) {
                 log.warn("Cannot deactivate courier {}: {} active deliveries in progress", userId, activeDeliveries);
                 throw new CourierHasActiveDeliveriesException(activeDeliveries);
@@ -328,13 +327,13 @@ public class AdminUserService {
         int revokedCount = refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
         log.info("Password reset by admin {} for user {}. Revoked {} refresh token(s).", actorId, userId, revokedCount);
 
-        // Record audit event WITHOUT temporary password
+        // Record audit event WITHOUT temporary password or PII
         outboxService.recordAuditEvent(
                 "PASSWORD_RESET",
                 actorId,
                 userId,
                 user.getRole().name(),
-                Map.of("targetEmail", user.getEmail())
+                Map.of("action", "RESET_BY_ADMIN")
         );
 
         return new ResetPasswordResponse(

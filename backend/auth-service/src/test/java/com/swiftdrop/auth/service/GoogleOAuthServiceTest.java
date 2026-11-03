@@ -202,7 +202,7 @@ class GoogleOAuthServiceTest {
         @Test
         @DisplayName("handleCallback redirects with google_failed when state is not found or already consumed")
         void handleCallback_stateNotFound_redirectsWithFailed() {
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.empty());
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.empty());
 
             GoogleCallbackResult result = googleOAuthService.handleCallback(
                     "code123",
@@ -226,7 +226,7 @@ class GoogleOAuthServiceTest {
                     "verifier123",
                     now.minusSeconds(10)
             );
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.of(expiredState));
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.of(expiredState));
 
             GoogleCallbackResult result = googleOAuthService.handleCallback(
                     "code123",
@@ -276,7 +276,7 @@ class GoogleOAuthServiceTest {
                     "verifier123",
                     now.plusSeconds(100)
             );
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.of(validState));
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.of(validState));
             when(googleOidcVerifier.verifyIdToken("mock-id-token", "nonce123")).thenReturn(claims);
 
             // User does not exist by google_sub
@@ -339,7 +339,7 @@ class GoogleOAuthServiceTest {
                     "verifier123",
                     now.plusSeconds(100)
             );
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.of(validState));
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.of(validState));
             when(googleOidcVerifier.verifyIdToken("mock-id-token", "nonce123")).thenReturn(claims);
 
             User googleUser = new User();
@@ -402,7 +402,7 @@ class GoogleOAuthServiceTest {
                     "verifier123",
                     now.plusSeconds(100)
             );
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.of(validState));
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.of(validState));
             when(googleOidcVerifier.verifyIdToken("mock-id-token", "nonce123")).thenReturn(claims);
 
             when(userRepository.findByGoogleSub("google-sub-brand-new")).thenReturn(Optional.empty());
@@ -475,7 +475,7 @@ class GoogleOAuthServiceTest {
                     "verifier123",
                     now.plusSeconds(100)
             );
-            when(oAuthLoginStateRepository.findByStateHash(any())).thenReturn(Optional.of(validState));
+            when(oAuthLoginStateRepository.findByStateHashForUpdate(any())).thenReturn(Optional.of(validState));
             when(googleOidcVerifier.verifyIdToken("mock-id-token", "nonce123")).thenReturn(claims);
 
             User deactivatedUser = new User();

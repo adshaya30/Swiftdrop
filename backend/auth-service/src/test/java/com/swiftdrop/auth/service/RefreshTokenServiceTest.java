@@ -200,6 +200,30 @@ class RefreshTokenServiceTest {
     }
 
     @Test
+    @DisplayName("Rotate near 30-day family deadline caps rotated token expiry at family absolute expiry")
+    void rotate_nearFamilyExpiry_capsExpiryAtFamilyDeadline() {
+        RefreshToken token = createSampleToken();
+        token.setUsedAt(null);
+        Instant now = Instant.now();
+        // Started 28 days ago, family max 30 days -> only 2 days left
+        Instant familyStart = now.minus(28, ChronoUnit.DAYS);
+        token.setFamilyCreatedAt(familyStart);
+        Instant expectedAbsoluteExpiry = familyStart.plus(30, ChronoUnit.DAYS);
+
+        when(refreshTokenRepository.findByTokenHashWithLock(anyString())).thenReturn(Optional.of(token));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(jwtTokenService.issueAccessToken(any(), any(), anyBoolean(), any())).thenReturn("access-jwt");
+
+        RefreshResult result = refreshTokenService.rotate("valid-raw-token", "UA", "127.0.0.1");
+
+        ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
+        verify(refreshTokenRepository, times(2)).save(captor.capture());
+
+        RefreshToken savedNewToken = captor.getAllValues().get(1);
+        assertThat(savedNewToken.getExpiresAt()).isBeforeOrEqualTo(expectedAbsoluteExpiry);
+    }
+
+    @Test
     @DisplayName("Rotate for DEACTIVATED user revokes family and throws")
     void rotate_deactivatedUser_revokesFamilyAndThrows() {
         RefreshToken token = createSampleToken();

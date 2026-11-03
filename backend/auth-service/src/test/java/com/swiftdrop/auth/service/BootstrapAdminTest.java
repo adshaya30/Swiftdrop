@@ -91,13 +91,15 @@ class BootstrapAdminTest {
         assertThat(created.isMustChangePassword()).isTrue();
         assertThat(passwordEncoder.matches("ValidSecret123!", created.getPasswordHash())).isTrue();
 
+        ArgumentCaptor<Map> mapCaptor = ArgumentCaptor.forClass(Map.class);
         verify(outboxService).recordAuditEvent(
                 eq("BOOTSTRAP_ADMIN_CREATED"),
                 eq(savedUser.getId()),
                 eq(savedUser.getId()),
                 eq("ADMIN"),
-                any(Map.class)
+                mapCaptor.capture()
         );
+        assertThat(mapCaptor.getValue()).doesNotContainKey("email");
     }
 
     @Test

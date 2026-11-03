@@ -7,16 +7,14 @@ import java.util.UUID;
 /**
  * Entity representing a courier's operational profile (vehicle info, status).
  * SRS v2.1 – Section 6.3, FR-AUTH-020
+ * Primary key is userId referencing users(id).
  */
 @Entity
 @Table(name = "courier_profiles")
 public class CourierProfile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(name = "vehicle_type", nullable = false, length = 50)
@@ -55,8 +53,8 @@ public class CourierProfile {
         this.status = status;
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() { return userId; }
+    public void setId(UUID id) { this.userId = id; }
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
@@ -73,4 +71,3 @@ public class CourierProfile {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
-
