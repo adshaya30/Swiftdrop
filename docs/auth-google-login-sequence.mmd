@@ -1,0 +1,66 @@
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant SPA as Frontend SPA (/login)
+    participant AuthCtrl as AuthController
+    participant OAuthSvc as GoogleOAuthService
+    participant DB as PostgreSQL (oauth_login_states, users, refresh_tokens)
+    participant Google as Google Identity (OAuth 2.0 / OIDC)
+
+    %% Step 1: User initiates Google Login
+    User->>SPA: Clicks "Continue with Google"
+    SPA->>AuthCtrl: GET /api/v1/auth/google/login
+    AuthCtrl->>OAuthSvc: initiateLogin()
+    Note over OAuthSvc: Generate PKCE code_verifier,<br/>derive code_challenge (S256),<br/>generate random state & nonce
+    OAuthSvc->>DB: INSERT oauth_login_states (state_hash, code_verifier, nonce, expires_at=now+5m)
+    OAuthSvc-->>AuthCtrl: Authorization URL + raw state
+    AuthCtrl-->>User: 302 Found (Google Auth URL)<br/>Set-Cookie: sd_oauth={state}; HttpOnly; SameSite=Lax; Path=/api/v1/auth/google; Max-Age=300
+
+    %% Step 2: Authentication on Google
+    User->>Google: Authenticate & Consent (PKCE challenge passed)
+    Google-->>User: 302 Found redirect to /api/v1/auth/google/callback?code={auth_code}&state={state}
+
+    %% Step 3: Callback Processing
+    User->>AuthCtrl: GET /api/v1/auth/google/callback?code={code}&state={state}<br/>Cookie: sd_oauth={state}
+    AuthCtrl->>OAuthSvc: handleCallback(code, state, cookieState, error, ip, userAgent)
+    
+    Note over OAuthSvc: Verify state == cookieState (CSRF protection)
+    OAuthSvc->>DB: SELECT & DELETE oauth_login_states WHERE state_hash = SHA256(state)
+    Note over OAuthSvc: Validate state exists and expires_at > now (One-time use)
+
+    %% Step 4: Token Exchange with Google
+    OAuthSvc->>Google: POST https://oauth2.googleapis.com/token<br/>(code, code_verifier, client_id, client_secret, redirect_uri)
+    Google-->>OAuthSvc: 200 OK (id_token, access_token)
+    
+    Note over OAuthSvc: Validate ID token (RS256 cert, issuer,<br/>audience, expiration, nonce match,<br/>email_verified = true)
+
+    %% Step 5: Account Resolution Rules (FR-AUTH-010)
+    alt User exists by google_sub
+        OAuthSvc->>DB: SELECT * FROM users WHERE google_sub = {sub}
+        alt User is DEACTIVATED
+            OAuthSvc-->>AuthCtrl: 302 Redirect /login?error=account_deactivated
+        else User is ACTIVE
+            Note over OAuthSvc: Proceed with login
+        end
+    else Email exists with auth_provider == LOCAL
+        OAuthSvc->>DB: SELECT * FROM users WHERE LOWER(email) = LOWER({email})
+        Note over OAuthSvc: Account Takeover Prevention (FR-AUTH-010):<br/>Do NOT overwrite password or link accounts
+        OAuthSvc-->>AuthCtrl: 302 Redirect /login?error=account_exists
+    else New Customer
+        OAuthSvc->>DB: INSERT users (full_name, email, role=CUSTOMER, status=ACTIVE, auth_provider=GOOGLE, google_sub)
+    end
+
+    %% Step 6: Session Issuance
+    Note over OAuthSvc: Generate 256-bit opaque refresh token
+    OAuthSvc->>DB: INSERT refresh_tokens (token_hash, user_id, family_id, expires_at=now+7d)
+    OAuthSvc-->>AuthCtrl: Redirect URL (/auth/callback) + raw refresh token
+    AuthCtrl-->>User: 302 Found (http://localhost:5173/auth/callback)<br/>Set-Cookie: sd_refresh={token}; HttpOnly; SameSite=Strict; Path=/api/v1/auth; Max-Age=7d<br/>Set-Cookie: sd_oauth=; Max-Age=0 (cleared)
+
+    %% Step 7: SPA Silent Hydration
+    User->>SPA: Browser lands on /auth/callback
+    SPA->>AuthCtrl: POST /api/v1/auth/refresh (Cookie: sd_refresh)
+    AuthCtrl->>DB: Rotate refresh token in DB
+    AuthCtrl-->>SPA: 200 OK (access_token in JSON body, user summary)
+    Note over SPA: Store RS256 access token in memory (never localStorage)<br/>Navigate to /customer portal
+    SPA-->>User: Render Customer Portal dashboard
+

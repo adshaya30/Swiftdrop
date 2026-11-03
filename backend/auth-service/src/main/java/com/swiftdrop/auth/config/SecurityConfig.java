@@ -33,6 +33,12 @@ public class SecurityConfig {
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout"
                 ).permitAll()
+                // Public OAuth & auth config endpoints (FR-AUTH-009, FR-AUTH-011)
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/auth/config",
+                        "/api/v1/auth/google/login",
+                        "/api/v1/auth/google/callback"
+                ).permitAll()
                 // Actuator health for orchestration
                 .requestMatchers("/actuator/health").permitAll()
                 // All other requests require authentication

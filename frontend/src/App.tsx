@@ -4,6 +4,7 @@ import PublicLayout from './layouts/PublicLayout';
 import AppLayout from './layouts/AppLayout';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -177,6 +178,16 @@ function App() {
                   <LoginPage />
                 </PublicLayout>
               </PublicOnlyRoute>
+            }
+          />
+
+          {/* Google OAuth Callback (Flow 4.5, FR-AUTH-009) */}
+          <Route
+            path="/auth/callback"
+            element={
+              <PublicLayout>
+                <AuthCallbackPage />
+              </PublicLayout>
             }
           />
 

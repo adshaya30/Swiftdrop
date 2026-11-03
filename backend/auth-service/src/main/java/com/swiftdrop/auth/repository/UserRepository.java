@@ -23,6 +23,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmailIgnoreCase(@Param("email") String email);
 
     /**
+     * Finds user by their verified Google subject identifier (sub).
+     * SRS v2.1 – FR-AUTH-009, FR-AUTH-010
+     */
+    Optional<User> findByGoogleSub(String googleSub);
+
+    /**
      * Simple existence check used for duplicate-email guard before insert.
      */
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.email) = LOWER(:email)")

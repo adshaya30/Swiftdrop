@@ -68,6 +68,12 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<!-- Spring Security OAuth2 JOSE (provides Nimbus JOSE+JWT for robust OIDC ID token validation) -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+
 		<!-- Actuator -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
