@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import {
   adminService,
@@ -73,6 +74,30 @@ export default function AdminUsersPage() {
   // Copy temporary password indicator
   const [copied, setCopied] = useState(false);
 
+  const getApiErrorMessage = (err: unknown, fallback: string): string => {
+    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
+      const data = err.response.data as { message?: unknown };
+      if (typeof data.message === 'string' && data.message.trim()) {
+        return data.message;
+      }
+    }
+
+    if (err instanceof Error && err.message.trim()) {
+      return err.message;
+    }
+
+    return fallback;
+  };
+
+  const getApiErrorCode = (err: unknown): string | undefined => {
+    if (!axios.isAxiosError(err) || !err.response?.data || typeof err.response.data !== 'object') {
+      return undefined;
+    }
+
+    const data = err.response.data as { code?: unknown };
+    return typeof data.code === 'string' ? data.code : undefined;
+  };
+
   // Fetch users function
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -88,15 +113,21 @@ export default function AdminUsersPage() {
       setUsers(response.content);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load user directory');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to load user directory'));
     } finally {
       setLoading(false);
     }
   }, [page, roleFilter, statusFilter, searchQuery]);
 
   useEffect(() => {
-    fetchUsers();
+    const timeoutId = setTimeout(() => {
+      void fetchUsers();
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [fetchUsers]);
 
   // Handle open create modal
@@ -149,8 +180,8 @@ export default function AdminUsersPage() {
         title: `Account Created for ${res.user.fullName}`,
       });
       fetchUsers();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to create user.';
+    } catch (err: unknown) {
+      const msg = getApiErrorMessage(err, 'Failed to create user.');
       setCreateError(msg);
     } finally {
       setCreateSubmitting(false);
@@ -196,8 +227,8 @@ export default function AdminUsersPage() {
       await adminService.editUser(selectedUser.id, payload);
       setShowEditModal(false);
       fetchUsers();
-    } catch (err: any) {
-      setEditError(err?.response?.data?.message || err?.message || 'Failed to update user.');
+    } catch (err: unknown) {
+      setEditError(getApiErrorMessage(err, 'Failed to update user.'));
     } finally {
       setEditSubmitting(false);
     }
@@ -208,8 +239,8 @@ export default function AdminUsersPage() {
     try {
       await adminService.activateUser(target.id);
       fetchUsers();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to activate user.');
+    } catch (err: unknown) {
+      alert(getApiErrorMessage(err, 'Failed to activate user.'));
     }
   };
 
@@ -230,8 +261,8 @@ export default function AdminUsersPage() {
       await adminService.deactivateUser(selectedUser.id);
       setShowDeactivateModal(false);
       fetchUsers();
-    } catch (err: any) {
-      const errCode = err?.response?.data?.code;
+    } catch (err: unknown) {
+      const errCode = getApiErrorCode(err);
       if (errCode === 'COURIER_HAS_ACTIVE_DELIVERIES') {
         setDeactivateError(
           'Cannot deactivate courier: The courier currently has deliveries in progress. All active deliveries must be completed or reassigned first.'
@@ -243,7 +274,7 @@ export default function AdminUsersPage() {
       } else if (errCode === 'SELF_DEACTIVATION_NOT_ALLOWED') {
         setDeactivateError('You cannot deactivate your own administrator account.');
       } else {
-        setDeactivateError(err?.response?.data?.message || 'Failed to deactivate user.');
+        setDeactivateError(getApiErrorMessage(err, 'Failed to deactivate user.'));
       }
     } finally {
       setDeactivateSubmitting(false);
@@ -273,8 +304,8 @@ export default function AdminUsersPage() {
         title: `Password Reset for ${selectedUser.fullName}`,
       });
       fetchUsers();
-    } catch (err: any) {
-      setResetError(err?.response?.data?.message || 'Failed to reset user password.');
+    } catch (err: unknown) {
+      setResetError(getApiErrorMessage(err, 'Failed to reset user password.'));
     } finally {
       setResetSubmitting(false);
     }
@@ -949,4 +980,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
