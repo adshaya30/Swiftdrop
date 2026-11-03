@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getAuthConfig, type ApiError } from '../services/authService';
+import SwiftDropLogo from '../components/SwiftDropLogo';
 import './LoginPage.css';
 
 interface LoginForm {
@@ -179,8 +180,13 @@ export default function LoginPage() {
 
   return (
     <div className="login-card">
-      <h1 className="login-title">Sign In</h1>
-      <p className="login-subtitle">Enter your email and password to access your SwiftDrop account</p>
+      <div className="login-brand-header">
+        <SwiftDropLogo variant="dark" size="lg" />
+        <p className="login-tagline">Deliver smarter. Live better.</p>
+      </div>
+
+      <h1 className="login-title">Login</h1>
+      <p className="login-subtitle">Enter your credentials to access your SwiftDrop account</p>
 
       {/* General Alert */}
       {errors.general && (
@@ -216,10 +222,10 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            Continue with Google
+            Login with Google
           </a>
           <div className="login-divider">
-            <span>or sign in with email</span>
+            <span>or</span>
           </div>
         </>
       )}
@@ -297,7 +303,7 @@ export default function LoginPage() {
               Signing in…
             </span>
           ) : (
-            'Sign In'
+            'Login'
           )}
         </button>
       </form>
@@ -307,7 +313,7 @@ export default function LoginPage() {
         <p>
           Don&apos;t have an account?{' '}
           <Link to="/register" className="login-link">
-            Create an account
+            Sign Up
           </Link>
         </p>
       </div>

@@ -1,29 +1,30 @@
+/* AuthCallbackPage.css – SwiftDrop Design System */
+
 .auth-callback-container {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  padding: 2rem 1rem;
+  padding: 1.5rem;
 }
 
 .auth-callback-card {
+  width: min(100%, 26rem);
+  background: #FFFFFF;
+  border: 1px solid var(--sd-border, #E2E8F0);
+  border-radius: var(--sd-radius-card, 14px);
+  padding: 2.5rem 2rem;
+  box-shadow: var(--sd-shadow-card);
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  background: var(--surface, #1e293b);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-  border-radius: 0.75rem;
-  padding: 3rem 2.5rem;
-  max-width: 440px;
-  width: 100%;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  gap: 1.25rem;
 }
 
 .auth-callback-hint {
-  margin-top: 1.25rem;
-  color: var(--text-muted, #94a3b8);
+  margin: 0;
   font-size: 0.875rem;
+  color: var(--sd-text-secondary, #64748B);
   line-height: 1.5;
 }
-

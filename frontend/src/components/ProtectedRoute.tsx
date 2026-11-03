@@ -1,7 +1,7 @@
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getRoleHomePath, type UserRole } from '../utils/roleUtils';
+import { type UserRole, getRoleHomePath } from '../utils/roleUtils';
 import LoadingSpinner from './LoadingSpinner';
 
 interface ProtectedRouteProps {
@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
  * Route guard enforcing:
  * 1. Session initialization wait (no flash of login screen)
  * 2. Authentication check (redirects to /login preserving target location)
- * 3. Forced password change redirect (FR-AUTH-003 / Member 2 contract)
+ * 3. Forced password change redirect (FR-AUTH-003 / FR-AUTH-014)
  * 4. Role-based authorization check (FR-UI-002)
  */
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Contract for Member 2: force password change if flagged
+  // Force password change if flagged by backend policy
   if (user.mustChangePassword && location.pathname !== '/change-password') {
     return <Navigate to="/change-password" state={{ from: location }} replace />;
   }
@@ -44,4 +44,3 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   return <>{children}</>;
 }
-
