@@ -25,10 +25,6 @@ export default function ProfilePage() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
   const loadProfile = async () => {
     setLoading(true);
     setGeneralError(null);
@@ -50,6 +46,16 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      void loadProfile();
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
