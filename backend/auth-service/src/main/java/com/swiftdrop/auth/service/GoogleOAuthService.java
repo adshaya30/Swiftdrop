@@ -213,7 +213,7 @@ public class GoogleOAuthService {
             // Check if email already belongs to a LOCAL account
             Optional<User> userByEmail = userRepository.findByEmailIgnoreCase(email);
             if (userByEmail.isPresent()) {
-                log.warn("Google login conflict: email {} already registered with LOCAL credentials", email);
+                log.warn("Google login conflict: account already registered with LOCAL credentials for user {}", userByEmail.get().getId());
                 return new GoogleCallbackResult(frontendUrl + "/login?error=account_exists", null);
             }
 

@@ -68,7 +68,7 @@ export interface ResetPasswordResponse {
 
 export const adminService = {
   async listUsers(params?: ListUsersParams): Promise<PageResponse<AdminUserSummary>> {
-    const response = await api.get<PageResponse<AdminUserSummary>>('/api/v1/admin/users', {
+    const response = await api.get<PageResponse<AdminUserSummary>>('/admin/users', {
       params: {
         page: params?.page ?? 0,
         size: params?.size ?? 10,
@@ -81,32 +81,32 @@ export const adminService = {
   },
 
   async getUser(id: string): Promise<AdminUserSummary> {
-    const response = await api.get<AdminUserSummary>(`/api/v1/admin/users/${id}`);
+    const response = await api.get<AdminUserSummary>(`/admin/users/${id}`);
     return response.data;
   },
 
   async createUser(payload: CreateUserPayload): Promise<CreateUserResponse> {
-    const response = await api.post<CreateUserResponse>('/api/v1/admin/users', payload);
+    const response = await api.post<CreateUserResponse>('/admin/users', payload);
     return response.data;
   },
 
   async editUser(id: string, payload: EditUserPayload): Promise<AdminUserSummary> {
-    const response = await api.patch<AdminUserSummary>(`/api/v1/admin/users/${id}`, payload);
+    const response = await api.patch<AdminUserSummary>(`/admin/users/${id}`, payload);
     return response.data;
   },
 
   async activateUser(id: string): Promise<AdminUserSummary> {
-    const response = await api.post<AdminUserSummary>(`/api/v1/admin/users/${id}/activate`);
+    const response = await api.post<AdminUserSummary>(`/admin/users/${id}/activate`);
     return response.data;
   },
 
   async deactivateUser(id: string): Promise<AdminUserSummary> {
-    const response = await api.post<AdminUserSummary>(`/api/v1/admin/users/${id}/deactivate`);
+    const response = await api.post<AdminUserSummary>(`/admin/users/${id}/deactivate`);
     return response.data;
   },
 
   async resetPassword(id: string): Promise<ResetPasswordResponse> {
-    const response = await api.post<ResetPasswordResponse>(`/api/v1/admin/users/${id}/reset-password`);
+    const response = await api.post<ResetPasswordResponse>(`/admin/users/${id}/reset-password`);
     return response.data;
   },
 };

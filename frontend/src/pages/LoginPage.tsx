@@ -58,6 +58,11 @@ export default function LoginPage() {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  const googleLoginUrl = apiBase && !apiBase.startsWith('/')
+    ? `${apiBase.replace(/\/api\/v1\/?$/, '')}/api/v1/auth/google/login`
+    : '/api/v1/auth/google/login';
+
   // Check public auth configuration for Google OAuth availability (FR-AUTH-011)
   useEffect(() => {
     let active = true;
@@ -192,7 +197,7 @@ export default function LoginPage() {
       {/* Google OAuth Login Button (FR-AUTH-009, FR-AUTH-011) */}
       {googleEnabled && (
         <>
-          <a href="/api/v1/auth/google/login" className="google-login-btn">
+          <a href={googleLoginUrl} className="google-login-btn">
             <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"

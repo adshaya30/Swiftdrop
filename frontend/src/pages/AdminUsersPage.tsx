@@ -7,6 +7,7 @@ import {
   type CreateUserPayload,
   type EditUserPayload,
 } from '../services/adminService';
+import { extractApiError } from '../utils/errorUtils';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import './AdminUsersPage.css';
@@ -74,21 +75,6 @@ export default function AdminUsersPage() {
   // Copy temporary password indicator
   const [copied, setCopied] = useState(false);
 
-  const getApiErrorMessage = (err: unknown, fallback: string): string => {
-    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
-      const data = err.response.data as { message?: unknown };
-      if (typeof data.message === 'string' && data.message.trim()) {
-        return data.message;
-      }
-    }
-
-    if (err instanceof Error && err.message.trim()) {
-      return err.message;
-    }
-
-    return fallback;
-  };
-
   const getApiErrorCode = (err: unknown): string | undefined => {
     if (!axios.isAxiosError(err) || !err.response?.data || typeof err.response.data !== 'object') {
       return undefined;
@@ -114,7 +100,8 @@ export default function AdminUsersPage() {
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Failed to load user directory'));
+      const apiErr = extractApiError(err, 'Failed to load user directory');
+      setError(apiErr.detail);
     } finally {
       setLoading(false);
     }
@@ -181,8 +168,8 @@ export default function AdminUsersPage() {
       });
       fetchUsers();
     } catch (err: unknown) {
-      const msg = getApiErrorMessage(err, 'Failed to create user.');
-      setCreateError(msg);
+      const apiErr = extractApiError(err, 'Failed to create user.');
+      setCreateError(apiErr.detail);
     } finally {
       setCreateSubmitting(false);
     }
@@ -228,7 +215,8 @@ export default function AdminUsersPage() {
       setShowEditModal(false);
       fetchUsers();
     } catch (err: unknown) {
-      setEditError(getApiErrorMessage(err, 'Failed to update user.'));
+      const apiErr = extractApiError(err, 'Failed to update user.');
+      setEditError(apiErr.detail);
     } finally {
       setEditSubmitting(false);
     }
@@ -240,7 +228,8 @@ export default function AdminUsersPage() {
       await adminService.activateUser(target.id);
       fetchUsers();
     } catch (err: unknown) {
-      alert(getApiErrorMessage(err, 'Failed to activate user.'));
+      const apiErr = extractApiError(err, 'Failed to activate user.');
+      alert(apiErr.detail);
     }
   };
 
@@ -274,7 +263,8 @@ export default function AdminUsersPage() {
       } else if (errCode === 'SELF_DEACTIVATION_NOT_ALLOWED') {
         setDeactivateError('You cannot deactivate your own administrator account.');
       } else {
-        setDeactivateError(getApiErrorMessage(err, 'Failed to deactivate user.'));
+        const apiErr = extractApiError(err, 'Failed to deactivate user.');
+        setDeactivateError(apiErr.detail);
       }
     } finally {
       setDeactivateSubmitting(false);
@@ -305,7 +295,8 @@ export default function AdminUsersPage() {
       });
       fetchUsers();
     } catch (err: unknown) {
-      setResetError(getApiErrorMessage(err, 'Failed to reset user password.'));
+      const apiErr = extractApiError(err, 'Failed to reset user password.');
+      setResetError(apiErr.detail);
     } finally {
       setResetSubmitting(false);
     }
