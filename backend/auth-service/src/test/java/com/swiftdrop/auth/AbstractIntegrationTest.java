@@ -4,23 +4,24 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base class for integration tests that need a real PostgreSQL database.
- * Uses Testcontainers to spin up a PostgreSQL 16 container.
+ * Uses Testcontainers singleton pattern to share a single container across
+ * test classes without JUnit stopping it prematurely while Spring context is cached.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16")
-                    .withDatabaseName("swiftdrop_auth_test")
-                    .withUsername("test")
-                    .withPassword("test");
+    public static final PostgreSQLContainer<?> POSTGRES;
+
+    static {
+        POSTGRES = new PostgreSQLContainer<>("postgres:16")
+                .withDatabaseName("swiftdrop_auth_test")
+                .withUsername("test")
+                .withPassword("test");
+        POSTGRES.start();
+    }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

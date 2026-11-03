@@ -18,6 +18,27 @@ export interface UserSummary {
   createdAt: string;
 }
 
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface LoginUserSummary {
+  id: string;
+  fullName: string;
+  role: string;
+  mustChangePassword?: boolean;
+  merchantStatus?: string;
+  merchantId?: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: LoginUserSummary;
+}
+
 export interface ApiError {
   type: string;
   title: string;
@@ -36,5 +57,15 @@ export interface ApiError {
  */
 export async function registerCustomer(payload: RegistrationPayload): Promise<UserSummary> {
   const response = await api.post<UserSummary>('/api/v1/auth/register', payload);
+  return response.data;
+}
+
+/**
+ * POST /api/v1/auth/login
+ * Authenticates user credentials and issues RS256 JWT access token.
+ * Refresh token is set in HttpOnly cookie 'sd_refresh'.
+ */
+export async function loginCustomer(payload: LoginPayload): Promise<LoginResponse> {
+  const response = await api.post<LoginResponse>('/api/v1/auth/login', payload);
   return response.data;
 }

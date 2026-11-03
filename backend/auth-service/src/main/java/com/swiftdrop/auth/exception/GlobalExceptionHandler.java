@@ -48,6 +48,109 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
+    // HTTP 401 – Invalid credentials (FR-AUTH-004)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(
+            InvalidCredentialsException ex, HttpServletRequest request) {
+
+        log.warn("Failed login attempt at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(problem(
+                        HttpStatus.UNAUTHORIZED,
+                        "INVALID_CREDENTIALS",
+                        "Invalid email or password",
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 429 – Account locked (FR-AUTH-005)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountLocked(
+            AccountLockedException ex, HttpServletRequest request) {
+
+        log.warn("Login attempt on locked account at {}, retryAfter={}s",
+                request.getRequestURI(), ex.getRetryAfterSeconds());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(org.springframework.http.HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .body(problem(
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        "ACCOUNT_LOCKED",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 403 – Account deactivated (FR-AUTH-004)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(AccountDeactivatedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountDeactivated(
+            AccountDeactivatedException ex, HttpServletRequest request) {
+
+        log.warn("Login attempt for deactivated account at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(problem(
+                        HttpStatus.FORBIDDEN,
+                        "ACCOUNT_DEACTIVATED",
+                        "Account is deactivated.",
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 403 – Merchant status gate: PENDING, REJECTED, SUSPENDED (FR-AUTH-004)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(MerchantPendingException.class)
+    public ResponseEntity<Map<String, Object>> handleMerchantPending(
+            MerchantPendingException ex, HttpServletRequest request) {
+
+        log.warn("Login attempt for pending merchant account at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(problem(
+                        HttpStatus.FORBIDDEN,
+                        "MERCHANT_PENDING",
+                        "Merchant account is pending approval.",
+                        request.getRequestURI(),
+                        null));
+    }
+
+    @ExceptionHandler(MerchantRejectedException.class)
+    public ResponseEntity<Map<String, Object>> handleMerchantRejected(
+            MerchantRejectedException ex, HttpServletRequest request) {
+
+        log.warn("Login attempt for rejected merchant account at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(problem(
+                        HttpStatus.FORBIDDEN,
+                        "MERCHANT_REJECTED",
+                        "Merchant account was rejected.",
+                        request.getRequestURI(),
+                        null));
+    }
+
+    @ExceptionHandler(MerchantSuspendedException.class)
+    public ResponseEntity<Map<String, Object>> handleMerchantSuspended(
+            MerchantSuspendedException ex, HttpServletRequest request) {
+
+        log.warn("Login attempt for suspended merchant account at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(problem(
+                        HttpStatus.FORBIDDEN,
+                        "MERCHANT_SUSPENDED",
+                        "Merchant account is suspended.",
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
     // HTTP 400 – Invalid phone
     // -----------------------------------------------------------------------
 

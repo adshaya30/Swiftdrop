@@ -31,8 +31,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Registration is public
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                // Public endpoints
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                 // Actuator health for orchestration
                 .requestMatchers("/actuator/health").permitAll()
                 // All other requests require authentication (JWT to be added later)

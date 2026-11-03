@@ -10,6 +10,8 @@ RUN apk add --no-cache wget \
     && adduser -S app -G app
 WORKDIR /app
 COPY --from=build --chown=app:app /workspace/target/*.jar app.jar
+COPY --from=build --chown=app:app /workspace/src/main/resources/certs /app/certs
+ENV JWT_PRIVATE_KEY_PATH=/app/certs/private_key.pem
 USER app
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
