@@ -135,16 +135,16 @@ public class BootstrapAdminService implements ApplicationRunner {
 
         User savedAdmin = userRepository.save(admin);
 
-        // 8. Record audit event
+        // 8. Record audit event (without PII)
         outboxService.recordAuditEvent(
                 "BOOTSTRAP_ADMIN_CREATED",
                 savedAdmin.getId(),
                 savedAdmin.getId(),
                 "ADMIN",
-                Map.of("email", normalisedEmail)
+                Map.of("role", "ADMIN", "status", "ACTIVE")
         );
 
-        log.info("Bootstrap administrator successfully created with email '{}' (mustChangePassword=true)", normalisedEmail);
+        log.info("Bootstrap administrator successfully created with id '{}' (mustChangePassword=true)", savedAdmin.getId());
     }
 }
 

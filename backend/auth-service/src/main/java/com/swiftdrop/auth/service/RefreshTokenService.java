@@ -112,8 +112,9 @@ public class RefreshTokenService {
             throw new UnauthenticatedException("Refresh token has expired");
         }
 
-        // 4. Enforce 30-day maximum lifetime of the token family (SRS v2.1 FR-AUTH-007)
-        if (Duration.between(token.getFamilyCreatedAt(), now).toDays() >= familyMaxDays) {
+        // 4. Enforce 30-day absolute maximum lifetime of the token family (SRS v2.1 FR-AUTH-007)
+        Instant familyAbsoluteExpiry = token.getFamilyCreatedAt().plus(familyMaxDays, ChronoUnit.DAYS);
+        if (!now.isBefore(familyAbsoluteExpiry)) {
             log.warn("Refresh rejected: token family {} exceeded max lifetime of {} days", token.getFamilyId(), familyMaxDays);
             refreshTokenRepository.revokeFamily(token.getFamilyId(), now);
             throw new UnauthenticatedException("Token family lifetime expired (maximum " + familyMaxDays + " days)");
@@ -180,7 +181,9 @@ public class RefreshTokenService {
         newToken.setFamilyId(token.getFamilyId()); // Same family!
         newToken.setFamilyCreatedAt(token.getFamilyCreatedAt()); // Preserves family start!
         newToken.setTokenHash(newTokenHash);
-        newToken.setExpiresAt(now.plus(REFRESH_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS));
+        Instant standardExpiry = now.plus(REFRESH_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS);
+        Instant effectiveExpiry = standardExpiry.isBefore(familyAbsoluteExpiry) ? standardExpiry : familyAbsoluteExpiry;
+        newToken.setExpiresAt(effectiveExpiry);
         newToken.setCreatedAt(now);
         newToken.setIssuedAt(now);
         newToken.setUserAgent(userAgent);

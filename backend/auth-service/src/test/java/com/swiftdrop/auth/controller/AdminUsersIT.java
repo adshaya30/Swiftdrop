@@ -134,7 +134,8 @@ class AdminUsersIT extends AbstractIntegrationTest {
         assertThat(outboxEvents).isNotEmpty();
         OutboxEvent audit = outboxEvents.get(0);
         assertThat(audit.getPayload()).contains("USER_CREATED");
-        assertThat(audit.getPayload()).contains("secondadmin@swiftdrop.lk");
+        assertThat(audit.getPayload()).doesNotContain("secondadmin@swiftdrop.lk");
+        assertThat(audit.getPayload()).contains("ADMIN");
     }
 
     @Test
@@ -175,8 +176,9 @@ class AdminUsersIT extends AbstractIntegrationTest {
 
         OutboxEvent courierEvent = courierEvents.get(0);
         assertThat(courierEvent.getAggregateType()).isEqualTo("COURIER");
-        assertThat(courierEvent.getAggregateId()).isEqualTo(profile.getId());
+        assertThat(courierEvent.getAggregateId()).isEqualTo(courierUser.getId());
         assertThat(courierEvent.getPayload()).contains("WP-BA-1234");
+        assertThat(courierEvent.getPayload()).doesNotContain("+94778889900");
     }
 
     @Test
