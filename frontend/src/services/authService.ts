@@ -39,6 +39,10 @@ export interface LoginResponse {
   user: LoginUserSummary;
 }
 
+export interface AuthConfig {
+  googleEnabled: boolean;
+}
+
 export interface ApiError {
   type: string;
   title: string;
@@ -103,4 +107,13 @@ export async function logoutCustomer(): Promise<void> {
       },
     }
   );
+}
+
+/**
+ * GET /api/v1/auth/config
+ * Retrieves public auth configuration (FR-AUTH-011).
+ */
+export async function getAuthConfig(): Promise<AuthConfig> {
+  const response = await api.get<AuthConfig>('/auth/config');
+  return response.data;
 }

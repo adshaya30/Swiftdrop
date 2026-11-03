@@ -35,6 +35,13 @@ public class User {
     @Column(name = "password_hash", length = 72)
     private String passwordHash;
 
+    /**
+     * Unique subject identifier from Google OIDC (FR-AUTH-009, FR-AUTH-010).
+     * Null for local accounts.
+     */
+    @Column(name = "google_sub", length = 64)
+    private String googleSub;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private UserRole role = UserRole.CUSTOMER;
@@ -102,6 +109,9 @@ public class User {
 
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getGoogleSub() { return googleSub; }
+    public void setGoogleSub(String googleSub) { this.googleSub = googleSub; }
 
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }

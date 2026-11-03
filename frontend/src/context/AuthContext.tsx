@@ -23,6 +23,7 @@ interface AuthContextType {
   isInitializing: boolean;
   login: (payload: LoginPayload) => Promise<LoginResponse>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<LoginResponse>;
   registeredUser: UserSummary | null;
   setRegisteredUser: (user: UserSummary | null) => void;
 }
@@ -84,6 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
+  const refreshSession = async (): Promise<LoginResponse> => {
+    const data = await refreshToken();
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    setAuthToken(data.accessToken);
+    return data;
+  };
+
   const logout = async (): Promise<void> => {
     try {
       await logoutCustomer();
@@ -105,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isInitializing,
         login,
         logout,
+        refreshSession,
         registeredUser,
         setRegisteredUser,
       }}
