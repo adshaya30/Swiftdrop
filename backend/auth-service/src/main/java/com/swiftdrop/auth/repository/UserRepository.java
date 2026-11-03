@@ -1,7 +1,9 @@
 package com.swiftdrop.auth.repository;
 
 import com.swiftdrop.auth.entity.User;
+import com.swiftdrop.auth.entity.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,9 +14,15 @@ import java.util.UUID;
 
 /**
  * Data access for {@link User} entities.
- * SRS v2.1 – FR-AUTH-001, FR-AUTH-005
+ * SRS v2.1 – FR-AUTH-001, FR-AUTH-005, FR-AUTH-015, FR-AUTH-020
  */
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
+
+    /**
+     * Checks if any user exists with the given role (e.g. ADMIN for bootstrap check).
+     * SRS v2.1 – FR-AUTH-015
+     */
+    boolean existsByRole(UserRole role);
 
     /**
      * Case-insensitive email lookup.

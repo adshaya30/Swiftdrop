@@ -299,6 +299,114 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
+    // HTTP 409 – Courier Has Active Deliveries (FR-AUTH-020, Flow 4.6)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(CourierHasActiveDeliveriesException.class)
+    public ResponseEntity<Map<String, Object>> handleCourierHasActiveDeliveries(
+            CourierHasActiveDeliveriesException ex, HttpServletRequest request) {
+
+        log.warn("Courier deactivation rejected: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(problem(
+                        HttpStatus.CONFLICT,
+                        "COURIER_HAS_ACTIVE_DELIVERIES",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 503 – Delivery Service Unavailable (FR-AUTH-020, Flow 4.6)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(DeliveryServiceUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleDeliveryServiceUnavailable(
+            DeliveryServiceUnavailableException ex, HttpServletRequest request) {
+
+        log.error("Delivery service unavailable during courier check: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(problem(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "SERVICE_UNAVAILABLE",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Cannot Deactivate Self (FR-AUTH-020)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(CannotDeactivateSelfException.class)
+    public ResponseEntity<Map<String, Object>> handleCannotDeactivateSelf(
+            CannotDeactivateSelfException ex, HttpServletRequest request) {
+
+        log.warn("Admin attempted self-deactivation at {}", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "CANNOT_DEACTIVATE_OWN_ACCOUNT",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Invalid User Role (FR-AUTH-020)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidUserRoleException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidUserRole(
+            InvalidUserRoleException ex, HttpServletRequest request) {
+
+        log.warn("Invalid user role requested at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_ROLE",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Invalid User Status Transition (FR-AUTH-020)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(InvalidUserStatusTransitionException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidUserStatusTransition(
+            InvalidUserStatusTransitionException ex, HttpServletRequest request) {
+
+        log.warn("Invalid status transition at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_STATUS_TRANSITION",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP 400 – Illegal Argument / Validation Exception
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+            IllegalArgumentException ex, HttpServletRequest request) {
+
+        log.warn("Validation error at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(problem(
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        null));
+    }
+
+    // -----------------------------------------------------------------------
     // HTTP 400 – Bean Validation (@Valid)
     // -----------------------------------------------------------------------
 
