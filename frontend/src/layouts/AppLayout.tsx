@@ -1,17 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Package,
-  PackagePlus,
   Truck,
   Users,
-  Layers,
-  BarChart2,
   Settings,
-  Radio,
   MapPin,
-  History,
   LogOut,
   Bell,
   Menu,
@@ -31,28 +25,18 @@ interface AppLayoutProps {
 
 function getNavIcon(iconName?: string) {
   switch (iconName) {
-    case 'dashboard':
-      return <LayoutDashboard size={18} />;
     case 'package':
       return <Package size={18} />;
-    case 'package-plus':
-      return <PackagePlus size={18} />;
+    case 'store':
+      return <Store size={18} />;
     case 'truck':
       return <Truck size={18} />;
     case 'users':
       return <Users size={18} />;
-    case 'zones':
-      return <Layers size={18} />;
-    case 'reports':
-      return <BarChart2 size={18} />;
     case 'settings':
       return <Settings size={18} />;
-    case 'webhook':
-      return <Radio size={18} />;
     case 'route':
       return <MapPin size={18} />;
-    case 'history':
-      return <History size={18} />;
     default:
       return <Package size={18} />;
   }
@@ -86,9 +70,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const getPageHeaderTitle = () => {
     if (location.pathname.startsWith('/admin/users')) return 'User Directory';
-    if (location.pathname.startsWith('/admin')) return 'Operations Dashboard';
-    if (location.pathname.startsWith('/merchant')) return 'Merchant Dashboard';
-    if (location.pathname.startsWith('/courier')) return 'Courier Run Console';
+    if (location.pathname.startsWith('/admin')) return 'Admin Console';
+    if (location.pathname.startsWith('/merchant')) return 'Merchant Hub';
+    if (location.pathname.startsWith('/courier')) return 'Courier Portal';
     if (location.pathname.startsWith('/customer')) return 'Customer Portal';
     if (location.pathname === '/profile') return 'My Profile';
     if (location.pathname === '/change-password') return 'Change Password';
@@ -103,7 +87,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </a>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Dark Navy Sidebar (Matches Reference Image)                       */}
+      {/* Dark Navy Sidebar                                                  */}
       {/* ------------------------------------------------------------------ */}
       <aside className={`sd-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`} aria-label="Sidebar Navigation">
         <div className="sd-sidebar-header">
@@ -120,7 +104,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Navigation list */}
         <nav className="sd-sidebar-nav" aria-label="Role Navigation">
-          <div className="sd-sidebar-group-title">Menu</div>
+          <div className="sd-sidebar-group-title">Navigation</div>
           {visibleNavItems.map(item => (
             <NavLink
               key={item.path}
@@ -176,20 +160,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <Menu size={22} />
             </button>
             <div className="sd-topbar-title-row">
-              {userRole === 'MERCHANT' && <Store size={18} className="sd-topbar-icon" />}
               <h1 className="sd-topbar-title">{getPageHeaderTitle()}</h1>
             </div>
           </div>
 
           <div className="sd-topbar-right">
-            {/* Store selector pill for merchant */}
-            {userRole === 'MERCHANT' && (
-              <div className="sd-store-selector" title="Active Store">
-                <span>ABC Online Store</span>
-                <span className="sd-chevron">▾</span>
-              </div>
-            )}
-
             {/* Notification Bell */}
             <button
               type="button"

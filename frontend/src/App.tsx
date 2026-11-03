@@ -1,36 +1,109 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import PublicLayout from './layouts/PublicLayout';
 import AppLayout from './layouts/AppLayout';
-import HomePage from './pages/HomePage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import AdminUsersPage from './pages/AdminUsersPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import MerchantDashboardPage from './pages/MerchantDashboardPage';
-import CourierDashboardPage from './pages/CourierDashboardPage';
-import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
+import LoadingSpinner from './components/LoadingSpinner';
+import EmptyState from './components/EmptyState';
+import SwiftDropLogo from './components/SwiftDropLogo';
+import { getRoleHomePath, ROLE_LABELS, type UserRole } from './utils/roleUtils';
 import './App.css';
+
+/**
+ * Public Landing / Welcome View — Shared frontend foundation
+ * Redesigned with SwiftDrop brand identity, official transparent logo, and tokens.
+ */
+function HomePage() {
+  const { user, isAuthenticated, isInitializing } = useAuth();
+
+  if (isInitializing) {
+    return <LoadingSpinner fullScreen label="Restoring session…" />;
+  }
+
+  const roleHome = getRoleHomePath(user?.role);
+  const roleLabel = user?.role ? (ROLE_LABELS[user.role as UserRole] || user.role) : '';
+
+  return (
+    <PublicLayout>
+      <div className="home-page">
+        <section className="welcome-card" aria-labelledby="welcome-title">
+          <div className="welcome-logo-wrap">
+            <SwiftDropLogo variant="dark" size="lg" />
+            <p className="welcome-tagline">Deliver smarter. Live better.</p>
+          </div>
+
+          <h1 id="welcome-title">
+            {isAuthenticated ? `Welcome back, ${user?.fullName}!` : 'Fast Delivery. Everywhere.'}
+          </h1>
+          <p className="welcome-subtitle">
+            Island-wide parcel delivery &amp; courier management platform
+          </p>
+
+          {isAuthenticated ? (
+            <div className="welcome-auth-actions">
+              <div className="welcome-role-badge">
+                Active Role: <strong>{roleLabel}</strong> &bull; User ID: <code>{user?.id}</code>
+              </div>
+
+              <Link to={roleHome} className="sd-btn sd-btn-primary welcome-portal-btn">
+                Go to {roleLabel} Portal &rarr;
+              </Link>
+            </div>
+          ) : (
+            <div className="welcome-guest-actions">
+              <Link to="/login" className="sd-btn sd-btn-primary">
+                Sign In &rarr;
+              </Link>
+              <Link to="/register" className="sd-btn sd-btn-secondary">
+                Register as Customer
+              </Link>
+            </div>
+          )}
+        </section>
+      </div>
+    </PublicLayout>
+  );
+}
+
+/**
+ * Placeholder component for role-specific portals.
+ * Enforces route guard boundaries while awaiting page implementations from respective workstreams.
+ */
+function RolePortalPlaceholder({ title, description, icon }: { title: string; description: string; icon: string }) {
+  const { user } = useAuth();
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--sd-navy, #172033)', marginBottom: '0.5rem' }}>
+        {title}
+      </h2>
+      <p style={{ color: 'var(--sd-text-secondary, #64748B)', marginBottom: '1.5rem' }}>
+        Authenticated user: <strong>{user?.fullName}</strong> ({user?.role})
+      </p>
+
+      <EmptyState
+        icon={icon}
+        title={title}
+        description={description}
+      />
+    </div>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Home Landing Page (Matches Top-Left & Top-Right of Reference Image) */}
-          <Route
-            path="/"
-            element={
-              <PublicLayout>
-                <HomePage />
-              </PublicLayout>
-            }
-          />
+          {/* Public Home */}
+          <Route path="/" element={<HomePage />} />
 
           {/* Public-Only: Registration */}
           <Route
@@ -44,7 +117,7 @@ function App() {
             }
           />
 
-          {/* Public-Only: Login (Matches Bottom-Center of Reference Image) */}
+          {/* Public-Only: Login */}
           <Route
             path="/login"
             element={
@@ -96,31 +169,43 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['CUSTOMER']}>
                 <AppLayout>
-                  <CustomerDashboardPage />
+                  <RolePortalPlaceholder
+                    title="Customer Portal"
+                    description="Access parcel tracking, order placement, and delivery history. Protected by route guards."
+                    icon="📦"
+                  />
                 </AppLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* Merchant Hub (Protected: MERCHANT role - Matches Middle-Left of Reference Image) */}
+          {/* Merchant Hub (Protected: MERCHANT role) */}
           <Route
             path="/merchant/*"
             element={
               <ProtectedRoute allowedRoles={['MERCHANT']}>
                 <AppLayout>
-                  <MerchantDashboardPage />
+                  <RolePortalPlaceholder
+                    title="Merchant Hub"
+                    description="Manage merchant bulk deliveries, order dispatches, and warehouse operations."
+                    icon="🏪"
+                  />
                 </AppLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* Courier Portal (Protected: COURIER role - Matches Bottom-Left Mobile of Reference Image) */}
+          {/* Courier Portal (Protected: COURIER role) */}
           <Route
             path="/courier/*"
             element={
               <ProtectedRoute allowedRoles={['COURIER']}>
                 <AppLayout>
-                  <CourierDashboardPage />
+                  <RolePortalPlaceholder
+                    title="Courier Delivery Portal"
+                    description="View active courier assignments, delivery waypoints, and recipient verification."
+                    icon="🚚"
+                  />
                 </AppLayout>
               </ProtectedRoute>
             }
@@ -138,13 +223,17 @@ function App() {
             }
           />
 
-          {/* Operations / Admin Console (Protected: ADMIN role - Matches Middle-Right of Reference Image) */}
+          {/* Admin Console (Protected: ADMIN role) */}
           <Route
             path="/admin/*"
             element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AppLayout>
-                  <AdminDashboardPage />
+                  <RolePortalPlaceholder
+                    title="Admin Console"
+                    description="System-wide administration, user access management, and audit logs."
+                    icon="⚙️"
+                  />
                 </AppLayout>
               </ProtectedRoute>
             }

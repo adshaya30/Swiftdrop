@@ -22,30 +22,14 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
-  // Customer links
-  { label: 'Customer Portal', path: '/customer', roles: ['CUSTOMER'], icon: 'dashboard' },
+  { label: 'Customer Portal', path: '/customer', roles: ['CUSTOMER'], icon: 'package' },
   { label: 'My Parcels', path: '/customer/parcels', roles: ['CUSTOMER'], icon: 'package' },
-
-  // Merchant links (Matches Merchant Dashboard sidebar in reference image)
-  { label: 'Dashboard', path: '/merchant', roles: ['MERCHANT'], icon: 'dashboard' },
-  { label: 'Create Order', path: '/merchant/create', roles: ['MERCHANT'], icon: 'package-plus' },
-  { label: 'Orders', path: '/merchant/orders', roles: ['MERCHANT'], icon: 'package' },
-  { label: 'Webhooks', path: '/merchant/webhooks', roles: ['MERCHANT'], icon: 'webhook' },
-  { label: 'Settings', path: '/merchant/settings', roles: ['MERCHANT'], icon: 'settings' },
-
-  // Courier links (Matches Courier mobile in reference image)
+  { label: 'Merchant Hub', path: '/merchant', roles: ['MERCHANT'], icon: 'store' },
+  { label: 'Merchant Orders', path: '/merchant/orders', roles: ['MERCHANT'], icon: 'package' },
   { label: 'Courier Runs', path: '/courier', roles: ['COURIER'], icon: 'truck' },
   { label: 'Active Route', path: '/courier/route', roles: ['COURIER'], icon: 'route' },
-  { label: 'Delivery History', path: '/courier/history', roles: ['COURIER'], icon: 'history' },
-
-  // Admin links (Matches Operations Dashboard sidebar in reference image)
-  { label: 'Dashboard', path: '/admin', roles: ['ADMIN'], icon: 'dashboard' },
-  { label: 'Parcels', path: '/admin/parcels', roles: ['ADMIN'], icon: 'package' },
-  { label: 'Couriers', path: '/admin/couriers', roles: ['ADMIN'], icon: 'truck' },
-  { label: 'Users', path: '/admin/users', roles: ['ADMIN'], icon: 'users' },
-  { label: 'Zones & Pricing', path: '/admin/zones', roles: ['ADMIN'], icon: 'zones' },
-  { label: 'Reports', path: '/admin/reports', roles: ['ADMIN'], icon: 'reports' },
-  { label: 'Settings', path: '/admin/settings', roles: ['ADMIN'], icon: 'settings' },
+  { label: 'Admin Console', path: '/admin', roles: ['ADMIN'], icon: 'settings' },
+  { label: 'User Directory', path: '/admin/users', roles: ['ADMIN'], icon: 'users' },
 ];
 
 export function getRoleHomePath(role?: string | null): string {

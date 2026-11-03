@@ -1,9 +1,87 @@
-/* App.css – Global Application Styles */
+/* App.css – SwiftDrop Shared Foundation Styling */
 
-/* Base container utilities */
-.container {
-  width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+.home-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2.5rem 1.5rem;
+}
+
+.welcome-card {
+  width: min(100%, 36rem);
+  padding: clamp(2rem, 6vw, 3.5rem);
+  text-align: center;
+  background: #FFFFFF;
+  border: 1px solid var(--sd-border, #E2E8F0);
+  border-radius: var(--sd-radius-card, 14px);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.welcome-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.welcome-tagline {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--sd-text-secondary, #64748B);
+}
+
+.welcome-card h1 {
+  margin: 0;
+  color: var(--sd-navy, #172033);
+  font-family: var(--sd-font-heading);
+  font-size: clamp(1.85rem, 5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.welcome-subtitle {
+  margin: 0.875rem 0 0;
+  color: var(--sd-text-secondary, #64748B);
+  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+  line-height: 1.55;
+}
+
+.welcome-auth-actions {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.welcome-role-badge {
+  padding: 0.5rem 1rem;
+  background: var(--sd-orange-light, #FFF7ED);
+  border: 1px solid #FED7AA;
+  border-radius: var(--sd-radius-pill, 9999px);
+  color: var(--sd-orange-hover, #EA580C);
+  font-size: 0.875rem;
+}
+
+.welcome-portal-btn {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: var(--sd-radius-pill, 9999px);
+}
+
+.welcome-guest-actions {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.welcome-guest-actions .sd-btn {
+  padding: 0.75rem 1.75rem;
+  font-size: 0.95rem;
+  border-radius: var(--sd-radius-pill, 9999px);
 }
