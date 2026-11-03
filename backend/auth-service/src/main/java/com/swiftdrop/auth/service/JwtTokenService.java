@@ -138,7 +138,15 @@ public class JwtTokenService {
 
     private RSAPrivateKey loadPrivateKey(String pathStr) {
         if (pathStr == null || pathStr.isBlank()) {
-            throw new IllegalStateException("JWT private key path is not configured. Set JWT_PRIVATE_KEY_PATH.");
+            log.warn("DEVELOPMENT NOTICE: No JWT_PRIVATE_KEY_PATH configured. Using ephemeral in-memory 2048-bit RSA key pair for development.");
+            try {
+                KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+                kpg.initialize(2048);
+                KeyPair kp = kpg.generateKeyPair();
+                return (RSAPrivateKey) kp.getPrivate();
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to generate ephemeral RSA key pair: " + e.getMessage(), e);
+            }
         }
 
         try {
@@ -155,7 +163,6 @@ public class JwtTokenService {
             } else {
                 Path path = Path.of(pathStr);
                 if (!Files.exists(path)) {
-                    // Try relative to workspace root if needed
                     Path altPath = Path.of("backend/auth-service").resolve(pathStr);
                     if (Files.exists(altPath)) {
                         path = altPath;
@@ -196,4 +203,3 @@ public class JwtTokenService {
         }
     }
 }
-

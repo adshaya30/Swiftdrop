@@ -18,3 +18,9 @@ frontend/.vite/
 Thumbs.db
 *.log
 logs/
+
+# Cryptographic keys and private PEM certs (keep secrets out of VCS)
+*.pem
+*.key
+**/certs/*private*.pem
+!backend/auth-service/src/test/resources/certs/test_*.pem
