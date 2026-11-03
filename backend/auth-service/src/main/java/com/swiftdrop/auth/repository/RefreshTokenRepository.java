@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /**
  * Repository for RefreshToken records.
- * SRS v2.1 – FR-AUTH-007, FR-AUTH-008
+ * SRS v2.1 – FR-AUTH-007, FR-AUTH-008, FR-AUTH-026
  */
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
@@ -42,4 +42,20 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
      */
     @Query("SELECT COUNT(r) > 0 FROM RefreshToken r WHERE r.familyId = :familyId AND r.revokedAt IS NOT NULL")
     boolean isFamilyRevoked(@Param("familyId") UUID familyId);
+
+    /**
+     * Purges refresh tokens whose retention deadline has passed (expires_at <= cutoff).
+     * Bounded by limit to prevent long-running table locks during periodic cleanup.
+     * SRS v2.1 – FR-AUTH-026
+     */
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM refresh_tokens WHERE id IN (SELECT id FROM refresh_tokens WHERE expires_at <= :cutoff LIMIT :batchSize)", nativeQuery = true)
+    int deleteExpiredTokensBefore(@Param("cutoff") Instant cutoff, @Param("batchSize") int batchSize);
+
+    /**
+     * Counts the number of refresh tokens whose retention deadline has passed.
+     */
+    @Query("SELECT COUNT(r) FROM RefreshToken r WHERE r.expiresAt <= :cutoff")
+    long countExpiredTokensBefore(@Param("cutoff") Instant cutoff);
 }

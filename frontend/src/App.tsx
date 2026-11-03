@@ -1,42 +1,34 @@
-import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PublicLayout from './layouts/PublicLayout';
+import AppLayout from './layouts/AppLayout';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicOnlyRoute from './components/PublicOnlyRoute';
+import LoadingSpinner from './components/LoadingSpinner';
+import EmptyState from './components/EmptyState';
+import { getRoleHomePath } from './utils/roleUtils';
 import './App.css';
 
+/**
+ * Public Landing / Welcome View
+ */
 function HomePage() {
-  const { user, isAuthenticated, isInitializing, logout } = useAuth();
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setLoggingOut(false);
-    }
-  };
+  const { user, isAuthenticated, isInitializing } = useAuth();
 
   if (isInitializing) {
-    return (
-      <main className="home-page">
-        <section className="welcome-card" aria-labelledby="welcome-title">
-          <p className="brand-mark" aria-hidden="true">SD</p>
-          <h1 id="welcome-title">SwiftDrop</h1>
-          <p className="welcome-subtitle">Restoring session…</p>
-        </section>
-      </main>
-    );
+    return <LoadingSpinner fullScreen label="Restoring session…" />;
   }
+
+  const roleHome = getRoleHomePath(user?.role);
 
   return (
     <main className="home-page">
       <section className="welcome-card" aria-labelledby="welcome-title">
         <p className="brand-mark" aria-hidden="true">SD</p>
         <h1 id="welcome-title">
-          {isAuthenticated ? `Welcome, ${user?.fullName}!` : 'Hello, SwiftDrop!'}
+          {isAuthenticated ? `Welcome back, ${user?.fullName}!` : 'Hello, SwiftDrop!'}
         </h1>
         <p className="welcome-subtitle">
           Parcel Delivery &amp; Courier Management System
@@ -54,27 +46,24 @@ function HomePage() {
                 fontSize: '0.875rem',
               }}
             >
-              Role: <strong>{user?.role}</strong> &bull; User ID: <code style={{ fontSize: '0.8rem' }}>{user?.id}</code>
+              Active Role: <strong>{user?.role}</strong> &bull; User ID: <code style={{ fontSize: '0.8rem' }}>{user?.id}</code>
             </div>
 
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
+            <Link
+              to={roleHome}
               style={{
                 display: 'inline-block',
                 padding: '0.75rem 2rem',
-                background: '#dc2626',
+                background: '#2563eb',
                 color: '#ffffff',
-                border: 'none',
                 borderRadius: '0.5rem',
+                textDecoration: 'none',
                 fontWeight: 600,
-                cursor: loggingOut ? 'not-allowed' : 'pointer',
-                opacity: loggingOut ? 0.7 : 1,
                 transition: 'background 0.2s ease',
               }}
             >
-              {loggingOut ? 'Signing Out…' : 'Sign Out'}
-            </button>
+              Go to {user?.role} Portal &rarr;
+            </Link>
           </div>
         ) : (
           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -116,31 +105,154 @@ function HomePage() {
   );
 }
 
+/**
+ * Placeholder component for role-specific portals.
+ * Enforces Member 1 route guard boundaries while awaiting page implementations from respective service owners.
+ */
+function RolePortalPlaceholder({ title, description, icon }: { title: string; description: string; icon: string }) {
+  const { user } = useAuth();
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>{title}</h2>
+      <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>
+        Authenticated user: <strong>{user?.fullName}</strong> ({user?.role})
+      </p>
+
+      <EmptyState
+        icon={icon}
+        title={title}
+        description={description}
+      />
+    </div>
+  );
+}
+
+/**
+ * Integration stub for Member 2 change-password workflow (FR-AUTH-003).
+ */
+function ChangePasswordPlaceholder() {
+  const { user } = useAuth();
+  return (
+    <div style={{ maxWidth: '500px', margin: '3rem auto', textAlign: 'center' }}>
+      <h2>Password Change Required</h2>
+      <p style={{ color: '#94a3b8', margin: '1rem 0' }}>
+        User <strong>{user?.fullName}</strong> must update their temporary password before continuing.
+      </p>
+      <EmptyState
+        icon="🔑"
+        title="Change Password Endpoint Contract"
+        description="This route is protected by Member 1 mustChangePassword guard. The form implementation connects to Member 2's PATCH /api/v1/users/password endpoint."
+      />
+    </div>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Home */}
+          {/* Public Home */}
           <Route path="/" element={<HomePage />} />
 
-          {/* Customer Registration – FR-AUTH-001 / FR-AUTH-002 */}
+          {/* Public-Only: Registration */}
           <Route
             path="/register"
             element={
-              <PublicLayout>
-                <RegisterPage />
-              </PublicLayout>
+              <PublicOnlyRoute>
+                <PublicLayout>
+                  <RegisterPage />
+                </PublicLayout>
+              </PublicOnlyRoute>
             }
           />
 
-          {/* Customer Login – FR-AUTH-003, FR-AUTH-004, FR-AUTH-005 */}
+          {/* Public-Only: Login */}
           <Route
             path="/login"
             element={
-              <PublicLayout>
-                <LoginPage />
-              </PublicLayout>
+              <PublicOnlyRoute>
+                <PublicLayout>
+                  <LoginPage />
+                </PublicLayout>
+              </PublicOnlyRoute>
+            }
+          />
+
+          {/* Forced Password Change (Contract for Member 2) */}
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ChangePasswordPlaceholder />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Customer Portal (Protected: CUSTOMER role) */}
+          <Route
+            path="/customer/*"
+            element={
+              <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                <AppLayout>
+                  <RolePortalPlaceholder
+                    title="Customer Portal"
+                    description="Access parcel tracking, order placement, and delivery history. Protected by Member 1 route guards."
+                    icon="📦"
+                  />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Merchant Hub (Protected: MERCHANT role) */}
+          <Route
+            path="/merchant/*"
+            element={
+              <ProtectedRoute allowedRoles={['MERCHANT']}>
+                <AppLayout>
+                  <RolePortalPlaceholder
+                    title="Merchant Hub"
+                    description="Manage merchant bulk deliveries, order dispatches, and warehouse operations."
+                    icon="🏪"
+                  />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Courier Portal (Protected: COURIER role) */}
+          <Route
+            path="/courier/*"
+            element={
+              <ProtectedRoute allowedRoles={['COURIER']}>
+                <AppLayout>
+                  <RolePortalPlaceholder
+                    title="Courier Delivery Portal"
+                    description="View active courier assignments, delivery waypoints, and recipient verification."
+                    icon="🚚"
+                  />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Console (Protected: ADMIN role) */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AppLayout>
+                  <RolePortalPlaceholder
+                    title="Admin Console"
+                    description="System-wide administration, user access management, and audit logs."
+                    icon="⚙️"
+                  />
+                </AppLayout>
+              </ProtectedRoute>
             }
           />
 

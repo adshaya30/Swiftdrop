@@ -5,6 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Signature;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
@@ -12,7 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("JwtTokenService RS256 Unit Tests")
+@DisplayName("JwtTokenService RS256 Unit Tests (TST-013)")
 class JwtTokenServiceTest {
 
     private JwtTokenService jwtTokenService;
@@ -98,14 +102,15 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    @DisplayName("Blank path generates ephemeral RSA key pair in development")
-    void blankPath_generatesEphemeralKey() {
-        JwtTokenService ephemeralService = new JwtTokenService("", objectMapper);
-        UUID userId = UUID.randomUUID();
-        String token = ephemeralService.issueAccessToken(userId, "CUSTOMER", false, null);
+    @DisplayName("Fail-fast when private key configuration is missing (no ephemeral fallback)")
+    void blankPath_throwsIllegalStateException() {
+        assertThatThrownBy(() -> new JwtTokenService("", objectMapper))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("missing");
 
-        Map<String, Object> claims = ephemeralService.parseAndVerifyToken(token);
-        assertThat(claims.get("sub")).isEqualTo(userId.toString());
+        assertThatThrownBy(() -> new JwtTokenService(null, objectMapper))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("missing");
     }
 
     @Test
@@ -114,5 +119,60 @@ class JwtTokenServiceTest {
         assertThatThrownBy(() -> new JwtTokenService("/non/existent/path/to/key.pem", objectMapper))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("does not exist");
+    }
+
+    @Test
+    @DisplayName("TST-013: Tampered signature rejection")
+    void verifyToken_rejectsTamperedSignature() {
+        UUID userId = UUID.randomUUID();
+        String validToken = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String[] parts = validToken.split("\\.");
+
+        // Tamper with the signature portion
+        String tamperedToken = parts[0] + "." + parts[1] + ".tamperedSignature";
+
+        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(tamperedToken))
+                .isInstanceOf(SecurityException.class);
+    }
+
+    @Test
+    @DisplayName("TST-013: Tampered payload rejection")
+    void verifyToken_rejectsTamperedPayload() {
+        UUID userId = UUID.randomUUID();
+        String validToken = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String[] parts = validToken.split("\\.");
+
+        // Replace claims payload with role=ADMIN
+        String forgedPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"sub\":\"forged\",\"role\":\"ADMIN\"}".getBytes(StandardCharsets.UTF_8));
+        String tamperedToken = parts[0] + "." + forgedPayload + "." + parts[2];
+
+        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(tamperedToken))
+                .isInstanceOf(SecurityException.class);
+    }
+
+    @Test
+    @DisplayName("TST-013: Token signed with a different key is rejected")
+    void verifyToken_rejectsTokenSignedWithDifferentKey() throws Exception {
+        // Generate a foreign RSA key pair
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair foreignPair = kpg.generateKeyPair();
+
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\"swiftdrop-1\"}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"sub\":\"fake-user\",\"role\":\"CUSTOMER\"}".getBytes(StandardCharsets.UTF_8));
+        String signingInput = header + "." + payload;
+
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initSign(foreignPair.getPrivate());
+        sig.update(signingInput.getBytes(StandardCharsets.US_ASCII));
+        String signature = Base64.getUrlEncoder().withoutPadding().encodeToString(sig.sign());
+
+        String foreignToken = signingInput + "." + signature;
+
+        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(foreignToken))
+                .isInstanceOf(SecurityException.class);
     }
 }
