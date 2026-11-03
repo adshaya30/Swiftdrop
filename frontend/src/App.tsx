@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -241,6 +242,18 @@ function App() {
                     description="View active courier assignments, delivery waypoints, and recipient verification."
                     icon="🚚"
                   />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin User Management (Protected: ADMIN role) */}
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AppLayout>
+                  <AdminUsersPage />
                 </AppLayout>
               </ProtectedRoute>
             }

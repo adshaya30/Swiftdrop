@@ -92,6 +92,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 // Protected profile & change-password endpoints
                 .requestMatchers("/api/v1/me/**").authenticated()
+                // Admin user management endpoints (FR-AUTH-015, FR-AUTH-020, FR-AUTH-021)
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
