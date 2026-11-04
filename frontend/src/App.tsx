@@ -4,6 +4,8 @@ import PublicLayout from './layouts/PublicLayout';
 import AppLayout from './layouts/AppLayout';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import LoginOptionsPage from './pages/LoginOptionsPage';
+import RegisterOptionsPage from './pages/RegisterOptionsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -122,25 +124,41 @@ function App() {
           {/* Public Home */}
           <Route path="/" element={<HomePage />} />
 
-          {/* Public-Only: Registration */}
+          {/* Login Routes: Options Gateway & Credentials Login */}
           <Route
-            path="/register"
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginOptionsPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/login/email"
             element={
               <PublicOnlyRoute>
                 <PublicLayout>
-                  <RegisterPage />
+                  <LoginPage />
                 </PublicLayout>
               </PublicOnlyRoute>
             }
           />
 
-          {/* Public-Only: Login */}
+          {/* Registration Routes: Options Gateway & Customer Registration */}
           <Route
-            path="/login"
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <RegisterOptionsPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register/email"
             element={
               <PublicOnlyRoute>
                 <PublicLayout>
-                  <LoginPage />
+                  <RegisterPage />
                 </PublicLayout>
               </PublicOnlyRoute>
             }

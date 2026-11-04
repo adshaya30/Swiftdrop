@@ -221,6 +221,10 @@ export default function RegisterPage() {
 
   return (
     <div className="reg-card">
+      <Link to="/register" className="auth-back-link">
+        &larr; All sign-up options
+      </Link>
+
       <div className="reg-brand-header">
         <SwiftDropLogo variant="dark" size="lg" />
         <p className="reg-tagline">Deliver smarter. Live better.</p>

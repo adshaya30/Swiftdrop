@@ -205,3 +205,213 @@
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   Auth Options Gateway Card (LoginOptionsPage & RegisterOptionsPage)
+   Floating centered white card over the depot backdrop
+   ========================================================================== */
+
+.landing-hero-backdrop {
+  min-height: calc(100vh - 72px);
+  min-height: calc(100svh - 72px);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background-color: #F8FAFC;
+  background-image: url('./assets/landing-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.landing-auth-card {
+  width: min(100%, 25.5rem);
+  background: #FFFFFF;
+  border: 1px solid var(--sd-border, #E2E8F0);
+  border-radius: clamp(16px, 3vw, 22px);
+  padding: clamp(2rem, 5vw, 2.75rem) clamp(1.75rem, 5vw, 2.25rem);
+  box-shadow:
+    0 20px 45px -10px rgba(15, 23, 42, 0.22),
+    0 10px 20px -5px rgba(15, 23, 42, 0.12),
+    0 0 1px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+  margin: 1rem auto;
+}
+
+.landing-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.landing-card-tagline {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--sd-text-secondary, #64748B);
+}
+
+.landing-google-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.landing-btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--sd-orange, #F97316);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--sd-radius-control, 10px);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.32);
+  transition: var(--sd-transition-base);
+}
+
+.landing-btn-google:hover:not(:disabled) {
+  background-color: var(--sd-orange-hover, #EA580C);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.42);
+  transform: translateY(-1px);
+}
+
+.landing-btn-google:disabled,
+.landing-btn-google--disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.landing-google-icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.landing-google-icon-circle .google-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.landing-unavailable-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.775rem;
+  color: var(--sd-text-secondary, #64748B);
+  text-align: center;
+}
+
+.landing-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: sd-spin 0.8s linear infinite;
+  margin-left: 0.25rem;
+}
+
+.landing-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.15rem 0;
+  text-align: center;
+  width: 100%;
+}
+
+.landing-divider::before,
+.landing-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--sd-border, #E2E8F0);
+}
+
+.landing-divider span {
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sd-text-muted, #94A3B8);
+  text-transform: lowercase;
+}
+
+.landing-btn-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--sd-orange, #F97316);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--sd-radius-control, 10px);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.32);
+  transition: var(--sd-transition-base);
+}
+
+.landing-btn-login:hover {
+  background-color: var(--sd-orange-hover, #EA580C);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.42);
+  transform: translateY(-1px);
+}
+
+.landing-card-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--sd-text-secondary, #64748B);
+}
+
+.landing-card-footer p {
+  margin: 0;
+}
+
+.landing-signup-link {
+  color: var(--sd-orange, #F97316);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-signup-link:hover {
+  color: var(--sd-orange-hover, #EA580C);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .landing-hero-backdrop {
+    padding: 1.5rem 1rem;
+    background-position: 30% center;
+  }
+
+  .landing-auth-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 16px;
+  }
+}

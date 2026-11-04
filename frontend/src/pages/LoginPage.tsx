@@ -182,6 +182,10 @@ export default function LoginPage() {
 
   return (
     <div className="login-card">
+      <Link to="/login" className="auth-back-link">
+        &larr; All sign-in options
+      </Link>
+
       <div className="login-brand-header">
         <SwiftDropLogo variant="dark" size="lg" />
         <p className="login-tagline">Deliver smarter. Live better.</p>

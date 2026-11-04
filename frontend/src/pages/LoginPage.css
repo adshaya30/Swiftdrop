@@ -10,6 +10,22 @@
   margin: 1.5rem auto;
 }
 
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sd-text-secondary, #64748B);
+  text-decoration: none;
+  margin-bottom: 0.85rem;
+  transition: color var(--sd-transition-fast);
+}
+
+.auth-back-link:hover {
+  color: var(--sd-orange, #F97316);
+}
+
 .login-brand-header {
   display: flex;
   flex-direction: column;
