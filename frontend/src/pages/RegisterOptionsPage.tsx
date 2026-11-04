@@ -37,8 +37,8 @@ export default function RegisterOptionsPage() {
 
   return (
     <PublicLayout>
-      <div className="home-hero-container">
-        <section className="home-hero-card" aria-labelledby="register-hero-title">
+      <div className="home-hero-container auth-hero-container">
+        <section className="home-hero-card auth-hero-card" aria-labelledby="register-hero-title">
           {/* Left Content Area */}
           <div className="hero-content auth-hero-content">
             <div className="auth-brand-badge">
