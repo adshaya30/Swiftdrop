@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { registerCustomer } from '../services/authService';
 import type { ApiError } from '../services/authService';
 import axios from 'axios';
+import SwiftDropLogo from '../components/SwiftDropLogo';
 import './RegisterPage.css';
 
 interface FormData {
@@ -118,26 +119,36 @@ export default function RegisterPage() {
 
       setSuccessEmail(form.email.trim().toLowerCase());
       setSuccess(true);
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response) {
-        const apiErr = err.response.data as ApiError;
-        if (apiErr.code === 'EMAIL_ALREADY_REGISTERED') {
-          setErrors({ email: 'This email address is already registered. Please log in.' });
-        } else if (apiErr.code === 'VALIDATION_ERROR' && apiErr.errors?.length) {
-          const fe: FormErrors = {};
-          for (const ve of apiErr.errors) {
-            if (ve.field in form) {
-              fe[ve.field as keyof FormData] = ve.message;
-            } else {
-              fe.general = ve.message;
-            }
-          }
-          setErrors(fe);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const apiError = err.response?.data as ApiError | undefined;
+
+        if (status === 409) {
+          setErrors({
+            email: 'An account with this email address already exists. Please sign in.',
+          });
+        } else if (status === 400 && apiError?.errors?.length) {
+          const fieldErrors: FormErrors = {};
+          apiError.errors.forEach(fe => {
+            if (fe.field === 'fullName') fieldErrors.fullName = fe.message;
+            else if (fe.field === 'email') fieldErrors.email = fe.message;
+            else if (fe.field === 'phone') fieldErrors.phone = fe.message;
+            else if (fe.field === 'password') fieldErrors.password = fe.message;
+          });
+          setErrors({
+            ...fieldErrors,
+            general: apiError.detail || 'Validation error. Please check the fields.',
+          });
         } else {
-          setErrors({ general: apiErr.detail ?? 'Registration failed. Please try again.' });
+          setErrors({
+            general:
+              apiError?.detail ||
+              'A connection or server error occurred. Please try again later.',
+          });
         }
       } else {
-        setErrors({ general: 'Unable to connect to the server. Please check your connection.' });
+        setErrors({ general: 'An unexpected error occurred. Please try again.' });
       }
     } finally {
       setLoading(false);
@@ -145,20 +156,27 @@ export default function RegisterPage() {
   }
 
   // -----------------------------------------------------------------------
-  // Render – success screen
+  // Render – success
   // -----------------------------------------------------------------------
 
   if (success) {
     return (
-      <div className="reg-card" role="alert" aria-live="polite">
-        <div className="reg-success-icon" aria-hidden="true">✓</div>
-        <h1 className="reg-success-title">Account Created!</h1>
+      <div className="reg-card" id="reg-success-card">
+        <div className="reg-brand-header">
+          <SwiftDropLogo variant="dark" size="lg" />
+        </div>
+        <div className="reg-success-icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        </div>
+        <h2 className="reg-title" id="reg-success-heading">Registration Successful</h2>
         <p className="reg-success-body">
-          Welcome to SwiftDrop! Your account for{' '}
-          <strong>{successEmail}</strong> has been created successfully.
+          Your customer account for <strong>{successEmail}</strong> has been created.
         </p>
         <p className="reg-success-hint">
-          Please check your email to verify your account.
+          Please check your email to verify your account or proceed to sign in.
         </p>
         <button
           id="reg-go-login-btn"
@@ -177,8 +195,17 @@ export default function RegisterPage() {
 
   return (
     <div className="reg-card">
-      <h1 className="reg-title" id="reg-heading">Create your account</h1>
-      <p className="reg-subtitle">Join SwiftDrop and start shipping smarter.</p>
+      <Link to="/register" className="auth-back-link">
+        &larr; All sign-up options
+      </Link>
+
+      <div className="reg-brand-header">
+        <SwiftDropLogo variant="dark" size="lg" />
+        <p className="reg-tagline">Deliver smarter. Live better.</p>
+      </div>
+
+      <h1 className="reg-title" id="reg-heading">Create Account</h1>
+      <p className="reg-subtitle">Join SwiftDrop and start shipping parcels across Sri Lanka.</p>
 
       {errors.general && (
         <div className="reg-alert" role="alert" aria-live="assertive">
@@ -208,7 +235,7 @@ export default function RegisterPage() {
             aria-describedby={errors.fullName ? 'reg-fullName-err' : undefined}
             aria-invalid={!!errors.fullName}
             className={`reg-input ${errors.fullName ? 'reg-input--error' : ''}`}
-            placeholder="Jane Perera"
+            placeholder="e.g. Kasun Perera"
             value={form.fullName}
             onChange={e => setField('fullName', e.target.value)}
             disabled={loading}
@@ -236,7 +263,7 @@ export default function RegisterPage() {
             aria-describedby={errors.email ? 'reg-email-err' : undefined}
             aria-invalid={!!errors.email}
             className={`reg-input ${errors.email ? 'reg-input--error' : ''}`}
-            placeholder="jane@example.com"
+            placeholder="e.g. kasun.perera@example.lk"
             value={form.email}
             onChange={e => setField('email', e.target.value)}
             disabled={loading}
@@ -264,7 +291,7 @@ export default function RegisterPage() {
             aria-describedby={errors.phone ? 'reg-phone-err' : 'reg-phone-hint'}
             aria-invalid={!!errors.phone}
             className={`reg-input ${errors.phone ? 'reg-input--error' : ''}`}
-            placeholder="0771234567"
+            placeholder="0771234567 or +94771234567"
             value={form.phone}
             onChange={e => setField('phone', e.target.value)}
             disabled={loading}
@@ -330,7 +357,7 @@ export default function RegisterPage() {
             </span>
           ) : (
             <span id="reg-password-hint" className="reg-hint">
-              10–64 chars, upper &amp; lowercase, number, and special character.
+              10–64 chars, uppercase, lowercase, digit, and special character.
             </span>
           )}
         </div>
@@ -349,14 +376,14 @@ export default function RegisterPage() {
               Creating account…
             </>
           ) : (
-            'Create account'
+            'Create Account'
           )}
         </button>
       </form>
 
       <p className="reg-login-link">
         Already have an account?{' '}
-        <Link to="/login" id="reg-login-link">Sign in</Link>
+        <Link to="/login" id="reg-login-link">Sign In</Link>
       </p>
     </div>
   );

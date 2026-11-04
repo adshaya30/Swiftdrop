@@ -1,46 +1,458 @@
-.home-page {
+/* App.css – SwiftDrop Homepage Hero Section */
+
+.home-hero-container {
+  max-width: 1240px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+.home-hero-card {
+  background: #FFFFFF;
+  border: 1px solid var(--sd-border, #E2E8F0);
+  border-radius: clamp(16px, 3vw, 24px);
+  padding: clamp(2rem, 4vw, 3.5rem);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03);
   display: grid;
-  min-height: 100vh;
-  min-height: 100svh;
-  place-items: center;
-  padding: 1.5rem;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  position: relative;
+  overflow: hidden;
 }
 
-.welcome-card {
-  width: min(100%, 34rem);
-  padding: clamp(2rem, 7vw, 4rem);
-  text-align: center;
-  background: #ffffff;
-  border: 1px solid #e5eaf0;
-  border-radius: 1.25rem;
-  box-shadow: 0 1.25rem 3.5rem rgb(28 52 84 / 8%);
+/* Left Content Area */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 2;
 }
 
-.brand-mark {
-  display: grid;
-  width: 3rem;
-  height: 3rem;
-  margin: 0 auto 1.5rem;
-  place-items: center;
-  color: #ffffff;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  background: #2563eb;
-  border-radius: 0.9rem;
-}
-
-.welcome-card h1 {
+.hero-title {
   margin: 0;
-  color: #172033;
-  font-size: clamp(2rem, 7vw, 3rem);
-  line-height: 1.15;
-  letter-spacing: -0.04em;
+  font-family: var(--sd-font-heading);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
 }
 
-.welcome-subtitle {
-  margin: 0.9rem 0 0;
-  color: #5d6b80;
-  font-size: clamp(1rem, 3vw, 1.125rem);
-  line-height: 1.6;
+.hero-title-navy {
+  display: block;
+  color: var(--sd-navy, #172033);
+}
+
+.hero-title-orange {
+  display: block;
+  color: var(--sd-orange, #F97316);
+}
+
+.hero-subtitle {
+  margin: 1.25rem 0 2rem;
+  color: var(--sd-text-secondary, #64748B);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.5;
+  max-width: 480px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.hero-btn-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--sd-orange, #F97316);
+  color: #FFFFFF;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--sd-radius-pill, 9999px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.32);
+  transition: var(--sd-transition-base);
+}
+
+.hero-btn-track:hover {
+  background-color: var(--sd-orange-hover, #EA580C);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.42);
+  transform: translateY(-1px);
+}
+
+.hero-btn-create {
+  display: inline-flex;
+  align-items: center;
+  color: #0284C7;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color var(--sd-transition-fast);
+}
+
+.hero-btn-create:hover {
+  color: var(--sd-navy, #172033);
+}
+
+.hero-auth-status {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hero-role-pill {
+  font-size: 0.85rem;
+  color: var(--sd-text-secondary, #64748B);
+  background: var(--sd-page-bg, #F8FAFC);
+  border: 1px solid var(--sd-border, #E2E8F0);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--sd-radius-pill, 9999px);
+  width: fit-content;
+}
+
+.hero-auth-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sd-orange, #F97316);
+  text-decoration: none;
+}
+
+.hero-auth-link:hover {
+  text-decoration: underline;
+}
+
+/* Right Visual Area */
+.hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.hero-visual-frame {
+  width: 100%;
+  max-width: 500px;
+  border-radius: var(--sd-radius-card, 16px);
+  overflow: hidden;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--sd-border, #E2E8F0);
+  background: #FFFFFF;
+}
+
+.hero-courier-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* Responsive Scaling */
+@media (max-width: 992px) {
+  .home-hero-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2.5rem 1.75rem;
+  }
+
+  .hero-content {
+    align-items: center;
+  }
+
+  .hero-subtitle {
+    max-width: 100%;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-visual-frame {
+    max-width: 440px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero-container {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
+
+  .home-hero-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .hero-btn-track {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   Auth Hero Section (LoginOptionsPage & RegisterOptionsPage)
+   2-column responsive layout matching the official Homepage Hero.
+   Left: SwiftDrop brand, headline, Google OAuth & Email entry.
+   Right: Clean framed courier delivery visual.
+   ========================================================================== */
+
+.auth-hero-container {
+  max-width: 1040px;
+  margin: 2.5rem auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+.auth-hero-card {
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(1.75rem, 3.5vw, 3rem);
+  padding: clamp(2rem, 3.5vw, 3rem);
+}
+
+.auth-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  z-index: 2;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.auth-brand-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.auth-brand-tagline {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--sd-text-secondary, #64748B);
+  text-align: center;
+}
+
+.auth-hero-title {
+  margin: 0.35rem 0 0.35rem;
+  font-family: var(--sd-font-heading);
+  font-size: clamp(1.85rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: var(--sd-navy, #172033);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-align: center;
+  width: 100%;
+}
+
+.auth-hero-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--sd-text-secondary, #64748B);
+  line-height: 1.45;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+}
+
+.auth-action-stack {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-google-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1.25rem;
+  background-color: #F8965E;
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--sd-radius-control, 10px);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(248, 150, 94, 0.28);
+  transition: var(--sd-transition-base);
+}
+
+.auth-btn-google:hover:not(:disabled) {
+  background-color: #EA8345;
+  box-shadow: 0 6px 16px rgba(248, 150, 94, 0.38);
+  transform: translateY(-1px);
+}
+
+.auth-btn-google:disabled,
+.auth-btn-google--disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-google-icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.auth-google-icon-circle .google-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.auth-unavailable-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.775rem;
+  color: var(--sd-text-secondary, #64748B);
+  text-align: center;
+  width: 100%;
+}
+
+.auth-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: sd-spin 0.8s linear infinite;
+  margin-left: 0.25rem;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.15rem 0;
+  text-align: center;
+  width: 100%;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--sd-border, #E2E8F0);
+}
+
+.auth-divider span {
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sd-text-muted, #94A3B8);
+}
+
+.auth-btn-primary-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  background-color: var(--sd-orange, #F97316);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--sd-radius-control, 10px);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.28);
+  transition: var(--sd-transition-base);
+}
+
+.auth-btn-primary-action:hover {
+  background-color: var(--sd-orange-hover, #EA580C);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.38);
+  transform: translateY(-1px);
+}
+
+.auth-card-footer {
+  margin-top: 1.35rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--sd-text-secondary, #64748B);
+  width: 100%;
+}
+
+.auth-card-footer p {
+  margin: 0;
+}
+
+.auth-signup-link {
+  color: var(--sd-orange, #F97316);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-signup-link:hover {
+  color: var(--sd-orange-hover, #EA580C);
+  text-decoration: underline;
+}
+
+@media (max-width: 992px) {
+  .auth-hero-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2.25rem 1.5rem;
+    gap: 2rem;
+  }
+
+  .auth-hero-content {
+    align-items: center;
+  }
+
+  .auth-brand-badge {
+    align-items: center;
+  }
+
+  .auth-unavailable-hint {
+    text-align: center;
+  }
+
+  .auth-card-footer {
+    text-align: center;
+  }
 }

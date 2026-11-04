@@ -4,6 +4,8 @@ import PublicLayout from './layouts/PublicLayout';
 import AppLayout from './layouts/AppLayout';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import LoginOptionsPage from './pages/LoginOptionsPage';
+import RegisterOptionsPage from './pages/RegisterOptionsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -12,11 +14,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import EmptyState from './components/EmptyState';
-import { getRoleHomePath } from './utils/roleUtils';
+import { getRoleHomePath, ROLE_LABELS, type UserRole } from './utils/roleUtils';
+import heroCourierImg from './assets/hero-courier.jpg';
 import './App.css';
 
 /**
- * Public Landing / Welcome View
+ * Public Landing / Hero View — SwiftDrop Island-wide logistics platform
+ * 2-column hero matching the official visual reference (Fast Delivery. Everywhere.)
  */
 function HomePage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -26,100 +30,80 @@ function HomePage() {
   }
 
   const roleHome = getRoleHomePath(user?.role);
+  const roleLabel = user?.role ? (ROLE_LABELS[user.role as UserRole] || user.role) : '';
 
   return (
-    <main className="home-page">
-      <section className="welcome-card" aria-labelledby="welcome-title">
-        <p className="brand-mark" aria-hidden="true">SD</p>
-        <h1 id="welcome-title">
-          {isAuthenticated ? `Welcome back, ${user?.fullName}!` : 'Hello, SwiftDrop!'}
-        </h1>
-        <p className="welcome-subtitle">
-          Parcel Delivery &amp; Courier Management System
-        </p>
+    <PublicLayout>
+      <div className="home-hero-container">
+        <section className="home-hero-card" aria-labelledby="hero-title">
+          {/* Left Content Area */}
+          <div className="hero-content">
+            <h1 id="hero-title" className="hero-title">
+              <span className="hero-title-navy">Fast Delivery.</span>
+              <span className="hero-title-orange">Everywhere.</span>
+            </h1>
 
-        {isAuthenticated ? (
-          <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <div
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'rgba(37, 99, 235, 0.15)',
-                border: '1px solid rgba(37, 99, 235, 0.4)',
-                borderRadius: '0.375rem',
-                color: '#93c5fd',
-                fontSize: '0.875rem',
-              }}
-            >
-              Active Role: <strong>{user?.role}</strong> &bull; User ID: <code style={{ fontSize: '0.8rem' }}>{user?.id}</code>
+            <p className="hero-subtitle">
+              Reliable courier service across the island.
+            </p>
+
+            <div className="hero-actions">
+              <Link
+                to={isAuthenticated ? roleHome : '/login'}
+                className="hero-btn-track"
+              >
+                Track Your Parcel &rarr;
+              </Link>
+              <Link
+                to={isAuthenticated ? roleHome : '/register'}
+                className="hero-btn-create"
+              >
+                Create Delivery
+              </Link>
             </div>
 
-            <Link
-              to={roleHome}
-              style={{
-                display: 'inline-block',
-                padding: '0.75rem 2rem',
-                background: '#2563eb',
-                color: '#ffffff',
-                borderRadius: '0.5rem',
-                textDecoration: 'none',
-                fontWeight: 600,
-                transition: 'background 0.2s ease',
-              }}
-            >
-              Go to {user?.role} Portal &rarr;
-            </Link>
+            {isAuthenticated && (
+              <div className="hero-auth-status">
+                <span className="hero-role-pill">
+                  Active Session: <strong>{roleLabel}</strong> ({user?.fullName})
+                </span>
+                <Link to={roleHome} className="hero-auth-link">
+                  Go to {roleLabel} Portal &rarr;
+                </Link>
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link
-              to="/login"
-              style={{
-                display: 'inline-block',
-                padding: '0.75rem 1.75rem',
-                background: '#2563eb',
-                color: '#ffffff',
-                borderRadius: '0.5rem',
-                textDecoration: 'none',
-                fontWeight: 600,
-                transition: 'background 0.2s ease',
-              }}
-            >
-              Sign In &rarr;
-            </Link>
-            <Link
-              to="/register"
-              style={{
-                display: 'inline-block',
-                padding: '0.75rem 1.75rem',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '0.5rem',
-                textDecoration: 'none',
-                fontWeight: 600,
-                transition: 'background 0.2s ease',
-              }}
-            >
-              Register as Customer
-            </Link>
+
+          {/* Right Visual Area */}
+          <div className="hero-visual">
+            <div className="hero-visual-frame">
+              <img
+                src={heroCourierImg}
+                alt="SwiftDrop courier delivering parcel"
+                className="hero-courier-img"
+                loading="eager"
+              />
+            </div>
           </div>
-        )}
-      </section>
-    </main>
+        </section>
+      </div>
+    </PublicLayout>
   );
 }
 
 /**
  * Placeholder component for role-specific portals.
- * Enforces Member 1 route guard boundaries while awaiting page implementations from respective service owners.
+ * Enforces route guard boundaries while awaiting page implementations from respective workstreams.
  */
 function RolePortalPlaceholder({ title, description, icon }: { title: string; description: string; icon: string }) {
   const { user } = useAuth();
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>{title}</h2>
-      <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--sd-navy, #172033)', marginBottom: '0.5rem' }}>
+        {title}
+      </h2>
+      <p style={{ color: 'var(--sd-text-secondary, #64748B)', marginBottom: '1.5rem' }}>
         Authenticated user: <strong>{user?.fullName}</strong> ({user?.role})
       </p>
 
@@ -132,7 +116,6 @@ function RolePortalPlaceholder({ title, description, icon }: { title: string; de
   );
 }
 
-
 function App() {
   return (
     <BrowserRouter>
@@ -141,25 +124,41 @@ function App() {
           {/* Public Home */}
           <Route path="/" element={<HomePage />} />
 
-          {/* Public-Only: Registration */}
+          {/* Login Routes: Options Gateway & Credentials Login */}
           <Route
-            path="/register"
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginOptionsPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/login/email"
             element={
               <PublicOnlyRoute>
                 <PublicLayout>
-                  <RegisterPage />
+                  <LoginPage />
                 </PublicLayout>
               </PublicOnlyRoute>
             }
           />
 
-          {/* Public-Only: Login */}
+          {/* Registration Routes: Options Gateway & Customer Registration */}
           <Route
-            path="/login"
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <RegisterOptionsPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register/email"
             element={
               <PublicOnlyRoute>
                 <PublicLayout>
-                  <LoginPage />
+                  <RegisterPage />
                 </PublicLayout>
               </PublicOnlyRoute>
             }
@@ -207,7 +206,7 @@ function App() {
                 <AppLayout>
                   <RolePortalPlaceholder
                     title="Customer Portal"
-                    description="Access parcel tracking, order placement, and delivery history. Protected by Member 1 route guards."
+                    description="Access parcel tracking, order placement, and delivery history. Protected by route guards."
                     icon="📦"
                   />
                 </AppLayout>
