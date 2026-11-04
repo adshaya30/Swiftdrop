@@ -46,13 +46,12 @@ export default function RegisterOptionsPage() {
               <p className="auth-brand-tagline">Deliver smarter. Live better.</p>
             </div>
 
-            <h1 id="register-hero-title" className="hero-title" style={{ marginBottom: '0.5rem' }}>
-              <span className="hero-title-navy">Fast Delivery.</span>
-              <span className="hero-title-orange">Everywhere.</span>
+            <h1 id="register-hero-title" className="auth-hero-title">
+              Create Account
             </h1>
 
-            <p className="hero-subtitle" style={{ marginBottom: '1.75rem' }}>
-              Create an account to ship and track parcels across Sri Lanka.
+            <p className="auth-hero-subtitle">
+              Join SwiftDrop and start shipping parcels across Sri Lanka.
             </p>
 
             {/* Auth Action Stack */}

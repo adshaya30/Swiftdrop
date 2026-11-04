@@ -235,6 +235,24 @@
   color: var(--sd-text-secondary, #64748B);
 }
 
+.auth-hero-title {
+  margin: 0.5rem 0 0.35rem;
+  font-family: var(--sd-font-heading);
+  font-size: clamp(1.875rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  color: var(--sd-navy, #172033);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.auth-hero-subtitle {
+  margin: 0 0 1.75rem;
+  font-size: 1rem;
+  color: var(--sd-text-secondary, #64748B);
+  line-height: 1.5;
+  max-width: 440px;
+}
+
 .auth-action-stack {
   width: 100%;
   max-width: 440px;

@@ -46,13 +46,12 @@ export default function LoginOptionsPage() {
               <p className="auth-brand-tagline">Deliver smarter. Live better.</p>
             </div>
 
-            <h1 id="login-hero-title" className="hero-title" style={{ marginBottom: '0.5rem' }}>
-              <span className="hero-title-navy">Fast Delivery.</span>
-              <span className="hero-title-orange">Everywhere.</span>
+            <h1 id="login-hero-title" className="auth-hero-title">
+              Login
             </h1>
 
-            <p className="hero-subtitle" style={{ marginBottom: '1.75rem' }}>
-              Sign in to manage deliveries, track parcels, and access your dashboard.
+            <p className="auth-hero-subtitle">
+              Choose your sign-in method to access your SwiftDrop account.
             </p>
 
             {/* Auth Action Stack */}
