@@ -12,13 +12,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicOnlyRoute from './components/PublicOnlyRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import EmptyState from './components/EmptyState';
-import SwiftDropLogo from './components/SwiftDropLogo';
 import { getRoleHomePath, ROLE_LABELS, type UserRole } from './utils/roleUtils';
+import heroCourierImg from './assets/hero-courier.jpg';
 import './App.css';
 
 /**
- * Public Landing / Welcome View — Shared frontend foundation
- * Redesigned with SwiftDrop brand identity, official transparent logo, and tokens.
+ * Public Landing / Hero View — SwiftDrop Island-wide logistics platform
+ * Redesigned to match the authoritative visual reference and design system.
  */
 function HomePage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -32,40 +32,57 @@ function HomePage() {
 
   return (
     <PublicLayout>
-      <div className="home-page">
-        <section className="welcome-card" aria-labelledby="welcome-title">
-          <div className="welcome-logo-wrap">
-            <SwiftDropLogo variant="dark" size="lg" />
-            <p className="welcome-tagline">Deliver smarter. Live better.</p>
+      <div className="home-hero-container">
+        <section className="home-hero-card" aria-labelledby="hero-title">
+          {/* Left Content Area */}
+          <div className="hero-content">
+            <h1 id="hero-title" className="hero-title">
+              <span className="hero-title-navy">Fast Delivery.</span>
+              <span className="hero-title-orange">Everywhere.</span>
+            </h1>
+
+            <p className="hero-subtitle">
+              Reliable courier service across the island.
+            </p>
+
+            <div className="hero-actions">
+              <Link
+                to={isAuthenticated ? roleHome : '/login'}
+                className="hero-btn-track"
+              >
+                Track Your Parcel &rarr;
+              </Link>
+              <Link
+                to={isAuthenticated ? roleHome : '/register'}
+                className="hero-btn-create"
+              >
+                Create Delivery
+              </Link>
+            </div>
+
+            {isAuthenticated && (
+              <div className="hero-auth-status">
+                <span className="hero-role-pill">
+                  Active Session: <strong>{roleLabel}</strong> ({user?.fullName})
+                </span>
+                <Link to={roleHome} className="hero-auth-link">
+                  Go to {roleLabel} Portal &rarr;
+                </Link>
+              </div>
+            )}
           </div>
 
-          <h1 id="welcome-title">
-            {isAuthenticated ? `Welcome back, ${user?.fullName}!` : 'Fast Delivery. Everywhere.'}
-          </h1>
-          <p className="welcome-subtitle">
-            Island-wide parcel delivery &amp; courier management platform
-          </p>
-
-          {isAuthenticated ? (
-            <div className="welcome-auth-actions">
-              <div className="welcome-role-badge">
-                Active Role: <strong>{roleLabel}</strong> &bull; User ID: <code>{user?.id}</code>
-              </div>
-
-              <Link to={roleHome} className="sd-btn sd-btn-primary welcome-portal-btn">
-                Go to {roleLabel} Portal &rarr;
-              </Link>
+          {/* Right Visual Area */}
+          <div className="hero-visual">
+            <div className="hero-visual-frame">
+              <img
+                src={heroCourierImg}
+                alt="SwiftDrop courier delivering parcel"
+                className="hero-courier-img"
+                loading="eager"
+              />
             </div>
-          ) : (
-            <div className="welcome-guest-actions">
-              <Link to="/login" className="sd-btn sd-btn-primary">
-                Sign In &rarr;
-              </Link>
-              <Link to="/register" className="sd-btn sd-btn-secondary">
-                Register as Customer
-              </Link>
-            </div>
-          )}
+          </div>
         </section>
       </div>
     </PublicLayout>

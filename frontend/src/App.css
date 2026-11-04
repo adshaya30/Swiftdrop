@@ -1,87 +1,206 @@
-/* App.css – SwiftDrop Shared Foundation Styling */
+/* App.css – SwiftDrop Homepage Hero Section */
 
-.home-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 70vh;
-  padding: 2.5rem 1.5rem;
+.home-hero-container {
+  max-width: 1240px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  width: 100%;
 }
 
-.welcome-card {
-  width: min(100%, 36rem);
-  padding: clamp(2rem, 6vw, 3.5rem);
-  text-align: center;
+.home-hero-card {
   background: #FFFFFF;
   border: 1px solid var(--sd-border, #E2E8F0);
-  border-radius: var(--sd-radius-card, 14px);
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+  border-radius: clamp(16px, 3vw, 24px);
+  padding: clamp(2rem, 4vw, 3.5rem);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03);
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  position: relative;
+  overflow: hidden;
 }
 
-.welcome-logo-wrap {
+/* Left Content Area */
+.hero-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  align-items: flex-start;
+  z-index: 2;
 }
 
-.welcome-tagline {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--sd-text-secondary, #64748B);
-}
-
-.welcome-card h1 {
+.hero-title {
   margin: 0;
-  color: var(--sd-navy, #172033);
   font-family: var(--sd-font-heading);
-  font-size: clamp(1.85rem, 5vw, 2.5rem);
+  font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.1;
   letter-spacing: -0.035em;
 }
 
-.welcome-subtitle {
-  margin: 0.875rem 0 0;
-  color: var(--sd-text-secondary, #64748B);
-  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
-  line-height: 1.55;
+.hero-title-navy {
+  display: block;
+  color: var(--sd-navy, #172033);
 }
 
-.welcome-auth-actions {
+.hero-title-orange {
+  display: block;
+  color: var(--sd-orange, #F97316);
+}
+
+.hero-subtitle {
+  margin: 1.25rem 0 2rem;
+  color: var(--sd-text-secondary, #64748B);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.5;
+  max-width: 480px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.hero-btn-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--sd-orange, #F97316);
+  color: #FFFFFF;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--sd-radius-pill, 9999px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.32);
+  transition: var(--sd-transition-base);
+}
+
+.hero-btn-track:hover {
+  background-color: var(--sd-orange-hover, #EA580C);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.42);
+  transform: translateY(-1px);
+}
+
+.hero-btn-create {
+  display: inline-flex;
+  align-items: center;
+  color: #0284C7;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color var(--sd-transition-fast);
+}
+
+.hero-btn-create:hover {
+  color: var(--sd-navy, #172033);
+}
+
+.hero-auth-status {
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
+  gap: 0.5rem;
 }
 
-.welcome-role-badge {
-  padding: 0.5rem 1rem;
-  background: var(--sd-orange-light, #FFF7ED);
-  border: 1px solid #FED7AA;
+.hero-role-pill {
+  font-size: 0.85rem;
+  color: var(--sd-text-secondary, #64748B);
+  background: var(--sd-page-bg, #F8FAFC);
+  border: 1px solid var(--sd-border, #E2E8F0);
+  padding: 0.35rem 0.75rem;
   border-radius: var(--sd-radius-pill, 9999px);
-  color: var(--sd-orange-hover, #EA580C);
+  width: fit-content;
+}
+
+.hero-auth-link {
   font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sd-orange, #F97316);
+  text-decoration: none;
 }
 
-.welcome-portal-btn {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  border-radius: var(--sd-radius-pill, 9999px);
+.hero-auth-link:hover {
+  text-decoration: underline;
 }
 
-.welcome-guest-actions {
-  margin-top: 2rem;
+/* Right Visual Area */
+.hero-visual {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
   justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
-.welcome-guest-actions .sd-btn {
-  padding: 0.75rem 1.75rem;
-  font-size: 0.95rem;
-  border-radius: var(--sd-radius-pill, 9999px);
+.hero-visual-frame {
+  width: 100%;
+  max-width: 500px;
+  border-radius: var(--sd-radius-card, 16px);
+  overflow: hidden;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--sd-border, #E2E8F0);
+  background: #FFFFFF;
+}
+
+.hero-courier-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+/* Responsive Scaling */
+@media (max-width: 992px) {
+  .home-hero-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2.5rem 1.75rem;
+  }
+
+  .hero-content {
+    align-items: center;
+  }
+
+  .hero-subtitle {
+    max-width: 100%;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-visual-frame {
+    max-width: 440px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero-container {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
+
+  .home-hero-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .hero-btn-track {
+    width: 100%;
+    justify-content: center;
+  }
 }
