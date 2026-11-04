@@ -24,3 +24,4 @@ logs/
 *.key
 **/certs/*private*.pem
 !backend/auth-service/src/test/resources/certs/test_*.pem
+!backend/auth-service/src/main/resources/certs/dev_*.pem
