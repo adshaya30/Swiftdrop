@@ -31,22 +31,6 @@ export default function PublicLayout({ children }: Props) {
             <SwiftDropLogo variant="dark" size="md" asLink to="/" />
           </div>
 
-          {/* Center Navigation Links */}
-          <nav className="pub-nav-links" aria-label="Main navigation">
-            <a href="#track" className="pub-nav-link">
-              Track
-            </a>
-            <a href="#services" className="pub-nav-link">
-              Services
-            </a>
-            <a href="#for-business" className="pub-nav-link">
-              For Business
-            </a>
-            <a href="#about" className="pub-nav-link">
-              About
-            </a>
-          </nav>
-
           <div className="pub-auth-actions">
             {isAuthenticated ? (
               <div className="pub-user-badge">

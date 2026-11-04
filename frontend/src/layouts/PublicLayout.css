@@ -52,31 +52,6 @@
   align-items: center;
 }
 
-/* Center Navigation Links */
-.pub-nav-links {
-  display: flex;
-  align-items: center;
-  gap: 1.75rem;
-}
-
-.pub-nav-link {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--sd-navy, #172033);
-  text-decoration: none;
-  transition: color var(--sd-transition-fast);
-}
-
-.pub-nav-link:hover {
-  color: var(--sd-orange, #F97316);
-}
-
-@media (max-width: 860px) {
-  .pub-nav-links {
-    display: none;
-  }
-}
-
 .pub-auth-actions {
   display: flex;
   align-items: center;
