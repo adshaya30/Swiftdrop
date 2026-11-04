@@ -207,95 +207,45 @@
 }
 
 /* ==========================================================================
-   SwiftDrop Auth Gateway Showcase (Login & Register)
-   Pixel-aligned dual-pane presentation.
-   Left: Clean interactive auth form.
-   Right: Branded courier visual with value highlights.
+   Auth Hero Section (LoginOptionsPage & RegisterOptionsPage)
+   2-column responsive layout matching the official Homepage Hero.
+   Left: SwiftDrop brand, headline, Google OAuth & Email entry.
+   Right: Clean framed courier delivery visual.
    ========================================================================== */
 
-.auth-gateway-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-  background:
-    radial-gradient(ellipse at 80% 20%, rgba(249, 115, 22, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse at 20% 80%, rgba(15, 23, 42, 0.04) 0%, transparent 60%),
-    #F8FAFC;
-  position: relative;
-  min-height: calc(100vh - 72px);
-  min-height: calc(100svh - 72px);
-}
-
-.auth-showcase-card {
-  width: 100%;
-  max-width: 1040px;
-  background: #FFFFFF;
-  border: 1px solid var(--sd-border, #E2E8F0);
-  border-radius: 24px;
-  box-shadow:
-    0 25px 50px -12px rgba(15, 23, 42, 0.12),
-    0 4px 16px rgba(15, 23, 42, 0.04);
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  overflow: hidden;
-  margin: 0 auto;
-}
-
-/* Left Pane: Interactive Auth Entry */
-.auth-card-pane {
-  padding: clamp(2rem, 5vw, 3rem) clamp(1.75rem, 4vw, 2.75rem);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background-color: #FFFFFF;
-}
-
-.auth-card-pane--wide {
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.auth-card-brand {
+.auth-hero-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  z-index: 2;
+  width: 100%;
 }
 
-.auth-card-tagline {
+.auth-brand-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.auth-brand-tagline {
   margin: 0.35rem 0 0;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--sd-text-secondary, #64748B);
 }
 
-.auth-heading-group {
-  margin-bottom: 1.5rem;
-}
-
-.auth-pane-title {
-  margin: 0 0 0.35rem;
-  font-size: clamp(1.5rem, 3vw, 1.875rem);
-  font-weight: 800;
-  font-family: var(--sd-font-heading);
-  color: var(--sd-navy, #172033);
-  letter-spacing: -0.03em;
-}
-
-.auth-pane-subtitle {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--sd-text-secondary, #64748B);
-  line-height: 1.45;
+.auth-action-stack {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
 }
 
 .auth-google-slot {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 0.25rem;
 }
 
 .auth-btn-google {
@@ -326,7 +276,7 @@
 
 .auth-btn-google:disabled,
 .auth-btn-google--disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -336,8 +286,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   background: #FFFFFF;
   border-radius: 50%;
   flex-shrink: 0;
@@ -345,15 +295,15 @@
 }
 
 .auth-google-icon-circle .google-icon {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .auth-unavailable-hint {
-  margin: 0.5rem 0 0;
+  margin: 0.45rem 0 0;
   font-size: 0.775rem;
   color: var(--sd-text-secondary, #64748B);
-  text-align: center;
+  text-align: left;
 }
 
 .auth-status-spinner {
@@ -369,7 +319,7 @@
 .auth-divider {
   display: flex;
   align-items: center;
-  margin: 1.25rem 0;
+  margin: 1.15rem 0;
   text-align: center;
   width: 100%;
 }
@@ -388,7 +338,7 @@
   color: var(--sd-text-muted, #94A3B8);
 }
 
-.auth-btn-primary {
+.auth-btn-primary-action {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -407,15 +357,15 @@
   transition: var(--sd-transition-base);
 }
 
-.auth-btn-primary:hover {
+.auth-btn-primary-action:hover {
   background-color: var(--sd-orange-hover, #EA580C);
   box-shadow: 0 6px 18px rgba(249, 115, 22, 0.38);
   transform: translateY(-1px);
 }
 
 .auth-card-footer {
-  margin-top: 1.5rem;
-  text-align: center;
+  margin-top: 1.25rem;
+  text-align: left;
   font-size: 0.875rem;
   color: var(--sd-text-secondary, #64748B);
 }
@@ -424,170 +374,31 @@
   margin: 0;
 }
 
-.auth-switch-link {
+.auth-signup-link {
   color: var(--sd-orange, #F97316);
   font-weight: 700;
   text-decoration: none;
 }
 
-.auth-switch-link:hover {
+.auth-signup-link:hover {
   color: var(--sd-orange-hover, #EA580C);
   text-decoration: underline;
 }
 
-.auth-trust-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  margin-top: 1.75rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--sd-border, #E2E8F0);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--sd-text-muted, #94A3B8);
-}
-
-.auth-trust-icon {
-  font-size: 0.875rem;
-}
-
-/* Right Pane: Visual Showcase */
-.auth-visual-pane {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  background-color: var(--sd-navy, #0F172A);
-  min-height: 480px;
-}
-
-.auth-visual-img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transition: transform 0.6s ease;
-}
-
-.auth-showcase-card:hover .auth-visual-img {
-  transform: scale(1.03);
-}
-
-.auth-visual-overlay {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  padding: 2.5rem 2rem;
-  background: linear-gradient(
-    to top,
-    rgba(15, 23, 42, 0.94) 0%,
-    rgba(15, 23, 42, 0.65) 50%,
-    rgba(15, 23, 42, 0.15) 100%
-  );
-  color: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.auth-visual-top {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.auth-badge-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(249, 115, 22, 0.95);
-  color: #FFFFFF;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 0.35rem 0.85rem;
-  border-radius: var(--sd-radius-pill, 9999px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.auth-visual-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.auth-visual-heading {
-  margin: 0;
-  font-size: clamp(1.4rem, 2.5vw, 1.75rem);
-  font-weight: 800;
-  font-family: var(--sd-font-heading);
-  color: #FFFFFF;
-  line-height: 1.25;
-}
-
-.auth-visual-desc {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #E2E8F0;
-  line-height: 1.5;
-}
-
-.auth-feature-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.auth-feature-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0.25rem 0.65rem;
-  border-radius: var(--sd-radius-pill, 9999px);
-  backdrop-filter: blur(4px);
-}
-
-/* Backward compatibility aliases */
-.landing-hero-backdrop {
-  composes: auth-gateway-container;
-}
-.landing-auth-card {
-  composes: auth-showcase-card;
-}
-
-/* Responsive Breakpoints */
-@media (max-width: 880px) {
-  .auth-showcase-card {
-    grid-template-columns: 1fr;
-    max-width: 28rem;
+@media (max-width: 992px) {
+  .auth-hero-content {
+    align-items: center;
   }
 
-  .auth-visual-pane {
-    display: none;
+  .auth-brand-badge {
+    align-items: center;
   }
 
-  .auth-card-pane {
-    padding: 2rem 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .auth-gateway-container {
-    padding: 1.5rem 1rem;
+  .auth-unavailable-hint {
+    text-align: center;
   }
 
-  .auth-card-pane {
-    padding: 1.75rem 1.25rem;
-    border-radius: 18px;
+  .auth-card-footer {
+    text-align: center;
   }
 }
