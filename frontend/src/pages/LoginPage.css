@@ -68,6 +68,13 @@
 }
 
 /* Google OAuth Login Button */
+.google-login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .google-login-btn {
   display: flex;
   align-items: center;
@@ -79,17 +86,51 @@
   border: 1px solid var(--sd-border, #E2E8F0);
   border-radius: var(--sd-radius-control, 10px);
   color: var(--sd-navy, #172033);
+  font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   transition: var(--sd-transition-fast);
+  cursor: pointer;
 }
 
-.google-login-btn:hover {
+.google-login-btn:hover:not(:disabled) {
   background: #F8FAFC;
   border-color: #CBD5E1;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.google-login-btn--disabled,
+.google-login-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #F8FAFC;
+  border-color: var(--sd-border, #E2E8F0);
+  box-shadow: none;
+}
+
+.google-unavailable-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.775rem;
+  color: var(--sd-text-secondary, #64748B);
+  text-align: center;
+}
+
+.google-status-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(100, 116, 139, 0.25);
+  border-top-color: var(--sd-text-secondary, #64748B);
+  border-radius: 50%;
+  animation: sd-spin 0.8s linear infinite;
+  margin-left: 0.25rem;
+}
+
+@keyframes sd-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .google-icon {
