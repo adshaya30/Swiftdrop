@@ -2,6 +2,7 @@ package com.swiftdrop.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.security.JwtAuthenticationFilter;
+import com.swiftdrop.auth.security.SecurityRules;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,14 +19,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Security configuration for the auth-service.
- * Public endpoints: register, login, refresh, logout, OAuth, actuator health.
- * Protected endpoints: /api/v1/me/**
- * SRS v2.1 – FR-AUTH-001, FR-AUTH-003, FR-AUTH-007, FR-AUTH-008, FR-AUTH-012, FR-AUTH-013, FR-AUTH-014
+ * Security configuration for auth-service adhering to Master Prompt Section 8.1.
  */
 @Configuration
 @EnableWebSecurity
@@ -37,6 +36,39 @@ public class SecurityConfig {
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Master Prompt Section 8.1 SecurityRules bean.
+     */
+    @Bean
+    public SecurityRules securityRules() {
+        return new SecurityRules() {
+            @Override
+            public List<String> publicPaths() {
+                return List.of(
+                        "POST /api/v1/auth/register",
+                        "POST /api/v1/auth/register-merchant",
+                        "POST /api/v1/auth/login",
+                        "POST /api/v1/auth/refresh",
+                        "POST /api/v1/auth/logout",
+                        "GET /api/v1/auth/google/login",
+                        "GET /api/v1/auth/google/callback",
+                        "GET /api/v1/auth/config",
+                        "POST /api/v1/oauth/token"
+                );
+            }
+
+            @Override
+            public List<String> passwordChangeWhitelist() {
+                return List.of(
+                        "GET /api/v1/me",
+                        "POST /api/v1/me/change-password",
+                        "POST /api/v1/auth/refresh",
+                        "POST /api/v1/auth/logout"
+                );
+            }
+        };
     }
 
     @Bean
@@ -75,26 +107,27 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                // Public authentication endpoints (do not require Bearer JWT)
+                // Public authentication endpoints
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/auth/register",
+                        "/api/v1/auth/register-merchant",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
-                        "/api/v1/auth/logout"
+                        "/api/v1/auth/logout",
+                        "/api/v1/oauth/token"
                 ).permitAll()
-                // Public OAuth & auth config endpoints (FR-AUTH-009, FR-AUTH-011)
+                // Public OAuth & auth config endpoints
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/auth/config",
                         "/api/v1/auth/google/login",
                         "/api/v1/auth/google/callback"
                 ).permitAll()
-                // Actuator health for orchestration
-                .requestMatchers("/actuator/health").permitAll()
-                // Protected profile & change-password endpoints
+                // Actuator health & readiness
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/prometheus").permitAll()
+                // Protected profile endpoints
                 .requestMatchers("/api/v1/me/**").authenticated()
-                // Admin user management endpoints (FR-AUTH-015, FR-AUTH-020, FR-AUTH-021)
+                // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -102,9 +135,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * BCrypt with cost factor 12 as required by SRS v2.1 FR-AUTH-001.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);

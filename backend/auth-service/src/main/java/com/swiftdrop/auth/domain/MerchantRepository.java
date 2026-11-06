@@ -1,6 +1,5 @@
-package com.swiftdrop.auth.repository;
+package com.swiftdrop.auth.domain;
 
-import com.swiftdrop.auth.entity.Merchant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -13,4 +12,3 @@ import java.util.UUID;
 public interface MerchantRepository extends JpaRepository<Merchant, UUID> {
     Optional<Merchant> findByUserId(UUID userId);
 }
-

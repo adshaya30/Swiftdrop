@@ -1,6 +1,9 @@
-package com.swiftdrop.auth.service;
+package com.swiftdrop.auth.login.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.security.JwtPublicKeyProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +13,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.*;
+import java.security.KeyFactory;
+import java.security.Signature;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -20,74 +24,132 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Service for issuing and validating RS256 JWT access tokens.
- * SRS v2.1 – Section 3.6, FR-AUTH-003, FR-AUTH-006
+ * RS256 JWT service adhering to SRS v2.1 Section 3.6 and Master Prompt Section 8.1.
+ * Header: kid=swiftdrop1
+ * Claims: sub, role, typ, mid (conditional), scope (conditional), pwc (conditional),
+ *         iss=swiftdrop, aud=swiftdrop-api, iat, exp, jti.
  */
 @Service
-public class JwtTokenService {
+public class JwtService implements JwtPublicKeyProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtTokenService.class);
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
-    private static final String KEY_ID = "swiftdrop-1";
-    private static final String ISSUER = "swiftdrop";
-    private static final String AUDIENCE = "swiftdrop-api";
-    private static final String TOKEN_TYPE = "user";
-    public static final long ACCESS_TOKEN_EXPIRY_SECONDS = 900; // 15 minutes
+    public static final String KEY_ID = "swiftdrop1";
+    public static final String ISSUER = "swiftdrop";
+    public static final String AUDIENCE = "swiftdrop-api";
+    public static final String TYPE_USER = "user";
+    public static final String TYPE_CLIENT = "client";
 
     private final RSAPrivateKey privateKey;
     private final RSAPublicKey publicKey;
     private final ObjectMapper objectMapper;
+    private final long accessTokenTtlMinutes;
 
-    public JwtTokenService(
+    public JwtService(String privateKeyPath, ObjectMapper objectMapper) {
+        this(privateKeyPath, 15L, objectMapper);
+    }
+
+    public JwtService(
             @Value("${jwt.private-key-path:${JWT_PRIVATE_KEY_PATH:}}") String privateKeyPath,
+            @Value("${jwt.access-ttl-minutes:15}") long accessTokenTtlMinutes,
             ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.accessTokenTtlMinutes = accessTokenTtlMinutes;
         this.privateKey = loadPrivateKey(privateKeyPath);
         this.publicKey = derivePublicKey(this.privateKey);
-        log.info("JwtTokenService initialized successfully with RS256 key kid={}", KEY_ID);
+        log.info("JwtService initialized successfully with RS256 key kid={}", KEY_ID);
+    }
+
+    public long getAccessTokenExpirySeconds() {
+        return accessTokenTtlMinutes * 60L;
     }
 
     /**
-     * Issues an RS256 signed access token for the given user.
-     * Claims: sub, role, typ=user, iss=swiftdrop, aud=swiftdrop-api, iat, exp, jti, and conditional pwc/mid.
-     * No sensitive user data (email, phone, name) is included.
+     * Compatibility helper for services/tests invoking by primitives.
      */
     public String issueAccessToken(UUID userId, String role, boolean mustChangePassword, UUID merchantId) {
-        try {
-            Instant now = Instant.now();
-            Instant expiry = now.plusSeconds(ACCESS_TOKEN_EXPIRY_SECONDS);
+        User u = new User();
+        u.setId(userId);
+        u.setRole(com.swiftdrop.auth.entity.UserRole.valueOf(role));
+        u.setMustChangePassword(mustChangePassword);
+        Merchant m = null;
+        if (merchantId != null) {
+            m = new Merchant();
+            m.setId(merchantId);
+        }
+        return issueUserToken(u, m);
+    }
 
-            // 1. Header
+    /**
+     * Issues an RS256 signed access token for a user.
+     * Claims: sub, role, typ=user, mid (only if MERCHANT), pwc=true (only if mustChangePassword),
+     *         iss=swiftdrop, aud=swiftdrop-api, iat, exp, jti.
+     * Never contains personal user data (email, phone, name).
+     */
+    public String issueUserToken(User user, Merchant merchant) {
+        Instant now = Instant.now();
+        Instant expiry = now.plusSeconds(getAccessTokenExpirySeconds());
+
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", user.getId().toString());
+        claims.put("role", user.getRole().name());
+        claims.put("typ", TYPE_USER);
+
+        if ("MERCHANT".equalsIgnoreCase(user.getRole().name()) && merchant != null) {
+            claims.put("mid", merchant.getId().toString());
+        }
+
+        if (user.isMustChangePassword()) {
+            claims.put("pwc", true);
+        }
+
+        claims.put("iss", ISSUER);
+        claims.put("aud", AUDIENCE);
+        claims.put("iat", now.getEpochSecond());
+        claims.put("exp", expiry.getEpochSecond());
+        claims.put("jti", UUID.randomUUID().toString());
+
+        return signToken(claims);
+    }
+
+    /**
+     * Issues an RS256 signed access token for an API client (M2M / Merchant API).
+     */
+    public String issueClientToken(Merchant merchant, UUID userId, Set<String> scopes) {
+        Instant now = Instant.now();
+        Instant expiry = now.plusSeconds(getAccessTokenExpirySeconds());
+
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", userId != null ? userId.toString() : merchant.getUserId().toString());
+        claims.put("role", "MERCHANT");
+        claims.put("typ", TYPE_CLIENT);
+        claims.put("mid", merchant.getId().toString());
+
+        if (scopes != null && !scopes.isEmpty()) {
+            claims.put("scope", String.join(" ", scopes));
+        }
+
+        claims.put("iss", ISSUER);
+        claims.put("aud", AUDIENCE);
+        claims.put("iat", now.getEpochSecond());
+        claims.put("exp", expiry.getEpochSecond());
+        claims.put("jti", UUID.randomUUID().toString());
+
+        return signToken(claims);
+    }
+
+    private String signToken(Map<String, Object> claims) {
+        try {
             Map<String, Object> header = new LinkedHashMap<>();
             header.put("alg", "RS256");
             header.put("typ", "JWT");
             header.put("kid", KEY_ID);
 
-            // 2. Claims
-            Map<String, Object> claims = new LinkedHashMap<>();
-            claims.put("sub", userId.toString());
-            claims.put("role", role);
-            claims.put("typ", TOKEN_TYPE);
-            claims.put("iss", ISSUER);
-            claims.put("aud", AUDIENCE);
-            claims.put("iat", now.getEpochSecond());
-            claims.put("exp", expiry.getEpochSecond());
-            claims.put("jti", UUID.randomUUID().toString());
-
-            if (mustChangePassword) {
-                claims.put("pwc", true);
-            }
-            if (merchantId != null) {
-                claims.put("mid", merchantId.toString());
-            }
-
-            // 3. Serialize and Base64URL encode
             Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
             String headerEncoded = encoder.encodeToString(objectMapper.writeValueAsBytes(header));
             String claimsEncoded = encoder.encodeToString(objectMapper.writeValueAsBytes(claims));
             String signingInput = headerEncoded + "." + claimsEncoded;
 
-            // 4. Sign with RS256 (SHA256withRSA)
             Signature signature = Signature.getInstance("SHA256withRSA");
             signature.initSign(privateKey);
             signature.update(signingInput.getBytes(StandardCharsets.US_ASCII));
@@ -96,14 +158,11 @@ public class JwtTokenService {
 
             return signingInput + "." + signatureEncoded;
         } catch (Exception e) {
-            log.error("Failed to sign access token for user {}", userId, e);
+            log.error("Failed to sign access token", e);
             throw new IllegalStateException("Failed to generate access token", e);
         }
     }
 
-    /**
-     * Verifies the RS256 signature and returns the parsed payload claims.
-     */
     public Map<String, Object> parseAndVerifyToken(String token) {
         try {
             String[] parts = token.split("\\.");
@@ -132,6 +191,7 @@ public class JwtTokenService {
         }
     }
 
+    @Override
     public RSAPublicKey getPublicKey() {
         return publicKey;
     }
@@ -179,22 +239,30 @@ public class JwtTokenService {
             byte[] decoded = Base64.getDecoder().decode(privateKeyPEM);
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
             KeyFactory kf = KeyFactory.getInstance("RSA");
-            return (RSAPrivateKey) kf.generatePrivate(spec);
+            RSAPrivateKey key = (RSAPrivateKey) kf.generatePrivate(spec);
+
+            if (key.getModulus().bitLength() < 2048) {
+                throw new IllegalStateException("JWT private key bit length must be at least 2048 bits");
+            }
+
+            return key;
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to load RSA private key from " + pathStr + ": " + e.getMessage(), e);
+            throw new IllegalStateException("Failed to load JWT private key from " + pathStr + ": " + e.getMessage(), e);
         }
     }
 
-    private RSAPublicKey derivePublicKey(RSAPrivateKey privKey) {
+    private RSAPublicKey derivePublicKey(RSAPrivateKey privateKey) {
         try {
-            if (privKey instanceof RSAPrivateCrtKey crtKey) {
-                RSAPublicKeySpec spec = new RSAPublicKeySpec(crtKey.getModulus(), crtKey.getPublicExponent());
-                KeyFactory kf = KeyFactory.getInstance("RSA");
-                return (RSAPublicKey) kf.generatePublic(spec);
+            if (!(privateKey instanceof RSAPrivateCrtKey crtKey)) {
+                throw new IllegalStateException("Private key is not an RSAPrivateCrtKey; cannot derive public key");
             }
-            throw new IllegalStateException("Private key is not an RSAPrivateCrtKey; cannot derive public key");
+            RSAPublicKeySpec spec = new RSAPublicKeySpec(crtKey.getModulus(), crtKey.getPublicExponent());
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) kf.generatePublic(spec);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to derive RSA public key: " + e.getMessage(), e);
+            throw new IllegalStateException("Failed to derive RSA public key from private key: " + e.getMessage(), e);
         }
     }
 }

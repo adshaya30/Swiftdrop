@@ -1,4 +1,16 @@
 package com.swiftdrop.auth.controller;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.config.SecurityConfig;
@@ -10,8 +22,8 @@ import com.swiftdrop.auth.dto.response.LoginUserSummary;
 import com.swiftdrop.auth.dto.response.UserResponse;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.dto.response.RefreshResult;
-import com.swiftdrop.auth.service.LoginService;
-import com.swiftdrop.auth.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
 import com.swiftdrop.auth.service.GoogleOAuthService;
 import jakarta.servlet.http.Cookie;
 import com.swiftdrop.auth.service.RegistrationService;
@@ -58,7 +70,7 @@ class AuthControllerTest {
     private GoogleOAuthService googleOAuthService;
 
     @MockBean
-    private com.swiftdrop.auth.service.JwtTokenService jwtTokenService;
+    private com.swiftdrop.auth.service.JwtService jwtService;
 
     @Test
     @DisplayName("POST /api/v1/auth/register - 201 Created with valid payload")

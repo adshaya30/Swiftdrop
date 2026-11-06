@@ -3,7 +3,7 @@ package com.swiftdrop.auth.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.entity.CourierProfile;
 import com.swiftdrop.auth.entity.OutboxEvent;
-import com.swiftdrop.auth.entity.User;
+import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.repository.OutboxEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

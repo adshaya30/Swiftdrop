@@ -1,4 +1,4 @@
-package com.swiftdrop.auth.entity;
+package com.swiftdrop.auth.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -27,12 +27,6 @@ public class RefreshToken {
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
-
-    @Column(name = "issued_at", nullable = false)
-    private Instant issuedAt = Instant.now();
-
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
@@ -44,6 +38,9 @@ public class RefreshToken {
 
     @Column(name = "revoked_at")
     private Instant revokedAt;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt = Instant.now();
 
     @Column(name = "user_agent", length = 512)
     private String userAgent;
@@ -62,7 +59,6 @@ public class RefreshToken {
         this.ipAddress = ipAddress;
         Instant now = Instant.now();
         this.createdAt = now;
-        this.issuedAt = now;
         this.familyCreatedAt = now;
     }
 
@@ -78,12 +74,6 @@ public class RefreshToken {
     public String getTokenHash() { return tokenHash; }
     public void setTokenHash(String tokenHash) { this.tokenHash = tokenHash; }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getIssuedAt() { return issuedAt; }
-    public void setIssuedAt(Instant issuedAt) { this.issuedAt = issuedAt; }
-
     public Instant getExpiresAt() { return expiresAt; }
     public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 
@@ -95,6 +85,9 @@ public class RefreshToken {
 
     public Instant getRevokedAt() { return revokedAt; }
     public void setRevokedAt(Instant revokedAt) { this.revokedAt = revokedAt; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     public String getUserAgent() { return userAgent; }
     public void setUserAgent(String userAgent) { this.userAgent = userAgent; }

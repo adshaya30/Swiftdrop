@@ -1,4 +1,16 @@
 package com.swiftdrop.auth.service;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,22 +28,22 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("JwtTokenService RS256 Unit Tests (TST-013)")
-class JwtTokenServiceTest {
+@DisplayName("JwtService RS256 Unit Tests (TST-013)")
+class JwtServiceTest {
 
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        jwtTokenService = new JwtTokenService("classpath:certs/test_private_key.pem", objectMapper);
+        jwtService = new JwtService("classpath:certs/test_private_key.pem", objectMapper);
     }
 
     @Test
     @DisplayName("RS256 JWT header has alg=RS256, typ=JWT, kid=swiftdrop-1")
     void tokenHeader_hasCorrectAttributes() throws Exception {
         UUID userId = UUID.randomUUID();
-        String token = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String token = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
 
         String[] parts = token.split("\\.");
         assertThat(parts).hasSize(3);
@@ -49,9 +61,9 @@ class JwtTokenServiceTest {
     @DisplayName("RS256 JWT claims adhere to Section 3.6 contract")
     void tokenClaims_containMandatorySRSClaims() {
         UUID userId = UUID.randomUUID();
-        String token = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String token = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
 
-        Map<String, Object> claims = jwtTokenService.parseAndVerifyToken(token);
+        Map<String, Object> claims = jwtService.parseAndVerifyToken(token);
 
         assertThat(claims.get("sub")).isEqualTo(userId.toString());
         assertThat(claims.get("role")).isEqualTo("CUSTOMER");
@@ -69,9 +81,9 @@ class JwtTokenServiceTest {
     @DisplayName("No sensitive data in JWT access token")
     void tokenClaims_containNoSensitiveData() {
         UUID userId = UUID.randomUUID();
-        String token = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String token = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
 
-        Map<String, Object> claims = jwtTokenService.parseAndVerifyToken(token);
+        Map<String, Object> claims = jwtService.parseAndVerifyToken(token);
 
         assertThat(claims.containsKey("email")).isFalse();
         assertThat(claims.containsKey("phone")).isFalse();
@@ -84,9 +96,9 @@ class JwtTokenServiceTest {
     @DisplayName("Conditional pwc claim present when mustChangePassword is true")
     void conditionalClaim_pwc_whenMustChangePassword() {
         UUID userId = UUID.randomUUID();
-        String token = jwtTokenService.issueAccessToken(userId, "COURIER", true, null);
+        String token = jwtService.issueAccessToken(userId, "COURIER", true, null);
 
-        Map<String, Object> claims = jwtTokenService.parseAndVerifyToken(token);
+        Map<String, Object> claims = jwtService.parseAndVerifyToken(token);
         assertThat(claims.get("pwc")).isEqualTo(true);
     }
 
@@ -95,20 +107,20 @@ class JwtTokenServiceTest {
     void conditionalClaim_mid_whenMerchantIdPresent() {
         UUID userId = UUID.randomUUID();
         UUID merchantId = UUID.randomUUID();
-        String token = jwtTokenService.issueAccessToken(userId, "MERCHANT", false, merchantId);
+        String token = jwtService.issueAccessToken(userId, "MERCHANT", false, merchantId);
 
-        Map<String, Object> claims = jwtTokenService.parseAndVerifyToken(token);
+        Map<String, Object> claims = jwtService.parseAndVerifyToken(token);
         assertThat(claims.get("mid")).isEqualTo(merchantId.toString());
     }
 
     @Test
     @DisplayName("Fail-fast when private key configuration is missing (no ephemeral fallback)")
     void blankPath_throwsIllegalStateException() {
-        assertThatThrownBy(() -> new JwtTokenService("", objectMapper))
+        assertThatThrownBy(() -> new JwtService("", objectMapper))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("missing");
 
-        assertThatThrownBy(() -> new JwtTokenService(null, objectMapper))
+        assertThatThrownBy(() -> new JwtService(null, objectMapper))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("missing");
     }
@@ -116,7 +128,7 @@ class JwtTokenServiceTest {
     @Test
     @DisplayName("Reject invalid non-existent private key path")
     void rejectInvalidPrivateKeyPath() {
-        assertThatThrownBy(() -> new JwtTokenService("/non/existent/path/to/key.pem", objectMapper))
+        assertThatThrownBy(() -> new JwtService("/non/existent/path/to/key.pem", objectMapper))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("does not exist");
     }
@@ -125,13 +137,13 @@ class JwtTokenServiceTest {
     @DisplayName("TST-013: Tampered signature rejection")
     void verifyToken_rejectsTamperedSignature() {
         UUID userId = UUID.randomUUID();
-        String validToken = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String validToken = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
         String[] parts = validToken.split("\\.");
 
         // Tamper with the signature portion
         String tamperedToken = parts[0] + "." + parts[1] + ".tamperedSignature";
 
-        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(tamperedToken))
+        assertThatThrownBy(() -> jwtService.parseAndVerifyToken(tamperedToken))
                 .isInstanceOf(SecurityException.class);
     }
 
@@ -139,7 +151,7 @@ class JwtTokenServiceTest {
     @DisplayName("TST-013: Tampered payload rejection")
     void verifyToken_rejectsTamperedPayload() {
         UUID userId = UUID.randomUUID();
-        String validToken = jwtTokenService.issueAccessToken(userId, "CUSTOMER", false, null);
+        String validToken = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
         String[] parts = validToken.split("\\.");
 
         // Replace claims payload with role=ADMIN
@@ -147,7 +159,7 @@ class JwtTokenServiceTest {
                 .encodeToString("{\"sub\":\"forged\",\"role\":\"ADMIN\"}".getBytes(StandardCharsets.UTF_8));
         String tamperedToken = parts[0] + "." + forgedPayload + "." + parts[2];
 
-        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(tamperedToken))
+        assertThatThrownBy(() -> jwtService.parseAndVerifyToken(tamperedToken))
                 .isInstanceOf(SecurityException.class);
     }
 
@@ -172,7 +184,7 @@ class JwtTokenServiceTest {
 
         String foreignToken = signingInput + "." + signature;
 
-        assertThatThrownBy(() -> jwtTokenService.parseAndVerifyToken(foreignToken))
+        assertThatThrownBy(() -> jwtService.parseAndVerifyToken(foreignToken))
                 .isInstanceOf(SecurityException.class);
     }
 }

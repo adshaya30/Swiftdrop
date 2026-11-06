@@ -1,6 +1,5 @@
-package com.swiftdrop.auth.repository;
+package com.swiftdrop.auth.domain;
 
-import com.swiftdrop.auth.entity.RefreshToken;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -14,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository for RefreshToken records.
+ * Repository for RefreshToken records in auth-service.
  * SRS v2.1 – FR-AUTH-007, FR-AUTH-008, FR-AUTH-026
  */
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
@@ -22,7 +21,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     /**
-     * Row-level pessimistic write lock (SELECT ... FOR UPDATE) to prevent race conditions during rotation.
+     * Row-level pessimistic write lock (SELECT ... FOR UPDATE) to prevent concurrency races.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM RefreshToken r WHERE r.tokenHash = :tokenHash")
@@ -30,7 +29,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     /**
      * Revokes all refresh tokens in a given family.
-     * SRS v2.1 – FR-AUTH-007, FR-AUTH-008
      */
     @Transactional
     @Modifying(clearAutomatically = true)
@@ -45,7 +43,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     /**
      * Revokes all active refresh tokens for a user across all families.
-     * SRS v2.1 – FR-AUTH-013 (Password Change)
      */
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -53,18 +50,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     int revokeAllByUserId(@Param("userId") UUID userId, @Param("revokedAt") Instant revokedAt);
 
     /**
-     * Purges refresh tokens whose retention deadline has passed (expires_at <= cutoff).
-     * Bounded by limit to prevent long-running table locks during periodic cleanup.
-     * SRS v2.1 – FR-AUTH-026
+     * Purges refresh tokens whose retention deadline has passed.
      */
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query(value = "DELETE FROM refresh_tokens WHERE id IN (SELECT id FROM refresh_tokens WHERE expires_at <= :cutoff LIMIT :batchSize)", nativeQuery = true)
     int deleteExpiredTokensBefore(@Param("cutoff") Instant cutoff, @Param("batchSize") int batchSize);
 
-    /**
-     * Counts the number of refresh tokens whose retention deadline has passed.
-     */
     @Query("SELECT COUNT(r) FROM RefreshToken r WHERE r.expiresAt <= :cutoff")
     long countExpiredTokensBefore(@Param("cutoff") Instant cutoff);
 }

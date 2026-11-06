@@ -1,10 +1,10 @@
 package com.swiftdrop.auth.service;
 
 import com.swiftdrop.auth.entity.AuthProvider;
-import com.swiftdrop.auth.entity.User;
+import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
-import com.swiftdrop.auth.repository.UserRepository;
+import com.swiftdrop.auth.domain.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

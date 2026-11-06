@@ -1,12 +1,24 @@
 package com.swiftdrop.auth.service;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.swiftdrop.auth.dto.request.LoginRequest;
 import com.swiftdrop.auth.dto.response.LoginResult;
 import com.swiftdrop.auth.entity.*;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.repository.MerchantRepository;
-import com.swiftdrop.auth.repository.RefreshTokenRepository;
-import com.swiftdrop.auth.repository.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.domain.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +55,7 @@ class LoginServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
 
     private LoginService loginService;
 
@@ -59,7 +71,7 @@ class LoginServiceTest {
                 merchantRepository,
                 refreshTokenRepository,
                 passwordEncoder,
-                jwtTokenService
+                jwtService
         );
 
         sampleUser = new User();
@@ -79,7 +91,7 @@ class LoginServiceTest {
         when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
-        when(jwtTokenService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
                 .thenReturn("mocked.jwt.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -242,7 +254,7 @@ class LoginServiceTest {
                 .thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
         when(merchantRepository.findByUserId(userId)).thenReturn(Optional.of(merchant));
-        when(jwtTokenService.issueAccessToken(eq(userId), eq("MERCHANT"), eq(false), eq(merchantId)))
+        when(jwtService.issueAccessToken(eq(userId), eq("MERCHANT"), eq(false), eq(merchantId)))
                 .thenReturn("mocked.jwt.merchant.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -258,7 +270,7 @@ class LoginServiceTest {
         when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
-        when(jwtTokenService.issueAccessToken(any(), any(), anyBoolean(), any()))
+        when(jwtService.issueAccessToken(any(), any(), anyBoolean(), any()))
                 .thenReturn("mocked.jwt.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);

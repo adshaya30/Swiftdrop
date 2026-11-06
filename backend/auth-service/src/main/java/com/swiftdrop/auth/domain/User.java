@@ -1,5 +1,8 @@
-package com.swiftdrop.auth.entity;
+package com.swiftdrop.auth.domain;
 
+import com.swiftdrop.auth.entity.AuthProvider;
+import com.swiftdrop.auth.entity.UserRole;
+import com.swiftdrop.auth.entity.UserStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -25,14 +28,14 @@ public class User {
     @Column(name = "email", nullable = false, length = 254)
     private String email;
 
-    @Column(name = "phone", length = 20)
+    @Column(name = "phone", length = 16)
     private String phone;
 
     /**
      * BCrypt hash only. Plaintext password is never stored.
      * Null for OAuth-only accounts.
      */
-    @Column(name = "password_hash", length = 72)
+    @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
     /**
@@ -43,15 +46,15 @@ public class User {
     private String googleSub;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(name = "role", nullable = false, length = 10)
     private UserRole role = UserRole.CUSTOMER;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider", nullable = false, length = 20)
+    @Column(name = "auth_provider", nullable = false, length = 10)
     private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 30)
+    @Column(name = "status", nullable = false, length = 12)
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "must_change_password", nullable = false)
@@ -72,28 +75,30 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.email != null) {
+            this.email = this.email.trim().toLowerCase();
+        }
     }
 
     @PreUpdate
     void preUpdate() {
         this.updatedAt = Instant.now();
+        if (this.email != null) {
+            this.email = this.email.trim().toLowerCase();
+        }
     }
-
-    // -----------------------------------------------------------------------
-    // Constructors
-    // -----------------------------------------------------------------------
 
     public User() {
     }
-
-    // -----------------------------------------------------------------------
-    // Getters & Setters
-    // -----------------------------------------------------------------------
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -102,7 +107,9 @@ public class User {
     public void setFullName(String fullName) { this.fullName = fullName; }
 
     public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setEmail(String email) {
+        this.email = email != null ? email.trim().toLowerCase() : null;
+    }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
@@ -135,5 +142,11 @@ public class User {
     public void setLastLoginAt(Instant lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 
     public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
     public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }
