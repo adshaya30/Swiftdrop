@@ -87,8 +87,8 @@ jobs:
           cache-dependency-path: backend/${{ matrix.service }}/pom.xml
 
       - name: Build and test ${{ matrix.service }}
-        working-directory: backend/${{ matrix.service }}
-        run: bash ./mvnw --batch-mode --no-transfer-progress verify
+        working-directory: backend
+        run: bash ./mvnw --batch-mode --no-transfer-progress -pl ${{ matrix.service }} -am verify
 
   compose-validation:
     name: Validate Docker Compose configuration
