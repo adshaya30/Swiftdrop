@@ -1,0 +1,2 @@
+com.swiftdrop.common.security.SecurityAutoConfiguration
+com.swiftdrop.common.events.EventsAutoConfiguration

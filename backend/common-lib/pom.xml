@@ -15,6 +15,11 @@
     <name>common-lib</name>
     <description>Shared Spring Boot starters, security, JPA, and messaging infrastructure</description>
 
+    <properties>
+        <!-- JaCoCo: the events part (Member 6) is not counted here; they measure it in their own tests -->
+        <jacoco.exclude.patterns>**/dto/**,**/entity/**,**/config/**,**/*MapperImpl*,**/*Application.class,**/events/**</jacoco.exclude.patterns>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.swiftdrop</groupId>
@@ -46,9 +51,65 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Pre-declared for the events part (Member 6): they never edit this pom -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
+        <!-- Database start-up retry; each service supplies its own Flyway -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test (the test-jar with TestTokens is built by the parent's jar plugin) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
-
