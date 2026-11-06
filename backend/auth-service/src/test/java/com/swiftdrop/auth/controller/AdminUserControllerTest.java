@@ -1,4 +1,16 @@
 package com.swiftdrop.auth.controller;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.config.SecurityConfig;
@@ -9,7 +21,7 @@ import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.security.JwtAuthenticationFilter;
 import com.swiftdrop.auth.service.AdminUserService;
-import com.swiftdrop.auth.service.JwtTokenService;
+import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,7 +62,7 @@ class AdminUserControllerTest {
     private AdminUserService adminUserService;
 
     @MockBean
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
 
     private UUID adminId;
     private UUID targetUserId;
@@ -70,32 +82,32 @@ class AdminUserControllerTest {
         adminClaims.put("role", "ADMIN");
         adminClaims.put("pwc", false);
         adminClaims.put("exp", Instant.now().getEpochSecond() + 3600);
-        when(jwtTokenService.parseAndVerifyToken("admin-token")).thenReturn(adminClaims);
+        when(jwtService.parseAndVerifyToken("admin-token")).thenReturn(adminClaims);
 
         // Customer token
         Map<String, Object> customerClaims = new LinkedHashMap<>(adminClaims);
         customerClaims.put("role", "CUSTOMER");
-        when(jwtTokenService.parseAndVerifyToken("customer-token")).thenReturn(customerClaims);
+        when(jwtService.parseAndVerifyToken("customer-token")).thenReturn(customerClaims);
 
         // Merchant token
         Map<String, Object> merchantClaims = new LinkedHashMap<>(adminClaims);
         merchantClaims.put("role", "MERCHANT");
-        when(jwtTokenService.parseAndVerifyToken("merchant-token")).thenReturn(merchantClaims);
+        when(jwtService.parseAndVerifyToken("merchant-token")).thenReturn(merchantClaims);
 
         // Courier token
         Map<String, Object> courierClaims = new LinkedHashMap<>(adminClaims);
         courierClaims.put("role", "COURIER");
-        when(jwtTokenService.parseAndVerifyToken("courier-token")).thenReturn(courierClaims);
+        when(jwtService.parseAndVerifyToken("courier-token")).thenReturn(courierClaims);
 
         // Client token
         Map<String, Object> clientClaims = new LinkedHashMap<>(adminClaims);
         clientClaims.put("typ", "client");
-        when(jwtTokenService.parseAndVerifyToken("client-token")).thenReturn(clientClaims);
+        when(jwtService.parseAndVerifyToken("client-token")).thenReturn(clientClaims);
 
         // Forced password change token (pwc=true)
         Map<String, Object> pwcClaims = new LinkedHashMap<>(adminClaims);
         pwcClaims.put("pwc", true);
-        when(jwtTokenService.parseAndVerifyToken("pwc-token")).thenReturn(pwcClaims);
+        when(jwtService.parseAndVerifyToken("pwc-token")).thenReturn(pwcClaims);
 
         sampleUserSummary = new AdminUserSummaryResponse(
                 targetUserId,

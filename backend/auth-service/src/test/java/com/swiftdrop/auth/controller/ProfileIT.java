@@ -1,4 +1,16 @@
 package com.swiftdrop.auth.controller;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.AbstractIntegrationTest;
@@ -6,10 +18,10 @@ import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
 import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
 import com.swiftdrop.auth.dto.response.UserProfileResponse;
 import com.swiftdrop.auth.entity.*;
-import com.swiftdrop.auth.repository.MerchantRepository;
-import com.swiftdrop.auth.repository.RefreshTokenRepository;
-import com.swiftdrop.auth.repository.UserRepository;
-import com.swiftdrop.auth.service.JwtTokenService;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -47,7 +59,7 @@ class ProfileIT extends AbstractIntegrationTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -97,7 +109,7 @@ class ProfileIT extends AbstractIntegrationTest {
     @DisplayName("GET /api/v1/me returns authenticated user's profile")
     void getProfile_e2e_success() {
         User user = createLocalUser("nuwan@example.lk", "Secret#2026", false);
-        String token = jwtTokenService.issueAccessToken(user.getId(), user.getRole().name(), false, null);
+        String token = jwtService.issueAccessToken(user.getId(), user.getRole().name(), false, null);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -129,7 +141,7 @@ class ProfileIT extends AbstractIntegrationTest {
     @DisplayName("PUT /api/v1/me updates profile fields in database")
     void updateProfile_e2e_success() {
         User user = createLocalUser("nuwan@example.lk", "Secret#2026", false);
-        String token = jwtTokenService.issueAccessToken(user.getId(), user.getRole().name(), false, null);
+        String token = jwtService.issueAccessToken(user.getId(), user.getRole().name(), false, null);
 
         UpdateProfileRequest updateRequest = new UpdateProfileRequest("Nuwan K. Fernando", "+94779876543");
 
@@ -177,7 +189,7 @@ class ProfileIT extends AbstractIntegrationTest {
         );
         refreshTokenRepository.save(rt);
 
-        String token = jwtTokenService.issueAccessToken(user.getId(), user.getRole().name(), true, null);
+        String token = jwtService.issueAccessToken(user.getId(), user.getRole().name(), true, null);
 
         ChangePasswordRequest request = new ChangePasswordRequest("OldPassword#123", "NewSecret#2026");
 
@@ -215,7 +227,7 @@ class ProfileIT extends AbstractIntegrationTest {
     @DisplayName("POST /api/v1/me/change-password rejects Google OAuth accounts with 400")
     void changePassword_googleAccount_returns400() {
         User googleUser = createGoogleUser("googleuser@example.com");
-        String token = jwtTokenService.issueAccessToken(googleUser.getId(), googleUser.getRole().name(), false, null);
+        String token = jwtService.issueAccessToken(googleUser.getId(), googleUser.getRole().name(), false, null);
 
         ChangePasswordRequest request = new ChangePasswordRequest("AnyPassword#123", "NewSecret#2026");
 
@@ -244,7 +256,7 @@ class ProfileIT extends AbstractIntegrationTest {
     @DisplayName("FR-AUTH-014: pwc=true permits GET /me and POST /me/change-password, blocks PUT /me")
     void forcedPasswordChange_gate_e2e() {
         User user = createLocalUser("gate.test@example.lk", "InitialTemp#123", true);
-        String tokenWithPwc = jwtTokenService.issueAccessToken(user.getId(), user.getRole().name(), true, null);
+        String tokenWithPwc = jwtService.issueAccessToken(user.getId(), user.getRole().name(), true, null);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(tokenWithPwc);
