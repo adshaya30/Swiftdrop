@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SwiftDrop Mock Merchant</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
+    header { background: #172033; color: white; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+    header span { font-size: 0.85rem; color: #94a3b8; }
+    main { display: grid; grid-template-columns: minmax(380px, 1.2fr) minmax(380px, 1.8fr); gap: 1rem; padding: 1rem; max-width: 1400px; margin: 0 auto; }
+    .panel { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .panel-header h2 { margin: 0; font-size: 1.1rem; }
+    .controls { display: flex; gap: 0.75rem; align-items: flex-end; margin-bottom: 1rem; }
+    .controls label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; flex: 1; }
+    input[type="password"] { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: monospace; font-size: 0.9rem; }
+    input[type="password"]:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2); }
+    button { cursor: pointer; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; border: 1px solid #cbd5e1; background: white; color: #334155; transition: all 0.15s; }
+    button:hover { background: #f1f5f9; border-color: #94a3b8; }
+    button.clear-btn:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+    #requests { max-height: calc(100vh - 220px); overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+    .request-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; cursor: pointer; background: white; transition: border-color 0.15s, background-color 0.15s; }
+    .request-card:hover { border-color: #94a3b8; background: #fafafa; }
+    .request-card.selected { border-color: #f97316; background: #fff7ed; box-shadow: 0 0 0 1px #f97316; }
+    .req-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; gap: 0.5rem; }
+    .req-path { font-weight: 700; font-family: monospace; font-size: 0.9rem; color: #0f172a; word-break: break-all; }
+    .req-time { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+    .req-meta { display: grid; grid-template-columns: 1fr; gap: 0.2rem; font-size: 0.8rem; color: #475569; }
+    .meta-row { display: flex; gap: 0.4rem; }
+    .meta-key { font-weight: 600; color: #64748b; min-width: 65px; }
+    .meta-val { font-family: monospace; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge-bar { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid transparent; }
+    .badge-valid { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+    .badge-invalid { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .badge-expired { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+    .badge-empty { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+    .badge-dedup { background: #fff7ed; color: #ea580c; border-color: #ffedd5; font-weight: 700; }
+    pre { white-space: pre-wrap; word-break: break-all; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.85rem; border-radius: 8px; font-size: 0.82rem; line-height: 1.45; max-height: 400px; overflow-y: auto; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #94a3b8; font-size: 0.95rem; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SwiftDrop Mock Merchant</h1>
+    <span>Listening on port 9000 (FR-WHK-011)</span>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Received Webhooks</h2>
+        <span id="req-count">0 requests</span>
+      </div>
+      <div class="controls">
+        <label>Merchant Webhook Secret
+          <input id="secret" type="password" autocomplete="off" placeholder="whsec_..." spellcheck="false">
+        </label>
+        <button id="clear" class="clear-btn" type="button">Clear</button>
+      </div>
+      <div id="requests" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Webhook Details</h2>
+        <span id="detail-time"></span>
+      </div>
+      <div id="detail">
+        <div class="empty-state">Select a webhook request to view headers and payload.</div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const requestsElement = document.querySelector("#requests");
+      const detailElement = document.querySelector("#detail");
+      const detailTimeElement = document.querySelector("#detail-time");
+      const secretElement = document.querySelector("#secret");
+      const countElement = document.querySelector("#req-count");
+      let requests = [];
+      let selectedId = null;
+
+      const text = (tag, value, className = "") => {
+        const element = document.createElement(tag);
+        element.textContent = value;
+        if (className) element.className = className;
+        return element;
+      };
+
+      const getHeader = (headers, name) => {
+        if (!headers) return undefined;
+        const target = name.toLowerCase();
+        for (const [k, v] of Object.entries(headers)) {
+          if (k.toLowerCase() === target) return Array.isArray(v) ? v[0] : v;
+        }
+        return undefined;
+      };
+
+      const bytesToHex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+
+      const constantTimeEqual = (left, right) => {
+        if (left.length !== right.length) return false;
+        let mismatch = 0;
+        for (let i = 0; i < left.length; i++) {
+          mismatch |= left.charCodeAt(i) ^ right.charCodeAt(i);
+        }
+        return mismatch === 0;
+      };
+
+      async function hmacHex(secret, timestamp, bodyBytes) {
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          "raw",
+          encoder.encode(secret),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const prefix = encoder.encode(`${timestamp}.`);
+        const message = new Uint8Array(prefix.length + bodyBytes.length);
+        message.set(prefix);
+        message.set(bodyBytes, prefix.length);
+        const signature = await crypto.subtle.sign("HMAC", key, message);
+        return bytesToHex(new Uint8Array(signature));
+      }
+
+      function decodeBody(entry) {
+        try {
+          const binary = atob(entry.bodyBase64 || "");
+          const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+          return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+        } catch (_) {
+          return "";
+        }
+      }
+
+      async function verification(entry, secret) {
+        if (!secret) return "no secret entered";
+        const headers = entry.headers || {};
+        const timestamp = getHeader(headers, "x-swiftdrop-timestamp");
+        const signature = getHeader(headers, "x-swiftdrop-signature");
+
+        if (!timestamp) return "invalid signature";
+        const ts = Number(timestamp);
+        if (!Number.isFinite(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) {
+          return "timestamp too old";
+        }
+        if (!signature) return "invalid signature";
+
+        const match = /^sha256=([a-fA-F0-9]{64})$/i.exec(signature.trim());
+        if (!match) return "invalid signature";
+
+        try {
+          const binary = atob(entry.bodyBase64 || "");
+          const bodyBytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+          const expected = await hmacHex(secret, timestamp, bodyBytes);
+          return constantTimeEqual(match[1].toLowerCase(), expected.toLowerCase()) ? "valid" : "invalid signature";
+        } catch (_) {
+          return "invalid signature";
+        }
+      }
+
+      function badgeClass(verdict) {
+        if (verdict === "valid") return "badge badge-valid";
+        if (verdict === "invalid signature") return "badge badge-invalid";
+        if (verdict === "timestamp too old") return "badge badge-expired";
+        return "badge badge-empty";
+      }
+
+      async function renderDetail(entry) {
+        if (!entry) {
+          detailElement.replaceChildren(text("div", "Select a webhook request to view headers and payload.", "empty-state"));
+          detailTimeElement.textContent = "";
+          return;
+        }
+        detailElement.replaceChildren();
+        detailTimeElement.textContent = entry.time;
+
+        const secret = secretElement.value.trim();
+        const verdict = await verification(entry, secret);
+
+        const summaryBox = document.createElement("div");
+        summaryBox.style.marginBottom = "1rem";
+        summaryBox.append(
+          text("h3", entry.path, "req-path"),
+          text("div", `Verification: ${verdict}`, badgeClass(verdict))
+        );
+
+        const delivery = getHeader(entry.headers, "x-swiftdrop-delivery");
+        const attempt = getHeader(entry.headers, "x-swiftdrop-attempt");
+        if (entry.deliveryCount > 1 || (attempt && Number(attempt) > 1)) {
+          const dupNotice = text(
+            "div",
+            `Delivery Retry / Duplicate detected (Delivery ID: ${delivery || "unknown"}, Attempt: ${attempt || entry.deliveryCount})`,
+            "badge badge-dedup"
+          );
+          dupNotice.style.display = "block";
+          dupNotice.style.marginTop = "0.5rem";
+          summaryBox.append(dupNotice);
+        }
+        detailElement.append(summaryBox);
+
+        detailElement.append(text("h4", "Request Headers"));
+        const headerPre = text("pre", "");
+        headerPre.textContent = Object.entries(entry.headers || {})
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("\n");
+        detailElement.append(headerPre);
+
+        detailElement.append(text("h4", "Payload Body (Parsed JSON)"));
+        const rawBody = decodeBody(entry);
+        let pretty = rawBody;
+        try {
+          pretty = JSON.stringify(JSON.parse(rawBody), null, 2);
+        } catch (_) {}
+        const bodyPre = text("pre", pretty || "(empty body)");
+        detailElement.append(bodyPre);
+      }
+
+      async function render() {
+        requestsElement.replaceChildren();
+        countElement.textContent = `${requests.length} of 200 requests`;
+
+        if (requests.length === 0) {
+          requestsElement.append(text("div", "No webhooks received yet. Send a POST to http://mock-merchant:9000/<any-path>", "empty-state"));
+          return;
+        }
+
+        const secret = secretElement.value.trim();
+
+        for (const entry of [...requests].reverse()) {
+          const card = document.createElement("div");
+          card.className = `request-card${entry.id === selectedId ? " selected" : ""}`;
+          card.dataset.id = entry.id;
+
+          const top = document.createElement("div");
+          top.className = "req-top";
+          top.append(
+            text("div", entry.path, "req-path"),
+            text("div", entry.time.slice(11, 19), "req-time")
+          );
+          card.append(top);
+
+          const eventName = getHeader(entry.headers, "x-swiftdrop-event") || "–";
+          const deliveryId = getHeader(entry.headers, "x-swiftdrop-delivery") || "–";
+          const attempt = getHeader(entry.headers, "x-swiftdrop-attempt") || "–";
+
+          const meta = document.createElement("div");
+          meta.className = "req-meta";
+
+          const rowEvent = document.createElement("div");
+          rowEvent.className = "meta-row";
+          rowEvent.append(text("span", "Event:", "meta-key"), text("span", eventName, "meta-val"));
+
+          const rowDelivery = document.createElement("div");
+          rowDelivery.className = "meta-row";
+          rowDelivery.append(text("span", "Delivery:", "meta-key"), text("span", deliveryId, "meta-val"));
+
+          const rowAttempt = document.createElement("div");
+          rowAttempt.className = "meta-row";
+          rowAttempt.append(text("span", "Attempt:", "meta-key"), text("span", String(attempt), "meta-val"));
+
+          meta.append(rowEvent, rowDelivery, rowAttempt);
+          card.append(meta);
+
+          const badgeBar = document.createElement("div");
+          badgeBar.className = "badge-bar";
+
+          const verdict = await verification(entry, secret);
+          badgeBar.append(text("span", verdict, badgeClass(verdict)));
+
+          if (entry.deliveryCount > 1 || (attempt && Number(attempt) > 1)) {
+            const att = attempt !== "–" ? attempt : entry.deliveryCount;
+            badgeBar.append(text("span", `Retry / Duplicate (#${att})`, "badge badge-dedup"));
+          }
+          card.append(badgeBar);
+
+          card.addEventListener("click", () => {
+            selectedId = entry.id;
+            render().then(() => renderDetail(entry));
+          });
+          requestsElement.append(card);
+        }
+      }
+
+      async function refresh() {
+        try {
+          const res = await fetch("/_requests");
+          if (!res.ok) return;
+          requests = await res.json();
+          await render();
+          const current = requests.find(e => e.id === selectedId);
+          await renderDetail(current);
+        } catch (_) {}
+      }
+
+      document.querySelector("#clear").addEventListener("click", async () => {
+        try {
+          await fetch("/_requests", { method: "DELETE" });
+          selectedId = null;
+          await refresh();
+        } catch (_) {}
+      });
+
+      secretElement.addEventListener("input", () => {
+        render();
+        const current = requests.find(e => e.id === selectedId);
+        renderDetail(current);
+      });
+
+      refresh();
+      setInterval(refresh, 2000);
+    })();
+  </script>
+</body>
+</html>
