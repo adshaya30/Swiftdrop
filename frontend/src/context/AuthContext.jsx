@@ -56,6 +56,24 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const refresh = useCallback(async () => {
+    try {
+      const result = await authApi.refresh();
+      if (result && result.user) {
+        setUser(result.user);
+        setStatus('authenticated');
+        return result;
+      }
+      setUser(null);
+      setStatus('anonymous');
+      return null;
+    } catch (err) {
+      setUser(null);
+      setStatus('anonymous');
+      throw err;
+    }
+  }, []);
+
   const hasRole = useCallback((roleOrRoles) => {
     if (!user || !user.role) return false;
     if (Array.isArray(roleOrRoles)) {
@@ -69,6 +87,7 @@ export function AuthProvider({ children }) {
     status,
     login,
     logout,
+    refresh,
     hasRole,
   };
 

@@ -226,13 +226,7 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="caption" sx={{ color: tokens.palette.mutedText, px: 1 }}>
-              or continue with
-            </Typography>
-          </Divider>
-
-          <GoogleLoginButton disabled={isSubmitting} text="Continue with Google" />
+          <GoogleLoginButton disabled={isSubmitting} text="Continue with Google" dividerText="or continue with" />
 
           {/* Links */}
           <Box sx={{ mt: 3, textAlign: 'center' }}>
@@ -254,35 +248,56 @@ export default function LoginPage() {
           </Box>
         </Box>
 
-        {/* Right column: Smoothly framed hero card */}
+        {/* Right column: Smoothly framed hero card with frosted glass banner */}
         <Box
           sx={{
             display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            p: { md: 3, lg: 4 },
+            p: { md: 2.5, lg: 3 },
             backgroundColor: '#FAFCFF',
           }}
         >
           <Box
             sx={{
               width: '100%',
-              maxWidth: 420,
+              maxWidth: 400,
               height: '100%',
-              maxHeight: 520,
-              minHeight: 380,
+              minHeight: 440,
               borderRadius: '20px',
               overflow: 'hidden',
               position: 'relative',
-              boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)',
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
               border: `1px solid ${tokens.palette.border}`,
               backgroundImage: `url(${heroCourierImg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center 20%',
               backgroundRepeat: 'no-repeat',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              p: 2.5,
             }}
-          />
+          >
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                backdropFilter: 'blur(8px)',
+                p: 1.8,
+                borderRadius: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 700, color: tokens.palette.text, fontSize: '0.85rem', mb: 0.4 }}>
+                Seamless Logistics Platform
+              </Typography>
+              <Typography variant="caption" sx={{ color: tokens.palette.mutedText, fontSize: '0.74rem', display: 'block', lineHeight: 1.4 }}>
+                Real-time package tracking, automated dispatch, and verified proof of delivery.
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       </Card>
     </Box>

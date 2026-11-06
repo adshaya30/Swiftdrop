@@ -112,11 +112,12 @@ export default function RegisterPage() {
   return (
     <Box
       sx={{
-        minHeight: 'calc(100vh - 140px)',
+        minHeight: 'calc(100vh - 120px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: { xs: 2, sm: 3, md: 5 },
+        py: { xs: 2, sm: 3 },
+        px: { xs: 2, sm: 3 },
       }}
     >
       <Card
@@ -124,7 +125,7 @@ export default function RegisterPage() {
           width: '100%',
           maxWidth: 960,
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1.1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', md: '1.05fr 0.95fr' },
           overflow: 'hidden',
           borderRadius: tokens.radius.card,
           border: `1px solid ${tokens.palette.border}`,
@@ -133,20 +134,20 @@ export default function RegisterPage() {
         }}
       >
         {/* Left Column: Form */}
-        <Box sx={{ p: { xs: 3, sm: 4, md: 5 }, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ p: { xs: 2.5, sm: 3, md: 3 }, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {/* Logo & Tagline */}
-          <Box sx={{ mb: 2.5 }}>
-            <Box component="img" src={logoImg} alt="SwiftDrop" sx={{ height: 34, width: 'auto', mb: 0.8 }} />
-            <Typography variant="body2" sx={{ color: tokens.palette.mutedText, fontWeight: 500 }}>
+          <Box sx={{ mb: 1.2 }}>
+            <Box component="img" src={logoImg} alt="SwiftDrop" sx={{ height: 26, width: 'auto', mb: 0.3 }} />
+            <Typography variant="body2" sx={{ color: tokens.palette.mutedText, fontWeight: 500, fontSize: '0.78rem' }}>
               Deliver smarter. Live better.
             </Typography>
           </Box>
 
-          <Box sx={{ mb: 2.5 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: tokens.palette.text, mb: 0.5 }}>
+          <Box sx={{ mb: 1.4 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: tokens.palette.text, mb: 0.3, fontSize: '1.25rem' }}>
               Create Account
             </Typography>
-            <Typography variant="body2" sx={{ color: tokens.palette.mutedText }}>
+            <Typography variant="body2" sx={{ color: tokens.palette.mutedText, fontSize: '0.8rem' }}>
               Sign up to ship, manage, and track parcels across Sri Lanka
             </Typography>
           </Box>
@@ -195,18 +196,19 @@ export default function RegisterPage() {
                 component="form"
                 onSubmit={handleSubmit(onSubmit)}
                 noValidate
-                sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                sx={{ display: 'flex', flexDirection: 'column', gap: 1.1 }}
               >
                 <Box>
                   <Typography
                     component="label"
                     htmlFor="fullName"
-                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', mb: 0.6, color: tokens.palette.text }}
+                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.78rem', mb: 0.3, color: tokens.palette.text }}
                   >
                     Full Name
                   </Typography>
                   <TextField
                     id="fullName"
+                    size="small"
                     fullWidth
                     placeholder="e.g. Kasun Perera"
                     autoComplete="name"
@@ -221,13 +223,14 @@ export default function RegisterPage() {
                   <Typography
                     component="label"
                     htmlFor="email"
-                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', mb: 0.6, color: tokens.palette.text }}
+                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.78rem', mb: 0.3, color: tokens.palette.text }}
                   >
                     Email Address
                   </Typography>
                   <TextField
                     id="email"
                     type="email"
+                    size="small"
                     fullWidth
                     placeholder="e.g. kasun.perera@example.lk"
                     autoComplete="email"
@@ -242,13 +245,14 @@ export default function RegisterPage() {
                   <Typography
                     component="label"
                     htmlFor="phone"
-                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', mb: 0.6, color: tokens.palette.text }}
+                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.78rem', mb: 0.3, color: tokens.palette.text }}
                   >
                     Phone Number
                   </Typography>
                   <TextField
                     id="phone"
                     type="tel"
+                    size="small"
                     fullWidth
                     placeholder="e.g. 0771234567"
                     autoComplete="tel"
@@ -263,13 +267,14 @@ export default function RegisterPage() {
                   <Typography
                     component="label"
                     htmlFor="password"
-                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', mb: 0.6, color: tokens.palette.text }}
+                    sx={{ display: 'block', fontWeight: 600, fontSize: '0.78rem', mb: 0.3, color: tokens.palette.text }}
                   >
                     Password
                   </Typography>
                   <TextField
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    size="small"
                     fullWidth
                     placeholder="At least 10 characters with upper, lower, digit & special"
                     autoComplete="new-password"
@@ -294,7 +299,7 @@ export default function RegisterPage() {
                   />
 
                   {/* Password requirements visual hints */}
-                  <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                  <Box sx={{ mt: 0.6, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     <PolicyHint label="10-64 chars" met={enteredPassword.length >= 10 && enteredPassword.length <= 64} />
                     <PolicyHint label="Uppercase" met={hasUpper(enteredPassword)} />
                     <PolicyHint label="Lowercase" met={hasLower(enteredPassword)} />
@@ -309,11 +314,11 @@ export default function RegisterPage() {
                   fullWidth
                   disabled={isSubmitting}
                   sx={{
-                    height: tokens.controlHeight.standard,
+                    height: 38,
                     backgroundColor: tokens.palette.primary,
                     fontWeight: 600,
-                    fontSize: '0.9375rem',
-                    mt: 1,
+                    fontSize: '0.875rem',
+                    mt: 0.4,
                     '&:hover': { backgroundColor: tokens.palette.primaryHover },
                   }}
                 >
@@ -321,16 +326,10 @@ export default function RegisterPage() {
                 </Button>
               </Box>
 
-              <Divider sx={{ my: 2.5 }}>
-                <Typography variant="caption" sx={{ color: tokens.palette.mutedText, px: 1 }}>
-                  or sign up with
-                </Typography>
-              </Divider>
+              <GoogleLoginButton disabled={isSubmitting} text="Sign Up with Google" dividerText="or sign up with" />
 
-              <GoogleLoginButton disabled={isSubmitting} text="Sign Up with Google" />
-
-              <Box sx={{ mt: 2.5, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                <Typography variant="body2" sx={{ color: tokens.palette.mutedText }}>
+              <Box sx={{ mt: 1.4, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                <Typography variant="body2" sx={{ color: tokens.palette.mutedText, fontSize: '0.78rem' }}>
                   Already have an account?{' '}
                   <Typography
                     component={Link}
@@ -345,7 +344,7 @@ export default function RegisterPage() {
                     Login
                   </Typography>
                 </Typography>
-                <Typography variant="body2" sx={{ color: tokens.palette.mutedText }}>
+                <Typography variant="body2" sx={{ color: tokens.palette.mutedText, fontSize: '0.78rem' }}>
                   Registering as a business?{' '}
                   <Typography
                     component={Link}
@@ -365,35 +364,59 @@ export default function RegisterPage() {
           )}
         </Box>
 
-        {/* Right column: Smoothly framed hero card */}
+        {/* Right column: Smoothly framed hero card with frosted glass banner */}
         <Box
           sx={{
             display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            p: { md: 3, lg: 4 },
+            p: { md: 2.5, lg: 3 },
             backgroundColor: '#FAFCFF',
           }}
         >
           <Box
             sx={{
               width: '100%',
-              maxWidth: 420,
+              maxWidth: 400,
               height: '100%',
-              maxHeight: 560,
-              minHeight: 420,
+              minHeight: 460,
               borderRadius: '20px',
               overflow: 'hidden',
               position: 'relative',
-              boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)',
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
               border: `1px solid ${tokens.palette.border}`,
               backgroundImage: `url(${heroCourierImg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center 20%',
               backgroundRepeat: 'no-repeat',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              p: 2.5,
             }}
-          />
+          >
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                backdropFilter: 'blur(8px)',
+                p: 1.8,
+                borderRadius: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.4 }}>
+                <CheckCircleOutlineIcon sx={{ fontSize: 18, color: tokens.palette.primary }} />
+                <Typography variant="body2" sx={{ fontWeight: 700, color: tokens.palette.text, fontSize: '0.85rem' }}>
+                  Islandwide Fast Delivery
+                </Typography>
+              </Box>
+              <Typography variant="caption" sx={{ color: tokens.palette.mutedText, fontSize: '0.74rem', display: 'block', lineHeight: 1.4 }}>
+                Doorstep pickup and delivery covering all 25 districts with real-time tracking.
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       </Card>
     </Box>
