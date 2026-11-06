@@ -9,7 +9,6 @@ import com.swiftdrop.auth.login.dto.RotationResult;
 import com.swiftdrop.auth.login.service.LoginService;
 import com.swiftdrop.auth.login.service.RefreshCookieFactory;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
-import com.swiftdrop.auth.service.GoogleOAuthService;
 import com.swiftdrop.auth.service.RegistrationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -19,12 +18,9 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.time.Duration;
-
 /**
- * Public authentication endpoints adhering to SRS v2.1 FR-AUTH-001 through FR-AUTH-011
- * and Master Prompt Section 8.1.
+ * Public authentication endpoints adhering to SRS v2.1 FR-AUTH-001 through FR-AUTH-008
+ * and Master Prompt Section 8.1 (Member #1 Login Slice).
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -32,79 +28,21 @@ public class AuthController {
 
     private static final String REQUIRED_HEADER_NAME = "X-Requested-With";
     private static final String REQUIRED_HEADER_VALUE = "SwiftDrop";
-    private static final String OAUTH_COOKIE_NAME = "sd_oauth";
-    private static final String OAUTH_COOKIE_PATH = "/api/v1/auth/google";
 
     private final RegistrationService registrationService;
     private final LoginService loginService;
     private final RefreshTokenService refreshTokenService;
     private final RefreshCookieFactory refreshCookieFactory;
-    private final GoogleOAuthService googleOAuthService;
 
     public AuthController(
             RegistrationService registrationService,
             LoginService loginService,
             RefreshTokenService refreshTokenService,
-            RefreshCookieFactory refreshCookieFactory,
-            GoogleOAuthService googleOAuthService) {
+            RefreshCookieFactory refreshCookieFactory) {
         this.registrationService = registrationService;
         this.loginService = loginService;
         this.refreshTokenService = refreshTokenService;
         this.refreshCookieFactory = refreshCookieFactory;
-        this.googleOAuthService = googleOAuthService;
-    }
-
-    /**
-     * GET /api/v1/auth/config (FR-AUTH-011)
-     */
-    @GetMapping("/config")
-    public ResponseEntity<AuthConfigResponse> getConfig() {
-        return ResponseEntity.ok(new AuthConfigResponse(googleOAuthService.isGoogleEnabled()));
-    }
-
-    /**
-     * GET /api/v1/auth/google/login (Flow 4.5)
-     */
-    @GetMapping("/google/login")
-    public ResponseEntity<Void> googleLogin() {
-        GoogleLoginInitResult result = googleOAuthService.initiateLogin();
-        ResponseCookie oauthCookie = buildOAuthCookie(result.state(), Duration.ofMinutes(5));
-
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(result.authorizationUrl()))
-                .header(HttpHeaders.SET_COOKIE, oauthCookie.toString())
-                .build();
-    }
-
-    /**
-     * GET /api/v1/auth/google/callback (Flow 4.5, FR-AUTH-009, FR-AUTH-010)
-     */
-    @GetMapping("/google/callback")
-    public ResponseEntity<Void> googleCallback(
-            @RequestParam(value = "code", required = false) String code,
-            @RequestParam(value = "state", required = false) String state,
-            @RequestParam(value = "error", required = false) String error,
-            @CookieValue(value = OAUTH_COOKIE_NAME, required = false) String cookieState,
-            HttpServletRequest servletRequest) {
-
-        String ip = extractClientIp(servletRequest);
-        String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
-
-        GoogleCallbackResult result = googleOAuthService.handleCallback(
-                code, state, cookieState, error, userAgent, ip
-        );
-
-        ResponseCookie clearOAuthCookie = buildOAuthCookie("", Duration.ZERO);
-        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(result.redirectUrl()))
-                .header(HttpHeaders.SET_COOKIE, clearOAuthCookie.toString());
-
-        if (result.hasRefreshToken()) {
-            ResponseCookie refreshCookie = refreshCookieFactory.create(result.rawRefreshToken());
-            responseBuilder.header(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-        }
-
-        return responseBuilder.build();
     }
 
     /**
@@ -189,16 +127,6 @@ public class AuthController {
         if (headerValue == null || !headerValue.equalsIgnoreCase(REQUIRED_HEADER_VALUE)) {
             throw new InvalidHeaderException("Header '" + REQUIRED_HEADER_NAME + ": " + REQUIRED_HEADER_VALUE + "' is required");
         }
-    }
-
-    private ResponseCookie buildOAuthCookie(String value, Duration maxAge) {
-        return ResponseCookie.from(OAUTH_COOKIE_NAME, value)
-                .httpOnly(true)
-                .secure(false) // Matches dev/prod behavior
-                .sameSite("Lax")
-                .path(OAUTH_COOKIE_PATH)
-                .maxAge(maxAge)
-                .build();
     }
 
     private String extractClientIp(HttpServletRequest request) {

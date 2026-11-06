@@ -1,6 +1,7 @@
 package com.swiftdrop.auth.exception;
 
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.swiftdrop.common.error.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -386,6 +387,27 @@ public class GlobalExceptionHandler {
                         ex.getMessage(),
                         request.getRequestURI(),
                         null));
+    }
+
+    // -----------------------------------------------------------------------
+    // DomainException (RFC 7807)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<Map<String, Object>> handleDomain(
+            DomainException ex, HttpServletRequest request) {
+
+        List<Map<String, String>> fieldErrors = ex.errors().stream()
+                .map(e -> Map.of("field", e.field(), "message", e.message()))
+                .toList();
+
+        return ResponseEntity.status(ex.code().status())
+                .body(problem(
+                        HttpStatus.valueOf(ex.code().status()),
+                        ex.code().name(),
+                        ex.detail(),
+                        request.getRequestURI(),
+                        fieldErrors.isEmpty() ? null : fieldErrors));
     }
 
     // -----------------------------------------------------------------------

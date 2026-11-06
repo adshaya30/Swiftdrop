@@ -49,13 +49,13 @@ class LoginServiceTest {
     private MerchantRepository merchantRepository;
 
     @Mock
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordHasher passwordHasher;
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
 
     private LoginService loginService;
 
@@ -69,10 +69,13 @@ class LoginServiceTest {
         loginService = new LoginService(
                 userRepository,
                 merchantRepository,
-                refreshTokenRepository,
-                passwordEncoder,
-                jwtService
+                passwordHasher,
+                jwtService,
+                refreshTokenService
         );
+        lenient().when(jwtService.getAccessTokenExpirySeconds()).thenReturn(900L);
+        lenient().when(refreshTokenService.issue(any(User.class)))
+                .thenReturn(new com.swiftdrop.auth.login.dto.IssuedRefresh("raw-refresh-token-mock", UUID.randomUUID(), Instant.now().plusSeconds(604800), new RefreshToken()));
 
         sampleUser = new User();
         sampleUser.setId(userId);
@@ -88,10 +91,10 @@ class LoginServiceTest {
     @Test
     @DisplayName("Correct customer email and password returns valid LoginResult")
     void login_success_returnsResult() {
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
-        when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(jwtService.issueUserToken(eq(sampleUser), isNull()))
                 .thenReturn("mocked.jwt.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -107,15 +110,15 @@ class LoginServiceTest {
         assertThat(result.getRawRefreshToken()).isNotBlank();
 
         verify(userRepository).resetFailedLoginLock(eq(userId), any(Instant.class));
-        verify(refreshTokenRepository).save(any(RefreshToken.class));
+        verify(refreshTokenService).issue(sampleUser);
     }
 
     @Test
     @DisplayName("Invalid password records failed attempt and throws InvalidCredentialsException")
     void login_invalidPassword_throws401AndRecordsFailure() {
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches("WrongPass123!", passwordHash)).thenReturn(false);
+        when(passwordHasher.matches("WrongPass123!", passwordHash)).thenReturn(false);
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", "WrongPass123!");
 
@@ -129,7 +132,7 @@ class LoginServiceTest {
     @Test
     @DisplayName("Unknown email throws InvalidCredentialsException without leaking user existence")
     void login_unknownEmail_throws401() {
-        when(userRepository.findByEmailIgnoreCase("unknown@example.lk"))
+        when(userRepository.findByEmail("unknown@example.lk"))
                 .thenReturn(Optional.empty());
 
         LoginRequest request = new LoginRequest("unknown@example.lk", rawPassword);
@@ -138,7 +141,7 @@ class LoginServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
 
-        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(passwordHasher).matches(eq(rawPassword), anyString());
     }
 
     @Test
@@ -147,7 +150,7 @@ class LoginServiceTest {
         sampleUser.setPasswordHash(null);
         sampleUser.setAuthProvider(AuthProvider.GOOGLE);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -165,7 +168,7 @@ class LoginServiceTest {
         sampleUser.setLockedUntil(lockedUntil);
         sampleUser.setFailedLoginCount(5);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -173,7 +176,7 @@ class LoginServiceTest {
         assertThatThrownBy(() -> loginService.login(request, "127.0.0.1", "Mozilla/5.0"))
                 .isInstanceOf(AccountLockedException.class);
 
-        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(passwordHasher, never()).matches(anyString(), anyString());
     }
 
     @Test
@@ -181,9 +184,9 @@ class LoginServiceTest {
     void login_deactivatedUser_throws403() {
         sampleUser.setStatus(UserStatus.DEACTIVATED);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
 
@@ -197,9 +200,9 @@ class LoginServiceTest {
         sampleUser.setRole(UserRole.MERCHANT);
         Merchant merchant = new Merchant(userId, "Test Store", MerchantStatus.PENDING);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
         when(merchantRepository.findByUserId(userId)).thenReturn(Optional.of(merchant));
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -214,9 +217,9 @@ class LoginServiceTest {
         sampleUser.setRole(UserRole.MERCHANT);
         Merchant merchant = new Merchant(userId, "Test Store", MerchantStatus.REJECTED);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
         when(merchantRepository.findByUserId(userId)).thenReturn(Optional.of(merchant));
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -231,9 +234,9 @@ class LoginServiceTest {
         sampleUser.setRole(UserRole.MERCHANT);
         Merchant merchant = new Merchant(userId, "Test Store", MerchantStatus.SUSPENDED);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
         when(merchantRepository.findByUserId(userId)).thenReturn(Optional.of(merchant));
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -250,11 +253,11 @@ class LoginServiceTest {
         Merchant merchant = new Merchant(userId, "Test Store", MerchantStatus.APPROVED);
         merchant.setId(merchantId);
 
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
         when(merchantRepository.findByUserId(userId)).thenReturn(Optional.of(merchant));
-        when(jwtService.issueAccessToken(eq(userId), eq("MERCHANT"), eq(false), eq(merchantId)))
+        when(jwtService.issueUserToken(eq(sampleUser), eq(merchant)))
                 .thenReturn("mocked.jwt.merchant.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
@@ -265,23 +268,19 @@ class LoginServiceTest {
     }
 
     @Test
-    @DisplayName("Only SHA-256 hash of refresh token is stored in repository")
+    @DisplayName("Only SHA-256 hash of refresh token is stored via RefreshTokenService")
     void login_storesSha256HashOfRefreshToken() {
-        when(userRepository.findByEmailIgnoreCase("kasun.perera@example.lk"))
+        when(userRepository.findByEmail("kasun.perera@example.lk"))
                 .thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches(rawPassword, passwordHash)).thenReturn(true);
-        when(jwtService.issueAccessToken(any(), any(), anyBoolean(), any()))
+        when(passwordHasher.matches(rawPassword, passwordHash)).thenReturn(true);
+        when(jwtService.issueUserToken(any(), any()))
                 .thenReturn("mocked.jwt.token");
 
         LoginRequest request = new LoginRequest("kasun.perera@example.lk", rawPassword);
         LoginResult result = loginService.login(request, "127.0.0.1", "Mozilla/5.0");
 
-        ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
-        verify(refreshTokenRepository).save(captor.capture());
-
-        RefreshToken saved = captor.getValue();
-        assertThat(saved.getTokenHash()).isNotEqualTo(result.getRawRefreshToken());
-        assertThat(saved.getTokenHash()).hasSize(64); // SHA-256 hex is 64 characters
+        verify(refreshTokenService).issue(sampleUser);
+        assertThat(result.getRawRefreshToken()).isEqualTo("raw-refresh-token-mock");
     }
 }
 

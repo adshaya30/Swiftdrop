@@ -1,6 +1,6 @@
 # SwiftDrop member prompts: index
 
-Load `SWIFTDROP_MASTER_PROMPT.md` (v2.2) once per AI session, keep `docs/SRS.md` in the repo, then paste the member's prompts one at a time when their turn comes. Each prompt is self-contained and ends with tests, a "Done when" list and a report.
+Load `SWIFTDROP_MASTER_PROMPT.md` (v3.0) once per AI session, keep `docs/SRS.md` in the repo, then paste the member's prompts one at a time when their turn comes. Each prompt is self-contained and ends with tests, a "Done when" list and a report.
 
 | Member | Prompt | Title | Type |
 |---|---|---|---|
@@ -41,8 +41,8 @@ Load `SWIFTDROP_MASTER_PROMPT.md` (v2.2) once per AI session, keep `docs/SRS.md`
 3. **SRS gaps** the prompts resolved (each member must list them in their report): admin deactivating self → 403 `ACCESS_DENIED`; duplicate zone code or name → 400; size-surcharge PUT body shape; merchant dashboard summary shape; recipient `statusChangedAt` in the lost-response case.
 4. **mock-merchant** base image: **#10 decides** (Node 22 with no dependencies, or a slim image of their choice), reports the choice, and it must start from compose.
 5. **Paths:** controllers map full paths (`/api/v1/...`, `/internal/v1/...`); the gateway forwards unchanged.
-6. **CI/CD, monitoring and Kubernetes** are **not built** (SRS 1.2 says out of scope). #8 lists them in the README as future work.
-7. **Merging:** each member merges their own PRs (master 12). Shared files need the owner's OK in the PR.
+6. **CI pipeline is required (CR-001).** Nine checks: `common`, `api-gateway`, `auth-service`, `parcel-service`, `pricing-service`, `delivery-service`, `tracking-service`, `notification-service`, `frontend`. Owned by #8 (`CI_MEMBER_08.md`). Monitoring and Kubernetes stay out of scope.
+7. **Merging:** push, wait for nine green checks, open a PR; **the leader reviews and merges** (master 12). Wherever a member prompt says "merge", read it that way; the master says so explicitly.
 8. **Already done:** repo setup (#8 P1), and #1 and #2's work. They run the audit prompts (`AUDIT_MEMBER_01.md`, `AUDIT_MEMBER_02.md`) instead of their normal prompts.
 
 ## Setup already done: #8 Prompt 1

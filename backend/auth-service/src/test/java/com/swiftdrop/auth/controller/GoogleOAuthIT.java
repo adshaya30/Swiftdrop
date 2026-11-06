@@ -148,8 +148,9 @@ class GoogleOAuthIT extends AbstractIntegrationTest {
         GoogleUserClaims claims = new GoogleUserClaims(
                 "google-sub-kasun-101",
                 "kasun.test@gmail.com",
+                true,
                 "Kasun Test",
-                true
+                null
         );
         when(googleOidcVerifier.verifyIdToken(eq("mock-google-id-token"), any()))
                 .thenReturn(claims);
@@ -239,8 +240,9 @@ class GoogleOAuthIT extends AbstractIntegrationTest {
         GoogleUserClaims claims = new GoogleUserClaims(
                 "google-sub-attacker-999",
                 "kasun.perera@example.lk",
+                true,
                 "Kasun Attacker",
-                true
+                null
         );
         when(googleOidcVerifier.verifyIdToken(eq("mock-google-id-token"), any()))
                 .thenReturn(claims);

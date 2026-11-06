@@ -178,27 +178,7 @@ public class GoogleOAuthService {
         // 3. Server-side code exchange with Google using RestClient
         String idToken;
         try {
-            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("client_id", clientId);
-            body.add("client_secret", clientSecret);
-            body.add("code", code);
-            body.add("code_verifier", loginState.getCodeVerifier());
-            body.add("grant_type", "authorization_code");
-            body.add("redirect_uri", redirectUri);
-
-            String responseBody = restClient.post()
-                    .uri(tokenUrl)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(body)
-                    .retrieve()
-                    .body(String.class);
-
-            JsonNode tokenJson = objectMapper.readTree(responseBody);
-            if (!tokenJson.has("id_token")) {
-                log.error("Google token response did not contain id_token");
-                return CallbackOutcome.failure(publicBaseUrl + "/login?error=google_failed");
-            }
-            idToken = tokenJson.get("id_token").asText();
+            idToken = exchangeCodeForIdToken(code, loginState.getCodeVerifier());
         } catch (Exception e) {
             log.error("Google token exchange failed: {}", e.getMessage());
             return CallbackOutcome.failure(publicBaseUrl + "/login?error=google_failed");
@@ -259,7 +239,7 @@ public class GoogleOAuthService {
         }
 
         // 6. Issue refresh token and session cookie
-        String rawRefreshToken = refreshTokenService.createRefreshToken(authenticatedUser.getId());
+        String rawRefreshToken = refreshTokenService.issue(authenticatedUser).rawToken();
         ResponseCookie refreshCookie = ResponseCookie.from("sd_refresh", rawRefreshToken)
                 .httpOnly(true)
                 .secure(cookieSecure)
@@ -295,6 +275,29 @@ public class GoogleOAuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 algorithm unavailable", e);
         }
+    }
+
+    public String exchangeCodeForIdToken(String code, String codeVerifier) throws Exception {
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("client_id", clientId);
+        body.add("client_secret", clientSecret);
+        body.add("code", code);
+        body.add("code_verifier", codeVerifier);
+        body.add("grant_type", "authorization_code");
+        body.add("redirect_uri", redirectUri);
+
+        String responseBody = restClient.post()
+                .uri(tokenUrl)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+
+        JsonNode tokenJson = objectMapper.readTree(responseBody);
+        if (!tokenJson.has("id_token")) {
+            throw new IllegalStateException("Google token response did not contain id_token");
+        }
+        return tokenJson.get("id_token").asText();
     }
 
     public record CallbackOutcome(String redirectUrl, ResponseCookie refreshCookie) {

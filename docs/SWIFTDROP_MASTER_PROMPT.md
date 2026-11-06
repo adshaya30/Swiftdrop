@@ -1,4 +1,4 @@
-# SwiftDrop Master Prompt (v2.2)
+# SwiftDrop Master Prompt (v3.0)
 
 > **Leader note (not for the AI).** Save this file in the repo root under the name your AI tool loads automatically (for Antigravity check whether it expects `AGENTS.md` or a file under `.agent/rules/`, and keep one copy only). Change it only by pull request when the team changes a decision. Put the three reference files in `docs/`: `SRS.md` (convert the PDF to Markdown and **keep backticks around monospace values**), `WORK_DIVISION.md`, `UI_DESIGN_SYSTEM.md`.
 
@@ -17,6 +17,8 @@ You are an AI coding assistant working on **SwiftDrop**, a parcel delivery and c
 - If two of these conflict, follow the higher one and tell the member in one sentence ("Conflict: X says A, SRS says B; I followed B").
 - Inside the SRS: Business Rules (SRS 2.2) prevail over other statements; otherwise the more specific statement prevails.
 - Ownership in section 7 of this file overrides `docs/WORK_DIVISION.md`.
+- **CR-001 (approved by the group leader): a CI pipeline is required.** This one change overrides SRS 1.2 ("CI/CD out of scope") and any member-prompt sentence such as "do not add CI/CD". Monitoring, Prometheus/Grafana and Kubernetes stay out of scope.
+- **Merging is the leader's.** Wherever a member prompt, audit prompt or the index says "merge", "merge your own PR" or "merged", read it as: *open a pull request after the pipeline is green; the group leader reviews and merges; "merged" means merged by the leader.* Section 12 wins over those sentences.
 - Monospace in the SRS means a literal value (path, header, status, field, variable, code). Use it exactly. If the Markdown copy lost the formatting, treat anything that looks like an identifier, path, header, status, env variable or error code as literal.
 - Never invent behaviour, fields, endpoints, error codes, table columns, event types, env variables or statuses. If something is missing from the SRS it is out of scope or needs a change request (section 13). Stop and ask.
 
@@ -111,11 +113,11 @@ You may create or edit files only inside the folders of the member you work for.
 | 5 | Parcel lifecycle and admin | parcel `lifecycle` slice; pricing `admin` slice; tracking `audit` slice (audit-log API only) | `pages/admin/parcels`, `reports`, `zones`, `pricing`, `auditLogs`, `dashboard`; `src/api/adminParcels.js`, `adminReports.js`, `adminPricing.js`, `auditLogs.js` |
 | 6 | Merchant orders, receipts | parcel `order` slice; common-lib **events, outbox, AuditEvents** | `pages/merchant/dashboard`, `pages/merchant/orders`; `src/api/merchantOrders.js`, `receipts.js`; `ReceiptButton` component |
 | 7 | Dispatcher assignment, gateway | delivery `assignment` slice; **delivery-service migration lead**; delivery `domain`; all of `api-gateway` (and its Dockerfile) | `pages/admin/dispatch` (unassigned queue, `DispatchCard`), `pages/admin/couriers`; `src/api/adminDelivery.js` |
-| 8 | Courier operations, infrastructure | delivery `courier` slice; `infrastructure/`, `compose.yaml`, `compose.infra.yaml`, parent `pom.xml`, `.env.example`, `.gitignore`, `.gitattributes`, root `README.md` | `pages/courier/**`; `src/api/courier.js`, `proofs.js`; `ProofViewer` component |
+| 8 | Courier operations, infrastructure | delivery `courier` slice; `.github/workflows/`, `infrastructure/`, `compose.yaml`, `compose.infra.yaml`, parent `pom.xml`, `.env.example`, `.gitignore`, `.gitattributes`, root `README.md` | `pages/courier/**`; `src/api/courier.js`, `proofs.js`; `ProofViewer` component |
 | 9 | Tracking and notifications | tracking `core` slice (incl. the `audit.recorded` consumer and `AuditLog` entity); notification `notification` slice; **migration lead for tracking and notification** | `pages/public/**` (landing `/`, `/track`); `src/api/tracking.js`; `ParcelTimeline` component |
 | 10 | Webhooks | notification `webhook` slice; `tools/mock-merchant` (and its Dockerfile) | `pages/merchant/webhook`; `src/api/webhook.js` |
 
-Notes: `compose.infra.yaml` is a local-development convenience file that is not in the SRS; it must not replace `compose.yaml`. The SRS (1.2) puts CI/CD, Prometheus/Grafana dashboards and Kubernetes dashboards out of scope, so WORK_DIVISION items for "CI workflow" and "monitoring" are not to be built without an approved change request.
+Notes: `compose.infra.yaml` is a local-development convenience file that is not in the SRS; it must not replace `compose.yaml`. The CI pipeline is required (CR-001) and belongs to #8 (section 12.1). Prometheus/Grafana dashboards and Kubernetes remain out of scope, so WORK_DIVISION items for "monitoring" and Kubernetes are not to be built without an approved change request.
 
 ### 7.2 common-core and common-lib (default split, leader confirms in SRS Appendix E)
 
@@ -222,15 +224,34 @@ Tokens live in the single shared MUI theme (owned by #1); pages reference tokens
 - Every endpoint group needs authorisation tests: 401, 403, and 404 for someone else's resource. `TST-033` spans all services: each member covers their own endpoints, nobody writes tests in another member's folder.
 - Deterministic and independent: no `Thread.sleep`, use Awaitility.
 - JaCoCo line coverage at least 70 % on service, messaging and security packages (DTOs, entities, config, generated code excluded); `mvn verify` fails below it. Frontend at least 60 % (S).
-- One command per module: `mvn verify`, `npm test -- --coverage`.
+- One command per module: `mvn verify`, `npm test -- --coverage`. **The pipeline (12.1) runs exactly these commands**, so a module that passes them locally passes in the pipeline; if it differs, fix the code or tell #8, never the test.
 - Never weaken, skip or delete a test to make a build pass. Fix the code or tell the member.
 
-## 12. Git, commits and safety
+## 12. Git, pipeline and pull requests
 
-- Branch `feature/<service>-<what>`. One pull request per task. Never push to `main`; never force-push. **Each member merges their own pull request** (squash) after: `git pull --rebase origin main`, the build and tests pass again on the rebased branch, and `git diff --name-only` shows only files you own. A pull request that touches a shared file (7.3, 7.4, `common-core`, `common-lib`, compose files, parent pom) needs a written OK from that file's owner in the PR before merging. After merging, check your own part on `main` and announce the hand-off in the group chat.
-- Conventional Commits; the PR description lists the requirement IDs implemented and the files outside your slice you touched (there should be none).
-- Code, tests and documentation changes go in the same pull request. Do not reformat or refactor files outside your task.
-- Stage files by explicit path (no `git add -A` or `git add .`). Before every commit run `git status` and `git diff --name-only` and confirm that every path is inside your ownership (section 7). If not, unstage it.
+### 12.1 The CI pipeline (CR-001; owned by #8, file `.github/workflows/ci.yml`)
+
+- Runs on every push to a branch and on every pull request to `main`. **No path filters** (the required checks must always report).
+- **Nine required checks, named exactly:** `common` (common-core + common-lib), `api-gateway`, `auth-service`, `parcel-service`, `pricing-service`, `delivery-service`, `tracking-service`, `notification-service`, `frontend`.
+- Backend job: Java 21 (Temurin), Maven cache, `cd backend && ./mvnw -B -ntp -pl <module> -am verify` (includes the JaCoCo 70 % gate and Testcontainers; Docker is available on the runner). Frontend job: Node 22, `npm ci`, `npm test -- --coverage`, `npm run build`. Every job uploads its test and coverage reports as an artifact (`if: always()`).
+- Branch protection on `main`: pull request required, **all nine checks required and green**, branch must be up to date with `main`, one approval (the group leader), no force-push, no direct push.
+- Only #8 edits `.github/workflows/**`. If a job fails for a reason that is not your code (runner, cache, workflow syntax), send #8 a Request to owner with the failing job link. Never edit the workflow, skip a job or change a threshold to get green.
+
+### 12.2 Every task, from first prompt to merge
+
+1. `git checkout main && git pull`, then create `feature/<service>-<what>`. Confirm every dependency of your task has been merged by the leader.
+2. Run the task prompt. Run the module commands locally (`./mvnw -pl <module> -am verify`, `npm test -- --coverage`, `npm run build`) until they pass.
+3. Stage by explicit path, commit (Conventional Commits), `git pull --rebase origin main`, push the branch. **Never push to `main`; never force-push.**
+4. **Open the pipeline and wait for all nine checks to be green on your last pushed commit.** If any check is red, read the job log, fix the cause on the same branch, push again. Do not use `[skip ci]`, do not re-run a red job hoping it passes, do not disable or loosen anything. (One re-run is allowed only for a clear runner or network failure, and you say so in the PR.)
+5. **Only then open the pull request.** The description lists the requirement IDs implemented, the pipeline run link showing nine green checks, the files outside your slice you touched (there should be none, or each has the owner's OK in writing), and the SRS gaps you decided.
+6. The group leader reviews and merges (squash). **A member never merges, approves their own pull request, or merges with a red or pending check.** A change requested by the leader is made on the same branch and goes through steps 3 and 4 again.
+7. After the leader merges, check your own part on `main` (build, start, smoke test), then post the hand-off message in the group chat. The next member pulls `main` and starts.
+8. If `main` turns red, only the leader and #8 decide the fix; the member whose merge broke it fixes it first, in a new branch, through the same flow.
+
+### 12.3 Rules that always apply
+
+- Conventional Commits. Code, tests and documentation changes go in the same pull request. Do not reformat or refactor files outside your task.
+- Stage files by explicit path (no `git add -A` or `git add .`). Before every commit run `git status` and `git diff --name-only` and confirm every path is inside your ownership (section 7). If not, unstage it.
 - Never commit `.env`, `infrastructure/keys/*.pem`, secrets or build output. `.env.example` has placeholders only.
 - Do not run destructive commands (`rm -rf` outside your folder, `docker system prune`, `docker compose down -v`, dropping databases, editing git config or history) without the member's explicit approval.
 
@@ -243,8 +264,8 @@ Tokens live in the single shared MUI theme (owned by #1); pages reference tokens
 5. **Stop and ask** when something is missing, unclear or contradictory. Report SRS errors; never work around them silently.
 6. **Request to owner** (for files you do not own): *What / Why / Which file / Proposed snippet or signature.*
 7. **Change request** (for SRS content): *Change / Reason / Affected IDs / Affected services.* It needs approval from the group leader and the owner of each affected service. Never change the SRS, a rule, an interface, an event or a data definition yourself.
-8. **Self-check before finishing:** every ID in the task is implemented or listed as not done; every changed path is yours; no hard-coded secrets, hosts, colours or `MAX_PARCEL_WEIGHT_KG`; no personal data in logs or events; tests pass with the single module command.
-9. **Finish with a report:** requirement IDs implemented; files created or changed; tests added and how to run them; not done or blocked; requests to other owners, to #8 or to #1.
+8. **Self-check before finishing:** every ID in the task is implemented or listed as not done; every changed path is yours; no hard-coded secrets, hosts, colours or `MAX_PARCEL_WEIGHT_KG`; no personal data in logs or events; tests pass with the single module command; the branch is pushed and all nine pipeline checks are green (12.2) before you say the task is done.
+9. **Finish with a report:** requirement IDs implemented; files created or changed; tests added and how to run them; the pipeline run link and the result of the nine checks; not done or blocked; requests to other owners, to #8 or to #1.
 
 ## 14. Never do these
 
@@ -253,5 +274,6 @@ Tokens live in the single shared MUI theme (owned by #1); pages reference tokens
 - Read another service's database, or add a service-to-service call that is not in SRS 3.3.
 - Store tokens in browser storage, log personal data or secrets, or hard-code secrets.
 - Use floating point for money, or put `MAX_PARCEL_WEIGHT_KG` outside pricing-service.
-- Skip, weaken or delete tests; skip authorisation checks; trust the UI to enforce access.
-- Add CI/CD, Prometheus/Grafana, autoscaling, payments, maps, GPS, ETAs, push notifications or any other out-of-scope item unless an approved change request has changed the SRS.
+- Skip, weaken or delete tests (no `@Disabled`, no `-DskipTests` or `-Dmaven.test.skip`, no lowered JaCoCo threshold); skip authorisation checks; trust the UI to enforce access.
+- Edit `.github/workflows/**` (only #8), use `[skip ci]`, bypass or disable the pipeline, push to `main`, merge a pull request yourself, or open a pull request while any of the nine checks is red or pending.
+- Add Prometheus/Grafana, autoscaling, payments, maps, GPS, ETAs, push notifications or any other out-of-scope item unless an approved change request has changed the SRS.

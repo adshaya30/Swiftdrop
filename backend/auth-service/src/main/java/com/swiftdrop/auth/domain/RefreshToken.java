@@ -89,6 +89,9 @@ public class RefreshToken {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
+    public Instant getIssuedAt() { return createdAt; }
+    public void setIssuedAt(Instant issuedAt) { this.createdAt = issuedAt; }
+
     public String getUserAgent() { return userAgent; }
     public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
 

@@ -1,6 +1,6 @@
 package com.swiftdrop.auth.service;
 
-import com.swiftdrop.auth.repository.OAuthLoginStateRepository;
+import com.swiftdrop.auth.google.domain.OAuthLoginStateRepository;
 import com.swiftdrop.auth.domain.RefreshTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

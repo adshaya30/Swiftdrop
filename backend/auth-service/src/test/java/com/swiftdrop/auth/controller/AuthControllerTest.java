@@ -21,10 +21,10 @@ import com.swiftdrop.auth.dto.response.LoginResult;
 import com.swiftdrop.auth.dto.response.LoginUserSummary;
 import com.swiftdrop.auth.dto.response.UserResponse;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.dto.response.RefreshResult;
+import com.swiftdrop.auth.login.dto.RotationResult;
 import com.swiftdrop.auth.login.service.LoginService;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
-import com.swiftdrop.auth.service.GoogleOAuthService;
+import com.swiftdrop.auth.google.service.GoogleOAuthService;
 import jakarta.servlet.http.Cookie;
 import com.swiftdrop.auth.service.RegistrationService;
 import org.junit.jupiter.api.DisplayName;
@@ -67,10 +67,28 @@ class AuthControllerTest {
     private RefreshTokenService refreshTokenService;
 
     @MockBean
-    private GoogleOAuthService googleOAuthService;
+    private com.swiftdrop.auth.login.service.JwtService jwtService;
 
     @MockBean
-    private com.swiftdrop.auth.service.JwtService jwtService;
+    private com.swiftdrop.auth.login.service.RefreshCookieFactory refreshCookieFactory;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUpCookies() {
+        when(refreshCookieFactory.create(any())).thenAnswer(inv -> {
+            String val = inv.getArgument(0);
+            return org.springframework.http.ResponseCookie.from("sd_refresh", val != null ? val : "")
+                    .path("/api/v1/auth")
+                    .httpOnly(true)
+                    .build();
+        });
+        when(refreshCookieFactory.clear()).thenReturn(
+                org.springframework.http.ResponseCookie.from("sd_refresh", "")
+                        .path("/api/v1/auth")
+                        .httpOnly(true)
+                        .maxAge(0)
+                        .build()
+        );
+    }
 
     @Test
     @DisplayName("POST /api/v1/auth/register - 201 Created with valid payload")
@@ -351,7 +369,7 @@ class AuthControllerTest {
         UUID userId = UUID.randomUUID();
         LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
         LoginResponse response = new LoginResponse("new-jwt-token", 900, summary);
-        RefreshResult result = new RefreshResult(response, "new-opaque-refresh-token");
+        RotationResult result = new RotationResult(response, "new-opaque-refresh-token", false);
 
         when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
 
@@ -372,7 +390,7 @@ class AuthControllerTest {
         UUID userId = UUID.randomUUID();
         LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
         LoginResponse response = new LoginResponse("grace-jwt-token", 900, summary);
-        RefreshResult result = new RefreshResult(response, null); // null indicates grace window hit
+        RotationResult result = new RotationResult(response, null, true); // null indicates grace window hit
 
         when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
 
@@ -416,51 +434,5 @@ class AuthControllerTest {
                 .andExpect(status().isNoContent())
                 .andExpect(header().exists(HttpHeaders.SET_COOKIE))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("Max-Age=0")));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/auth/config - 200 OK returns googleEnabled status (FR-AUTH-011)")
-    void config_returnsGoogleEnabled() throws Exception {
-        when(googleOAuthService.isGoogleEnabled()).thenReturn(true);
-
-        mockMvc.perform(get("/api/v1/auth/config"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.googleEnabled").value(true));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/auth/google/login - 302 Found redirects to Google auth URL and sets sd_oauth cookie (FR-AUTH-009)")
-    void googleLogin_redirectsWithOAuthCookie() throws Exception {
-        when(googleOAuthService.initiateLogin()).thenReturn(
-                new com.swiftdrop.auth.dto.response.GoogleLoginInitResult(
-                        "https://accounts.google.com/o/oauth2/v2/auth?test=1",
-                        "test_oauth_state"
-                )
-        );
-
-        mockMvc.perform(get("/api/v1/auth/google/login"))
-                .andExpect(status().isFound())
-                .andExpect(header().string(HttpHeaders.LOCATION, "https://accounts.google.com/o/oauth2/v2/auth?test=1"))
-                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("sd_oauth")));
-    }
-
-    @Test
-    @DisplayName("GET /api/v1/auth/google/callback - 302 Found on successful callback sets sd_refresh and clears sd_oauth (FR-AUTH-009)")
-    void googleCallback_successRedirectsToFrontendWithCookies() throws Exception {
-        when(googleOAuthService.handleCallback(any(), any(), any(), any(), any(), any())).thenReturn(
-                new com.swiftdrop.auth.dto.response.GoogleCallbackResult(
-                        "http://localhost:5173/auth/callback",
-                        "raw_refresh_token"
-                )
-        );
-
-        mockMvc.perform(get("/api/v1/auth/google/callback")
-                        .param("code", "valid-code")
-                        .param("state", "valid-state")
-                        .cookie(new Cookie("sd_oauth", "valid-state")))
-                .andExpect(status().isFound())
-                .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost:5173/auth/callback"))
-                .andExpect(header().exists(HttpHeaders.SET_COOKIE));
     }
 }
