@@ -335,7 +335,7 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
-    // HTTP 400 – Cannot Deactivate Self (FR-AUTH-020)
+    // HTTP 403 – Cannot Deactivate Self (SRS gap: answered 403 ACCESS_DENIED per MEMBER_02.md)
     // -----------------------------------------------------------------------
 
     @ExceptionHandler(CannotDeactivateSelfException.class)
@@ -343,10 +343,10 @@ public class GlobalExceptionHandler {
             CannotDeactivateSelfException ex, HttpServletRequest request) {
 
         log.warn("Admin attempted self-deactivation at {}", request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(problem(
-                        HttpStatus.BAD_REQUEST,
-                        "CANNOT_DEACTIVATE_OWN_ACCOUNT",
+                        HttpStatus.FORBIDDEN,
+                        "ACCESS_DENIED",
                         ex.getMessage(),
                         request.getRequestURI(),
                         null));

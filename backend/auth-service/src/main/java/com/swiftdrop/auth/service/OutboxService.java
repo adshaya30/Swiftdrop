@@ -1,7 +1,7 @@
 package com.swiftdrop.auth.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.swiftdrop.auth.entity.CourierProfile;
+import com.swiftdrop.auth.users.domain.CourierProfile;
 import com.swiftdrop.auth.entity.OutboxEvent;
 import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.repository.OutboxEventRepository;
@@ -65,6 +65,8 @@ public class OutboxService {
 
     /**
      * Records a courier.changed event when a courier is created, updated, activated, or deactivated.
+     * Payload contains courierId, fullName, status, vehicleType, vehicleNumber per FR-AUTH-020.
+     * Contact details and secrets are strictly excluded.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordCourierChangedEvent(User user, CourierProfile profile) {
@@ -77,10 +79,9 @@ public class OutboxService {
             eventPayload.put("courierId", profile.getId().toString());
             eventPayload.put("userId", user.getId().toString());
             eventPayload.put("fullName", user.getFullName());
-            eventPayload.put("phone", user.getPhone());
+            eventPayload.put("status", profile.getStatus());
             eventPayload.put("vehicleType", profile.getVehicleType());
             eventPayload.put("vehicleNumber", profile.getVehicleNumber());
-            eventPayload.put("status", profile.getStatus());
             eventPayload.put("timestamp", now.toString());
 
             String json = objectMapper.writeValueAsString(eventPayload);

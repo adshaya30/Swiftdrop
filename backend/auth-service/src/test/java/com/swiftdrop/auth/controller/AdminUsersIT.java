@@ -14,12 +14,14 @@ import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.AbstractIntegrationTest;
-import com.swiftdrop.auth.client.DeliveryServiceClient;
-import com.swiftdrop.auth.dto.admin.CreateUserRequest;
-import com.swiftdrop.auth.dto.admin.CreateUserResponse;
-import com.swiftdrop.auth.dto.admin.ResetPasswordResponse;
+import com.swiftdrop.auth.users.client.DeliveryClient;
+import com.swiftdrop.auth.users.dto.CreateUserRequest;
+import com.swiftdrop.auth.users.dto.CreateUserResponse;
+import com.swiftdrop.auth.users.dto.ResetPasswordResponse;
 import com.swiftdrop.auth.entity.*;
 import com.swiftdrop.auth.repository.*;
+import com.swiftdrop.auth.users.domain.CourierProfile;
+import com.swiftdrop.auth.users.domain.CourierProfileRepository;
 import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +47,7 @@ import static org.mockito.Mockito.when;
  * SRS v2.1 – FR-AUTH-015, FR-AUTH-020, FR-AUTH-021, FR-AUTH-023
  */
 @Tag("integration")
-@DisplayName("Admin User Management Integration Tests")
+@DisplayName("TST-020 & TST-029: Admin User Management Integration Tests")
 class AdminUsersIT extends AbstractIntegrationTest {
 
     @Autowired
@@ -76,7 +78,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private DeliveryServiceClient deliveryServiceClient;
+    private DeliveryClient deliveryClient;
 
     private User adminUser;
     private String adminToken;
@@ -212,7 +214,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
         profile.setStatus("ACTIVE");
         courierProfileRepository.save(profile);
 
-        when(deliveryServiceClient.getActiveDeliveriesCount(profile.getId())).thenReturn(0);
+        when(deliveryClient.getActiveCount(profile.getId())).thenReturn(0);
 
         HttpEntity<Void> entity = new HttpEntity<>(createAuthHeaders());
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -257,7 +259,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
         profile.setStatus("ACTIVE");
         courierProfileRepository.save(profile);
 
-        when(deliveryServiceClient.getActiveDeliveriesCount(profile.getId())).thenReturn(2);
+        when(deliveryClient.getActiveCount(profile.getId())).thenReturn(2);
 
         HttpEntity<Void> entity = new HttpEntity<>(createAuthHeaders());
         ResponseEntity<Map> response = restTemplate.exchange(
