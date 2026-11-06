@@ -1,10 +1,10 @@
-package com.swiftdrop.auth.controller;
+package com.swiftdrop.auth.profile.controller;
 
-import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
-import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
-import com.swiftdrop.auth.dto.response.UserProfileResponse;
+import com.swiftdrop.auth.profile.dto.ChangePasswordRequest;
+import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
+import com.swiftdrop.auth.profile.dto.UserProfileResponse;
+import com.swiftdrop.auth.profile.service.ProfileService;
 import com.swiftdrop.auth.security.AuthenticatedUser;
-import com.swiftdrop.auth.service.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -38,7 +38,7 @@ public class ProfileController {
 
     /**
      * GET /api/v1/me
-     * Returns the current authenticated user's profile.
+     * Returns current authenticated user's profile.
      */
     @GetMapping
     public ResponseEntity<UserProfileResponse> getProfile(@AuthenticationPrincipal AuthenticatedUser user) {
@@ -60,7 +60,7 @@ public class ProfileController {
 
     /**
      * POST /api/v1/me/change-password
-     * Changes password, revokes all refresh tokens, and clears the refresh cookie.
+     * Changes password, revokes all refresh tokens, clears refresh cookie, and returns 204 No Content.
      */
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(

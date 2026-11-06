@@ -1,4 +1,4 @@
-package com.swiftdrop.auth.service;
+package com.swiftdrop.auth.google.service;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -10,7 +10,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import com.swiftdrop.auth.dto.response.GoogleUserClaims;
+import com.swiftdrop.auth.google.dto.GoogleUserClaims;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ import java.util.List;
 public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultGoogleOidcVerifier.class);
-    private static final String GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+    private static final String DEFAULT_GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
     private static final String ISSUER_HTTPS = "https://accounts.google.com";
     private static final String ISSUER_ACCOUNTS = "accounts.google.com";
 
@@ -47,6 +47,7 @@ public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
     @Autowired
     public DefaultGoogleOidcVerifier(
             @Value("${auth.google.client-id:${GOOGLE_CLIENT_ID:}}") String clientId,
+            @Value("${auth.google.jwks-url:" + DEFAULT_GOOGLE_JWKS_URL + "}") String jwksUrl,
             @Autowired(required = false) JWKSource<SecurityContext> customJwkSource) {
         this.clientId = clientId;
         this.jwtProcessor = new DefaultJWTProcessor<>();
@@ -54,7 +55,7 @@ public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
         try {
             JWKSource<SecurityContext> keySource = (customJwkSource != null)
                     ? customJwkSource
-                    : new RemoteJWKSet<>(new URL(GOOGLE_JWKS_URL));
+                    : new RemoteJWKSet<>(new URL(jwksUrl));
 
             JWSKeySelector<SecurityContext> keySelector =
                     new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource);
@@ -98,46 +99,27 @@ public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
             // 5. Validate Nonce
             String tokenNonce = claimsSet.getStringClaim("nonce");
             if (tokenNonce == null || expectedNonce == null || !tokenNonce.equals(expectedNonce)) {
-                throw new SecurityException("Nonce mismatch between login initiation and ID token");
+                throw new SecurityException("ID token nonce does not match original login nonce");
             }
 
             // 6. Validate email_verified
-            Object emailVerifiedClaim = claimsSet.getClaim("email_verified");
-            boolean emailVerified = false;
-            if (emailVerifiedClaim instanceof Boolean b) {
-                emailVerified = b;
-            } else if (emailVerifiedClaim instanceof String s) {
-                emailVerified = Boolean.parseBoolean(s);
-            }
-
-            if (!emailVerified) {
+            Boolean emailVerified = claimsSet.getBooleanClaim("email_verified");
+            if (emailVerified == null || !emailVerified) {
                 throw new SecurityException("Google email is not verified");
             }
 
-            // 7. Extract identity claims
             String sub = claimsSet.getSubject();
-            if (sub == null || sub.isBlank()) {
-                throw new SecurityException("Missing sub claim in Google ID token");
-            }
-
             String email = claimsSet.getStringClaim("email");
-            if (email == null || email.isBlank()) {
-                throw new SecurityException("Missing email claim in Google ID token");
-            }
-
             String name = claimsSet.getStringClaim("name");
-            if (name == null || name.isBlank()) {
-                name = "Customer";
-            }
+            String picture = claimsSet.getStringClaim("picture");
 
-            return new GoogleUserClaims(sub, email, name, true);
+            return new GoogleUserClaims(sub, email, true, name, picture);
         } catch (SecurityException se) {
             log.warn("Google ID token validation failed: {}", se.getMessage());
             throw se;
         } catch (Exception e) {
-            log.warn("Failed to process Google ID token: {}", e.getMessage());
-            throw new SecurityException("Invalid Google ID token: " + e.getMessage(), e);
+            log.warn("Google ID token processing error: {}", e.getMessage());
+            throw new SecurityException("Failed to parse and verify Google ID token", e);
         }
     }
 }
-

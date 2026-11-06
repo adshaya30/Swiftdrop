@@ -1,6 +1,5 @@
-package com.swiftdrop.auth.repository;
+package com.swiftdrop.auth.google.domain;
 
-import com.swiftdrop.auth.entity.OAuthLoginState;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -23,12 +22,8 @@ public interface OAuthLoginStateRepository extends JpaRepository<OAuthLoginState
     @Query("DELETE FROM OAuthLoginState s WHERE s.stateHash = :stateHash")
     int deleteByStateHash(@Param("stateHash") String stateHash);
 
-    /**
-     * Purges expired OAuth login states (FR-AUTH-026 hourly purge).
-     */
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM OAuthLoginState s WHERE s.expiresAt <= :cutoff")
     int deleteExpiredStatesBefore(@Param("cutoff") Instant cutoff);
 }
-

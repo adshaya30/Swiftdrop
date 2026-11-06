@@ -1,17 +1,18 @@
-package com.swiftdrop.auth.service;
+package com.swiftdrop.auth.profile.service;
 
-import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
-import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
-import com.swiftdrop.auth.dto.response.MerchantSummaryResponse;
-import com.swiftdrop.auth.dto.response.UserProfileResponse;
-import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.MerchantRepository;
 import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.domain.MerchantRepository;
-import com.swiftdrop.auth.domain.RefreshTokenRepository;
-import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.profile.dto.ChangePasswordRequest;
+import com.swiftdrop.auth.profile.dto.MerchantSummaryResponse;
+import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
+import com.swiftdrop.auth.profile.dto.UserProfileResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,12 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Service managing profile retrieval, profile updates, and password changes.
+ * Service managing user profile retrieval, profile edits, and password changes.
  * SRS v2.1 – FR-AUTH-012, FR-AUTH-013, FR-AUTH-014
  */
 @Service
@@ -32,27 +33,30 @@ public class ProfileService {
 
     private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
-    private static final Pattern PASSWORD_COMPLEXITY =
-            Pattern.compile("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{10,64}$");
+    private static final Pattern E164_LK =
+            Pattern.compile("^\\+94(?:7[0-9]|1[1-9]|2[1-8]|3[1-8]|4[1-7]|5[1-7]|6[3-7]|8[1-7]|9[1-2])[0-9]{7}$");
 
     private final UserRepository userRepository;
     private final MerchantRepository merchantRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicy passwordPolicy;
 
     public ProfileService(
             UserRepository userRepository,
             MerchantRepository merchantRepository,
-            RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder) {
+            RefreshTokenService refreshTokenService,
+            PasswordEncoder passwordEncoder,
+            PasswordPolicy passwordPolicy) {
         this.userRepository = userRepository;
         this.merchantRepository = merchantRepository;
-        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicy = passwordPolicy;
     }
 
     /**
-     * Retrieves the profile of the authenticated user.
+     * Retrieves profile for the authenticated user.
      * FR-AUTH-012
      */
     @Transactional(readOnly = true)
@@ -71,8 +75,7 @@ public class ProfileService {
     }
 
     /**
-     * Updates the full name and phone number of the authenticated user.
-     * Modifying role, email, status, or other fields is rejected / not exposed.
+     * Updates full name and phone number only.
      * FR-AUTH-012
      */
     @Transactional
@@ -83,13 +86,13 @@ public class ProfileService {
         user.setFullName(request.fullName().trim());
 
         if (request.phone() != null && !request.phone().isBlank()) {
-            user.setPhone(request.phone().trim());
+            user.setPhone(normalisePhone(request.phone()));
         } else {
             user.setPhone(null);
         }
 
         user = userRepository.save(user);
-        log.info("Profile updated successfully for user {}", userId);
+        log.info("Profile updated for userId={}", userId);
 
         MerchantSummaryResponse merchantSummary = null;
         if (user.getRole() == UserRole.MERCHANT) {
@@ -102,8 +105,8 @@ public class ProfileService {
     }
 
     /**
-     * Changes the password for a local user.
-     * Revokes all active refresh tokens for the user and clears forced password change flag.
+     * Changes password for local user, clears must_change_password flag,
+     * and revokes all refresh token families.
      * FR-AUTH-013, FR-AUTH-014
      */
     @Transactional
@@ -111,48 +114,58 @@ public class ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        // 1. Rejection of OAuth accounts
+        // 1. Google-only accounts cannot change password via this endpoint
         if (user.getAuthProvider() == AuthProvider.GOOGLE || user.getPasswordHash() == null) {
             throw new SocialAccountPasswordChangeException();
         }
 
         // 2. Verify current password
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+        if (request.currentPassword() == null || !passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new InvalidCurrentPasswordException();
         }
 
-        // 3. New password must be different from current password
+        // 3. New password must differ from current password
         if (request.currentPassword().equals(request.newPassword())) {
             throw new PasswordSameAsCurrentException();
         }
 
-        // 4. Complexity & email local-part check
-        validateNewPassword(request.newPassword(), user.getEmail());
+        // 4. Validate new password against PasswordPolicy
+        List<String> violations = passwordPolicy.check(request.newPassword(), user.getEmail());
+        if (!violations.isEmpty()) {
+            throw new PasswordPolicyException(String.join(". ", violations));
+        }
 
         // 5. Update password and reset mustChangePassword flag
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
-        userRepository.saveAndFlush(user);
+        userRepository.save(user);
 
-        // 6. Revoke all active refresh tokens for this user
-        int revokedCount = refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
-        log.info("Password changed for user {}. Revoked {} active refresh token(s).", userId, revokedCount);
+        // 6. Revoke all refresh tokens for this user across all families
+        refreshTokenService.revokeAllForUser(userId);
+        log.info("Password changed and all refresh families revoked for userId={}", userId);
     }
 
-    private void validateNewPassword(String newPassword, String email) {
-        if (!PASSWORD_COMPLEXITY.matcher(newPassword).matches()) {
-            throw new PasswordPolicyException(
-                    "Password must be 10–64 characters and contain at least one uppercase letter, " +
-                            "lowercase letter, digit, and special character.");
+    private String normalisePhone(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
         }
 
-        String localPart = email.contains("@")
-                ? email.substring(0, email.indexOf('@'))
-                : email;
-
-        if (!localPart.isBlank() && newPassword.toLowerCase().contains(localPart.toLowerCase())) {
-            throw new PasswordPolicyException("Password must not contain your email address.");
+        String stripped = raw.strip().replaceAll("[\\s\\-()]", "");
+        String e164;
+        if (stripped.startsWith("+94")) {
+            e164 = stripped;
+        } else if (stripped.startsWith("0094")) {
+            e164 = "+" + stripped.substring(2);
+        } else if (stripped.startsWith("0") && stripped.length() == 10) {
+            e164 = "+94" + stripped.substring(1);
+        } else {
+            throw new InvalidPhoneException(raw);
         }
+
+        if (!E164_LK.matcher(e164).matches()) {
+            throw new InvalidPhoneException(raw);
+        }
+        return e164;
     }
 
     private MerchantSummaryResponse toMerchantSummary(Merchant merchant) {
@@ -160,7 +173,7 @@ public class ProfileService {
                 merchant.getId(),
                 merchant.getBusinessName(),
                 merchant.getStatus(),
-                BigDecimal.ZERO
+                merchant.getDiscountPercent() != null ? merchant.getDiscountPercent() : BigDecimal.ZERO
         );
     }
 

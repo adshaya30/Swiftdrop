@@ -1,77 +1,64 @@
-package com.swiftdrop.auth.client;
+package com.swiftdrop.auth.users.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.swiftdrop.auth.exception.DeliveryServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
 import java.util.UUID;
 
 /**
  * Internal REST client for communicating with delivery-service.
- * SRS v2.1 – Flow 4.6, FR-AUTH-020
+ * SRS v2.1 – Flow 5, Section 7.4, FR-AUTH-020
+ * // TODO(common): replace manual client construction with InternalRestClientFactory when published.
  */
 @Component
-public class DeliveryServiceClient {
+public class DeliveryClient {
 
-    private static final Logger log = LoggerFactory.getLogger(DeliveryServiceClient.class);
-
+    private static final Logger log = LoggerFactory.getLogger(DeliveryClient.class);
     private static final String INTERNAL_KEY_HEADER = "X-Internal-Key";
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final String deliveryServiceUrl;
     private final String internalApiKey;
 
-    public DeliveryServiceClient(
-            RestTemplateBuilder restTemplateBuilder,
+    public DeliveryClient(
             @Value("${delivery.service.url:${DELIVERY_SERVICE_URL:http://localhost:8083}}") String deliveryServiceUrl,
             @Value("${internal.api.key:${INTERNAL_API_KEY:swiftdrop-internal-secret-key}}") String internalApiKey) {
         this.deliveryServiceUrl = deliveryServiceUrl.endsWith("/") ? deliveryServiceUrl.substring(0, deliveryServiceUrl.length() - 1) : deliveryServiceUrl;
         this.internalApiKey = internalApiKey;
-        this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(3))
-                .build();
+        this.restClient = RestClient.builder().build();
     }
 
     public record ActiveDeliveriesResponse(@JsonProperty("inProgress") int inProgress) {}
 
     /**
-     * Queries delivery-service for the count of active/in-progress deliveries assigned to a courier.
+     * Queries delivery-service for the count of active deliveries assigned to a courier.
      *
-     * @param courierId the ID of the courier profile or courier user
+     * @param courierId the UUID of the courier
      * @return the number of active deliveries in progress
      */
-    public int getActiveDeliveriesCount(UUID courierId) {
+    public int getActiveCount(UUID courierId) {
         String url = deliveryServiceUrl + "/internal/v1/couriers/" + courierId + "/active-count";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(INTERNAL_KEY_HEADER, internalApiKey);
-        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         try {
             log.debug("Checking active deliveries for courier {} at {}", courierId, url);
-            ResponseEntity<ActiveDeliveriesResponse> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    ActiveDeliveriesResponse.class
-            );
+            ActiveDeliveriesResponse response = restClient.get()
+                    .uri(url)
+                    .header(INTERNAL_KEY_HEADER, internalApiKey)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(ActiveDeliveriesResponse.class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody().inProgress();
-            }
-            return 0;
+            return response != null ? response.inProgress() : 0;
         } catch (HttpClientErrorException.NotFound notFound) {
             log.debug("Courier {} not found in delivery-service; assuming 0 active deliveries", courierId);
             return 0;
@@ -84,4 +71,3 @@ public class DeliveryServiceClient {
         }
     }
 }
-

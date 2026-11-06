@@ -1,16 +1,4 @@
 package com.swiftdrop.auth.service;
-import com.swiftdrop.auth.domain.User;
-import com.swiftdrop.auth.domain.Merchant;
-import com.swiftdrop.auth.domain.RefreshToken;
-import com.swiftdrop.auth.domain.UserRepository;
-import com.swiftdrop.auth.domain.MerchantRepository;
-import com.swiftdrop.auth.domain.RefreshTokenRepository;
-import com.swiftdrop.auth.login.service.JwtService;
-import com.swiftdrop.auth.login.service.LoginService;
-import com.swiftdrop.auth.login.service.RefreshTokenService;
-import com.swiftdrop.auth.login.service.PasswordHasher;
-import com.swiftdrop.auth.login.service.PasswordPolicy;
-import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -21,7 +9,8 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.swiftdrop.auth.dto.response.GoogleUserClaims;
+import com.swiftdrop.auth.google.dto.GoogleUserClaims;
+import com.swiftdrop.auth.google.service.DefaultGoogleOidcVerifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

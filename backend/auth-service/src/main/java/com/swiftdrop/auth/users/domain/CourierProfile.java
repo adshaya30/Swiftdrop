@@ -1,4 +1,4 @@
-package com.swiftdrop.auth.entity;
+package com.swiftdrop.auth.users.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -73,4 +73,3 @@ public class CourierProfile {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
-

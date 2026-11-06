@@ -14,13 +14,14 @@ import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.config.SecurityConfig;
-import com.swiftdrop.auth.dto.admin.*;
+import com.swiftdrop.auth.users.dto.*;
+import com.swiftdrop.auth.users.controller.AdminUserController;
+import com.swiftdrop.auth.users.service.AdminUserService;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.security.JwtAuthenticationFilter;
-import com.swiftdrop.auth.service.AdminUserService;
 import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AdminUserController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, GlobalExceptionHandler.class})
-@DisplayName("AdminUserController MockMvc Tests")
+@DisplayName("TST-020: AdminUserController MockMvc Tests")
 class AdminUserControllerTest {
 
     @Autowired

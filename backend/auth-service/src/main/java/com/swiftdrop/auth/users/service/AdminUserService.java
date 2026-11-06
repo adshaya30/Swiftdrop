@@ -1,16 +1,20 @@
-package com.swiftdrop.auth.service;
+package com.swiftdrop.auth.users.service;
 
-import com.swiftdrop.auth.client.DeliveryServiceClient;
-import com.swiftdrop.auth.dto.admin.*;
-import com.swiftdrop.auth.dto.response.MerchantSummaryResponse;
-import com.swiftdrop.auth.entity.*;
-import com.swiftdrop.auth.domain.User;
-import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.repository.CourierProfileRepository;
+import com.swiftdrop.auth.domain.Merchant;
 import com.swiftdrop.auth.domain.MerchantRepository;
-import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.domain.UserRepository;
-import com.swiftdrop.auth.util.SecurePasswordGenerator;
+import com.swiftdrop.auth.entity.AuthProvider;
+import com.swiftdrop.auth.entity.UserRole;
+import com.swiftdrop.auth.entity.UserStatus;
+import com.swiftdrop.auth.exception.*;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.profile.dto.MerchantSummaryResponse;
+import com.swiftdrop.auth.service.OutboxService;
+import com.swiftdrop.auth.users.client.DeliveryClient;
+import com.swiftdrop.auth.users.domain.CourierProfile;
+import com.swiftdrop.auth.users.domain.CourierProfileRepository;
+import com.swiftdrop.auth.users.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -21,42 +25,43 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
  * Service managing administrative user operations: creation, search, edit, activation,
  * deactivation with cross-service delivery check, and password reset.
- * SRS v2.1 – FR-AUTH-020, FR-AUTH-021, Flow 4.6
+ * SRS v2.1 – FR-AUTH-020, FR-AUTH-021, Flow 5
  */
 @Service
 public class AdminUserService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminUserService.class);
+    private static final Set<String> ALLOWED_VEHICLE_TYPES = Set.of("MOTORBIKE", "THREE_WHEELER", "VAN");
 
     private final UserRepository userRepository;
     private final CourierProfileRepository courierProfileRepository;
     private final MerchantRepository merchantRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
-    private final DeliveryServiceClient deliveryServiceClient;
+    private final DeliveryClient deliveryClient;
     private final OutboxService outboxService;
 
     public AdminUserService(
             UserRepository userRepository,
             CourierProfileRepository courierProfileRepository,
             MerchantRepository merchantRepository,
-            RefreshTokenRepository refreshTokenRepository,
+            RefreshTokenService refreshTokenService,
             PasswordEncoder passwordEncoder,
-            DeliveryServiceClient deliveryServiceClient,
+            DeliveryClient deliveryClient,
             OutboxService outboxService) {
         this.userRepository = userRepository;
         this.courierProfileRepository = courierProfileRepository;
         this.merchantRepository = merchantRepository;
-        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = passwordEncoder;
-        this.deliveryServiceClient = deliveryServiceClient;
+        this.deliveryClient = deliveryClient;
         this.outboxService = outboxService;
     }
 
@@ -91,78 +96,7 @@ public class AdminUserService {
     }
 
     /**
-     * Creates an ADMIN or COURIER user and generates a 16-character temporary password.
-     * Emits courier.changed and audit.recorded outbox events transactionally.
-     * SRS v2.1 – FR-AUTH-020
-     */
-    @Transactional
-    public CreateUserResponse createUser(UUID actorId, CreateUserRequest request) {
-        UserRole targetRole;
-        try {
-            targetRole = UserRole.valueOf(request.role().trim().toUpperCase());
-        } catch (Exception e) {
-            throw new InvalidUserRoleException("Invalid role requested: " + request.role());
-        }
-
-        if (targetRole != UserRole.ADMIN && targetRole != UserRole.COURIER) {
-            throw new InvalidUserRoleException("Only ADMIN and COURIER users can be created via admin user management.");
-        }
-
-        if (targetRole == UserRole.COURIER) {
-            if (request.vehicleType() == null || request.vehicleType().isBlank()) {
-                throw new IllegalArgumentException("Vehicle type is required for courier accounts.");
-            }
-            if (request.vehicleNumber() == null || request.vehicleNumber().isBlank()) {
-                throw new IllegalArgumentException("Vehicle number is required for courier accounts.");
-            }
-        }
-
-        String normalisedEmail = request.email().trim().toLowerCase();
-        if (userRepository.existsByEmailIgnoreCase(normalisedEmail)) {
-            throw new EmailAlreadyRegisteredException("An account with this email address already exists.");
-        }
-
-        String tempPassword = SecurePasswordGenerator.generateTemporaryPassword(normalisedEmail);
-
-        User user = new User();
-        user.setFullName(request.fullName().trim());
-        user.setEmail(normalisedEmail);
-        user.setPhone(request.phone() != null && !request.phone().isBlank() ? request.phone().trim() : null);
-        user.setRole(targetRole);
-        user.setStatus(UserStatus.ACTIVE);
-        user.setAuthProvider(AuthProvider.LOCAL);
-        user.setPasswordHash(passwordEncoder.encode(tempPassword));
-        user.setMustChangePassword(true);
-
-        User savedUser = userRepository.save(user);
-
-        CourierProfile courierProfile = null;
-        if (targetRole == UserRole.COURIER) {
-            CourierProfile cp = new CourierProfile(
-                    savedUser.getId(),
-                    request.vehicleType().trim(),
-                    request.vehicleNumber().trim(),
-                    "ACTIVE"
-            );
-            courierProfile = courierProfileRepository.save(cp);
-            outboxService.recordCourierChangedEvent(savedUser, courierProfile);
-        }
-
-        outboxService.recordAuditEvent(
-                "USER_CREATED",
-                actorId,
-                savedUser.getId(),
-                targetRole.name(),
-                Map.of("email", normalisedEmail)
-        );
-
-        log.info("Admin {} created user {} with role {}", actorId, savedUser.getId(), targetRole);
-        return new CreateUserResponse(toSummaryResponse(savedUser, courierProfile), tempPassword);
-    }
-
-    /**
-     * Retrieves safe user details.
-     * SRS v2.1 – FR-AUTH-020
+     * Retrieves single user details by ID.
      */
     @Transactional(readOnly = true)
     public AdminUserSummaryResponse getUser(UUID userId) {
@@ -172,21 +106,90 @@ public class AdminUserService {
     }
 
     /**
-     * Updates permitted user details (fullName, phone, vehicle details for couriers).
-     * Rejects updates to role, email, passwordHash, status, authProvider, googleSub.
+     * Creates an ADMIN or COURIER user and generates a 16-character temporary password.
+     * Emits courier.changed and audit.recorded outbox events transactionally.
      * SRS v2.1 – FR-AUTH-020
      */
     @Transactional
-    public AdminUserSummaryResponse editUser(UUID actorId, UUID userId, EditUserRequest request) {
+    public CreateUserResponse createUser(UUID actorId, CreateUserRequest request) {
+        UserRole targetRole;
+        try {
+            targetRole = UserRole.valueOf(request.role().trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new InvalidUserRoleException(request.role());
+        }
+
+        if (targetRole != UserRole.ADMIN && targetRole != UserRole.COURIER) {
+            throw new InvalidUserRoleException(request.role());
+        }
+
+        String email = request.email().trim().toLowerCase();
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new EmailAlreadyRegisteredException(email);
+        }
+
+        // Validate vehicle fields for courier
+        if (targetRole == UserRole.COURIER) {
+            if (request.vehicleType() == null || !ALLOWED_VEHICLE_TYPES.contains(request.vehicleType().trim().toUpperCase())) {
+                throw new IllegalArgumentException("Vehicle type must be one of: " + ALLOWED_VEHICLE_TYPES);
+            }
+            if (request.vehicleNumber() == null || request.vehicleNumber().trim().length() > 20) {
+                throw new IllegalArgumentException("Vehicle number must not exceed 20 characters");
+            }
+        }
+
+        String tempPassword = SecurePasswordGenerator.generateTemporaryPassword(email);
+
+        User user = new User();
+        user.setFullName(request.fullName().trim());
+        user.setEmail(email);
+        user.setPhone(request.phone() != null && !request.phone().isBlank() ? request.phone().trim() : null);
+        user.setPasswordHash(passwordEncoder.encode(tempPassword));
+        user.setRole(targetRole);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setAuthProvider(AuthProvider.LOCAL);
+        user.setMustChangePassword(true);
+
+        User savedUser = userRepository.save(user);
+
+        CourierProfile courierProfile = null;
+        if (targetRole == UserRole.COURIER) {
+            courierProfile = new CourierProfile(
+                    savedUser.getId(),
+                    request.vehicleType().trim().toUpperCase(),
+                    request.vehicleNumber().trim(),
+                    "ACTIVE"
+            );
+            courierProfile = courierProfileRepository.save(courierProfile);
+            outboxService.recordCourierChangedEvent(savedUser, courierProfile);
+        }
+
+        outboxService.recordAuditEvent(
+                "USER_CREATED",
+                actorId,
+                savedUser.getId(),
+                savedUser.getRole().name(),
+                Map.of("role", targetRole.name())
+        );
+
+        log.info("Admin {} created user {} with role {}", actorId, savedUser.getId(), targetRole);
+        return new CreateUserResponse(toSummaryResponse(savedUser, courierProfile), tempPassword);
+    }
+
+    /**
+     * Edits permitted user details (name, phone, vehicle info).
+     * SRS v2.1 – FR-AUTH-020
+     */
+    @Transactional
+    public AdminUserSummaryResponse updateUser(UUID actorId, UUID userId, EditUserRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
         if (request.fullName() != null && !request.fullName().isBlank()) {
             user.setFullName(request.fullName().trim());
         }
-
         if (request.phone() != null) {
-            user.setPhone(!request.phone().isBlank() ? request.phone().trim() : null);
+            user.setPhone(request.phone().isBlank() ? null : request.phone().trim());
         }
 
         User updatedUser = userRepository.save(user);
@@ -216,7 +219,7 @@ public class AdminUserService {
                 actorId,
                 userId,
                 user.getRole().name(),
-                Map.of("fullName", updatedUser.getFullName())
+                Map.of("role", user.getRole().name())
         );
 
         log.info("Admin {} updated user {}", actorId, userId);
@@ -258,14 +261,14 @@ public class AdminUserService {
      * Deactivates a user account.
      * Enforces self-deactivation guard and cross-service delivery check for couriers.
      * Revokes all active refresh tokens for the deactivated user.
-     * SRS v2.1 – Flow 4.6, FR-AUTH-020
+     * SRS v2.1 – Flow 5, FR-AUTH-020
      */
     @Transactional
     public AdminUserSummaryResponse deactivateUser(UUID actorId, UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        // Self-deactivation guard
+        // Self-deactivation guard (SRS gap: answered 403 ACCESS_DENIED)
         if (actorId != null && actorId.equals(userId)) {
             throw new CannotDeactivateSelfException();
         }
@@ -279,26 +282,25 @@ public class AdminUserService {
             courierProfile = courierProfileRepository.findByUserId(userId).orElse(null);
             UUID courierIdToCheck = courierProfile != null ? courierProfile.getId() : userId;
 
-            // Call delivery-service cross-service dependency (Flow 4.6)
-            int activeDeliveries = deliveryServiceClient.getActiveDeliveriesCount(courierIdToCheck);
+            // Cross-service delivery check via DeliveryClient
+            int activeDeliveries = deliveryClient.getActiveCount(courierIdToCheck);
             if (activeDeliveries > 0) {
-                log.warn("Cannot deactivate courier {}: {} active deliveries in progress", userId, activeDeliveries);
+                log.warn("Courier {} has {} active deliveries. Deactivation rejected.", courierIdToCheck, activeDeliveries);
                 throw new CourierHasActiveDeliveriesException(activeDeliveries);
-            }
-
-            if (courierProfile != null) {
-                courierProfile.setStatus("DEACTIVATED");
-                courierProfile = courierProfileRepository.save(courierProfile);
-                outboxService.recordCourierChangedEvent(user, courierProfile);
             }
         }
 
         user.setStatus(UserStatus.DEACTIVATED);
         User savedUser = userRepository.save(user);
 
-        // Revoke all active refresh tokens
-        int revokedCount = refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
-        log.info("Revoked {} refresh token(s) upon deactivating user {}", revokedCount, userId);
+        if (courierProfile != null) {
+            courierProfile.setStatus("DEACTIVATED");
+            courierProfile = courierProfileRepository.save(courierProfile);
+            outboxService.recordCourierChangedEvent(savedUser, courierProfile);
+        }
+
+        // Revoke all active refresh tokens for the deactivated user
+        refreshTokenService.revokeAllForUser(userId);
 
         outboxService.recordAuditEvent("USER_DEACTIVATED", actorId, userId, user.getRole().name(), Map.of());
         log.info("Admin {} deactivated user {}", actorId, userId);
@@ -306,8 +308,8 @@ public class AdminUserService {
     }
 
     /**
-     * Resets a user's password, generating a 16-character temporary password.
-     * Forces password change on next login and revokes all refresh token sessions.
+     * Generates a new 16-character temporary password for any local user.
+     * Revokes all refresh tokens and sets must_change_password=true.
      * SRS v2.1 – FR-AUTH-021
      */
     @Transactional
@@ -320,31 +322,21 @@ public class AdminUserService {
         }
 
         String tempPassword = SecurePasswordGenerator.generateTemporaryPassword(user.getEmail());
-
         user.setPasswordHash(passwordEncoder.encode(tempPassword));
         user.setMustChangePassword(true);
-        userRepository.saveAndFlush(user);
+        user.setFailedLoginCount(0);
+        user.setLockedUntil(null);
+        userRepository.save(user);
 
-        // Revoke all refresh token sessions
-        int revokedCount = refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
-        log.info("Password reset by admin {} for user {}. Revoked {} refresh token(s).", actorId, userId, revokedCount);
+        refreshTokenService.revokeAllForUser(userId);
 
-        // Record audit event WITHOUT temporary password
-        outboxService.recordAuditEvent(
-                "PASSWORD_RESET",
-                actorId,
-                userId,
-                user.getRole().name(),
-                Map.of("targetEmail", user.getEmail())
-        );
+        outboxService.recordAuditEvent("USER_PASSWORD_RESET", actorId, userId, user.getRole().name(), Map.of());
+        log.info("Admin {} reset password for user {}", actorId, userId);
 
-        return new ResetPasswordResponse(
-                tempPassword,
-                "Password reset successfully. The temporary password must be changed upon next login."
-        );
+        return new ResetPasswordResponse(tempPassword, "Temporary password generated successfully.");
     }
 
-    private AdminUserSummaryResponse toSummaryResponse(User user) {
+    public AdminUserSummaryResponse toSummaryResponse(User user) {
         CourierProfile courierProfile = null;
         if (user.getRole() == UserRole.COURIER) {
             courierProfile = courierProfileRepository.findByUserId(user.getId()).orElse(null);
@@ -352,10 +344,10 @@ public class AdminUserService {
         return toSummaryResponse(user, courierProfile);
     }
 
-    private AdminUserSummaryResponse toSummaryResponse(User user, CourierProfile courierProfile) {
-        CourierProfileSummaryResponse cpResponse = null;
+    public AdminUserSummaryResponse toSummaryResponse(User user, CourierProfile courierProfile) {
+        CourierProfileSummaryResponse courierSummary = null;
         if (courierProfile != null) {
-            cpResponse = new CourierProfileSummaryResponse(
+            courierSummary = new CourierProfileSummaryResponse(
                     courierProfile.getId(),
                     courierProfile.getVehicleType(),
                     courierProfile.getVehicleNumber(),
@@ -366,7 +358,12 @@ public class AdminUserService {
         MerchantSummaryResponse merchantSummary = null;
         if (user.getRole() == UserRole.MERCHANT) {
             merchantSummary = merchantRepository.findByUserId(user.getId())
-                    .map(m -> new MerchantSummaryResponse(m.getId(), m.getBusinessName(), m.getStatus(), BigDecimal.ZERO))
+                    .map(m -> new MerchantSummaryResponse(
+                            m.getId(),
+                            m.getBusinessName(),
+                            m.getStatus(),
+                            m.getDiscountPercent() != null ? m.getDiscountPercent() : BigDecimal.ZERO
+                    ))
                     .orElse(null);
         }
 
@@ -383,9 +380,8 @@ public class AdminUserService {
                 user.getLockedUntil(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),
-                cpResponse,
+                courierSummary,
                 merchantSummary
         );
     }
 }
-

@@ -1,4 +1,4 @@
-package com.swiftdrop.auth.entity;
+package com.swiftdrop.auth.google.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -59,4 +59,3 @@ public class OAuthLoginState {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
-

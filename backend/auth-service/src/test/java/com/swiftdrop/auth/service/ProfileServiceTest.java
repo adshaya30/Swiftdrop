@@ -1,25 +1,19 @@
 package com.swiftdrop.auth.service;
+
 import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.domain.Merchant;
 import com.swiftdrop.auth.domain.RefreshToken;
 import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.domain.MerchantRepository;
 import com.swiftdrop.auth.domain.RefreshTokenRepository;
-import com.swiftdrop.auth.login.service.JwtService;
-import com.swiftdrop.auth.login.service.LoginService;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
-import com.swiftdrop.auth.login.service.PasswordHasher;
 import com.swiftdrop.auth.login.service.PasswordPolicy;
-import com.swiftdrop.auth.login.controller.AuthController;
-
-import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
-import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
-import com.swiftdrop.auth.dto.response.UserProfileResponse;
+import com.swiftdrop.auth.profile.service.ProfileService;
+import com.swiftdrop.auth.profile.dto.ChangePasswordRequest;
+import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
+import com.swiftdrop.auth.profile.dto.UserProfileResponse;
 import com.swiftdrop.auth.entity.*;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.domain.MerchantRepository;
-import com.swiftdrop.auth.domain.RefreshTokenRepository;
-import com.swiftdrop.auth.domain.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,8 +38,9 @@ class ProfileServiceTest {
 
     private UserRepository userRepository;
     private MerchantRepository merchantRepository;
-    private RefreshTokenRepository refreshTokenRepository;
+    private RefreshTokenService refreshTokenService;
     private PasswordEncoder passwordEncoder;
+    private PasswordPolicy passwordPolicy;
     private ProfileService profileService;
 
     private UUID userId;
@@ -55,14 +50,16 @@ class ProfileServiceTest {
     void setUp() {
         userRepository = mock(UserRepository.class);
         merchantRepository = mock(MerchantRepository.class);
-        refreshTokenRepository = mock(RefreshTokenRepository.class);
+        refreshTokenService = mock(RefreshTokenService.class);
         passwordEncoder = mock(PasswordEncoder.class);
+        passwordPolicy = new PasswordPolicy();
 
         profileService = new ProfileService(
                 userRepository,
                 merchantRepository,
-                refreshTokenRepository,
-                passwordEncoder
+                refreshTokenService,
+                passwordEncoder,
+                passwordPolicy
         );
 
         userId = UUID.randomUUID();
@@ -195,7 +192,7 @@ class ProfileServiceTest {
         assertThat(testUser.getPasswordHash()).isEqualTo("$2a$12$newhashedpassword");
         assertThat(testUser.isMustChangePassword()).isFalse();
         verify(userRepository).saveAndFlush(testUser);
-        verify(refreshTokenRepository).revokeAllByUserId(eq(userId), any(Instant.class));
+        verify(refreshTokenService).revokeAllForUser(userId);
     }
 
     @Test
@@ -209,7 +206,7 @@ class ProfileServiceTest {
                 .isInstanceOf(SocialAccountPasswordChangeException.class)
                 .hasMessageContaining("Social login accounts");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
@@ -234,7 +231,7 @@ class ProfileServiceTest {
                 .isInstanceOf(InvalidCurrentPasswordException.class)
                 .hasMessageContaining("Current password is incorrect");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
@@ -248,7 +245,7 @@ class ProfileServiceTest {
                 .isInstanceOf(PasswordSameAsCurrentException.class)
                 .hasMessageContaining("must be different");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @ParameterizedTest
