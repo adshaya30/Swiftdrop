@@ -1,0 +1,143 @@
+# SwiftDrop Monorepo Codeowners (Master Prompt v2.2 Section 7.1)
+# Slices and areas are mapped to responsible team members with @TODO-member-N placeholders.
+
+# Global default: Member #8 (Infrastructure lead)
+*                                                               @TODO-member-8
+
+# Member #1: Login, Sessions, Auth migration lead, Auth domain & Shared Frontend Foundation
+/backend/auth-service/src/main/java/com/swiftdrop/auth/login/   @TODO-member-1
+/backend/auth-service/src/main/java/com/swiftdrop/auth/domain/  @TODO-member-1
+/backend/auth-service/src/main/resources/db/migration/          @TODO-member-1
+/backend/auth-service/pom.xml                                   @TODO-member-1
+/backend/auth-service/Dockerfile                                @TODO-member-1
+/frontend/src/api/http.js                                       @TODO-member-1
+/frontend/src/api/auth.js                                       @TODO-member-1
+/frontend/src/context/                                          @TODO-member-1
+/frontend/src/layouts/                                          @TODO-member-1
+/frontend/src/components/                                       @TODO-member-1
+/frontend/src/theme/                                            @TODO-member-1
+/frontend/src/routes/                                           @TODO-member-1
+/frontend/src/main.jsx                                          @TODO-member-1
+/frontend/src/App.jsx                                           @TODO-member-1
+/frontend/Dockerfile                                            @TODO-member-1
+/frontend/nginx.conf                                            @TODO-member-1
+/frontend/src/pages/auth/login/                                 @TODO-member-1
+/frontend/src/pages/auth/register/                              @TODO-member-1
+
+# Member #2: Google login, Profile, Admin Users
+/backend/auth-service/src/main/java/com/swiftdrop/auth/google/  @TODO-member-2
+/backend/auth-service/src/main/java/com/swiftdrop/auth/profile/ @TODO-member-2
+/backend/auth-service/src/main/java/com/swiftdrop/auth/users/   @TODO-member-2
+/frontend/src/components/GoogleLoginButton.jsx                  @TODO-member-2
+/frontend/src/pages/auth/callback/                              @TODO-member-2
+/frontend/src/pages/auth/profile/                               @TODO-member-2
+/frontend/src/pages/auth/changePassword/                        @TODO-member-2
+/frontend/src/pages/admin/users/                                @TODO-member-2
+/frontend/src/api/profile.js                                    @TODO-member-2
+/frontend/src/api/adminUsers.js                                 @TODO-member-2
+
+# Member #3: Merchant Onboarding, API Access, common-core & non-event common-lib
+/backend/auth-service/src/main/java/com/swiftdrop/auth/merchant/ @TODO-member-3
+/backend/common-core/                                           @TODO-member-3
+/backend/common-lib/pom.xml                                     @TODO-member-3
+/backend/common-lib/src/main/java/com/swiftdrop/common/security/ @TODO-member-3
+/backend/common-lib/src/main/java/com/swiftdrop/common/client/   @TODO-member-3
+/backend/common-lib/src/main/java/com/swiftdrop/common/filter/   @TODO-member-3
+/frontend/src/pages/merchant/register/                          @TODO-member-3
+/frontend/src/pages/merchant/credentials/                       @TODO-member-3
+/frontend/src/pages/admin/merchants/                            @TODO-member-3
+/frontend/src/api/merchantAccount.js                            @TODO-member-3
+/frontend/src/api/adminMerchants.js                             @TODO-member-3
+
+# Member #4: Quotes, Parcel Creation, Parcel/Pricing Migration Lead
+/backend/parcel-service/src/main/java/com/swiftdrop/parcel/create/ @TODO-member-4
+/backend/parcel-service/src/main/java/com/swiftdrop/parcel/domain/ @TODO-member-4
+/backend/parcel-service/src/main/resources/db/migration/        @TODO-member-4
+/backend/parcel-service/pom.xml                                 @TODO-member-4
+/backend/parcel-service/Dockerfile                              @TODO-member-4
+/backend/pricing-service/src/main/java/com/swiftdrop/pricing/core/ @TODO-member-4
+/backend/pricing-service/src/main/resources/db/migration/       @TODO-member-4
+/backend/pricing-service/pom.xml                                @TODO-member-4
+/backend/pricing-service/Dockerfile                             @TODO-member-4
+/frontend/src/pages/customer/                                   @TODO-member-4
+/frontend/src/api/quotes.js                                     @TODO-member-4
+/frontend/src/api/customerParcels.js                            @TODO-member-4
+
+# Member #5: Parcel Lifecycle, Admin Pricing, Audit Logs, Coordination Docs
+/backend/parcel-service/src/main/java/com/swiftdrop/parcel/lifecycle/ @TODO-member-5
+/backend/pricing-service/src/main/java/com/swiftdrop/pricing/admin/   @TODO-member-5
+/backend/tracking-service/src/main/java/com/swiftdrop/tracking/audit/ @TODO-member-5
+/frontend/src/pages/admin/parcels/                              @TODO-member-5
+/frontend/src/pages/admin/reports/                              @TODO-member-5
+/frontend/src/pages/admin/zones/                                @TODO-member-5
+/frontend/src/pages/admin/pricing/                              @TODO-member-5
+/frontend/src/pages/admin/auditLogs/                            @TODO-member-5
+/frontend/src/pages/admin/dashboard/                            @TODO-member-5
+/frontend/src/api/adminParcels.js                               @TODO-member-5
+/frontend/src/api/adminReports.js                               @TODO-member-5
+/frontend/src/api/adminPricing.js                               @TODO-member-5
+/frontend/src/api/auditLogs.js                                  @TODO-member-5
+/docs/design/DESIGN.md                                          @TODO-member-5
+/docs/test-reports/                                             @TODO-member-5
+/docs/contribution-sheet.md                                     @TODO-member-5
+
+# Member #6: Merchant Orders, Receipts, Outbox & Event Infrastructure
+/backend/parcel-service/src/main/java/com/swiftdrop/parcel/order/ @TODO-member-6
+/backend/common-lib/src/main/java/com/swiftdrop/common/events/  @TODO-member-6
+/frontend/src/pages/merchant/dashboard/                         @TODO-member-6
+/frontend/src/pages/merchant/orders/                            @TODO-member-6
+/frontend/src/api/merchantOrders.js                             @TODO-member-6
+/frontend/src/api/receipts.js                                   @TODO-member-6
+/frontend/src/components/ReceiptButton.jsx                      @TODO-member-6
+/tools/postman/                                                 @TODO-member-6
+
+# Member #7: Dispatcher Assignment, Gateway & Delivery Migration Lead
+/backend/delivery-service/src/main/java/com/swiftdrop/delivery/assignment/ @TODO-member-7
+/backend/delivery-service/src/main/java/com/swiftdrop/delivery/domain/     @TODO-member-7
+/backend/delivery-service/src/main/resources/db/migration/                 @TODO-member-7
+/backend/delivery-service/pom.xml                                          @TODO-member-7
+/backend/delivery-service/Dockerfile                                       @TODO-member-7
+/backend/api-gateway/                                           @TODO-member-7
+/frontend/src/pages/admin/dispatch/                             @TODO-member-7
+/frontend/src/pages/admin/couriers/                             @TODO-member-7
+/frontend/src/api/adminDelivery.js                              @TODO-member-7
+
+# Member #8: Courier Operations, Infrastructure, Build, Root Files
+/backend/delivery-service/src/main/java/com/swiftdrop/delivery/courier/ @TODO-member-8
+/infrastructure/                                                @TODO-member-8
+/compose.yaml                                                   @TODO-member-8
+/compose.infra.yaml                                             @TODO-member-8
+/backend/pom.xml                                                @TODO-member-8
+/backend/mvnw                                                   @TODO-member-8
+/backend/mvnw.cmd                                               @TODO-member-8
+/backend/.mvn/                                                  @TODO-member-8
+/.env.example                                                   @TODO-member-8
+/.gitignore                                                     @TODO-member-8
+/.gitattributes                                                 @TODO-member-8
+/README.md                                                      @TODO-member-8
+/.github/CODEOWNERS                                             @TODO-member-8
+/scripts/                                                       @TODO-member-8
+/frontend/src/pages/courier/                                    @TODO-member-8
+/frontend/src/api/courier.js                                    @TODO-member-8
+/frontend/src/api/proofs.js                                     @TODO-member-8
+/frontend/src/components/ProofViewer.jsx                        @TODO-member-8
+
+# Member #9: Tracking Core, Notifications & Migration Lead
+/backend/tracking-service/src/main/java/com/swiftdrop/tracking/core/ @TODO-member-9
+/backend/tracking-service/src/main/resources/db/migration/           @TODO-member-9
+/backend/tracking-service/pom.xml                                    @TODO-member-9
+/backend/tracking-service/Dockerfile                                 @TODO-member-9
+/backend/notification-service/src/main/java/com/swiftdrop/notification/notification/ @TODO-member-9
+/backend/notification-service/src/main/resources/db/migration/      @TODO-member-9
+/backend/notification-service/pom.xml                                @TODO-member-9
+/backend/notification-service/Dockerfile                             @TODO-member-9
+/frontend/src/pages/public/                                          @TODO-member-9
+/frontend/src/api/tracking.js                                        @TODO-member-9
+/frontend/src/components/ParcelTimeline.jsx                          @TODO-member-9
+
+# Member #10: Webhooks & Mock Merchant
+/backend/notification-service/src/main/java/com/swiftdrop/notification/webhook/ @TODO-member-10
+/tools/mock-merchant/                                           @TODO-member-10
+/frontend/src/pages/merchant/webhook/                           @TODO-member-10
+/frontend/src/api/webhook.js                                    @TODO-member-10
+
