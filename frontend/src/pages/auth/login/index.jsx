@@ -254,19 +254,38 @@ export default function LoginPage() {
           </Box>
         </Box>
 
-        {/* Right column: Hero image with orange banner */}
+        {/* Right column: Smoothly framed hero card */}
         <Box
           sx={{
             display: { xs: 'none', md: 'flex' },
-            position: 'relative',
-            backgroundColor: tokens.palette.softOrange,
-            backgroundImage: `url(${heroCourierImg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            minHeight: '100%',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: { md: 3, lg: 4 },
+            backgroundColor: '#FAFCFF',
           }}
-        />
+        >
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 420,
+              height: '100%',
+              maxHeight: 520,
+              minHeight: 380,
+              borderRadius: '20px',
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)',
+              border: `1px solid ${tokens.palette.border}`,
+              backgroundImage: `url(${heroCourierImg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center 20%',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+        </Box>
       </Card>
     </Box>
   );
 }
+
