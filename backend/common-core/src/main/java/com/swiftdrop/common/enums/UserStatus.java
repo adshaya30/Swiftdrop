@@ -1,6 +1,6 @@
 package com.swiftdrop.common.enums;
 
-/** SRS 6.2 (values to be verified against the SRS). */
+/** SRS 6.2. */
 public enum UserStatus {
     ACTIVE, DEACTIVATED
 }

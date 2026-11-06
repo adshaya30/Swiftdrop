@@ -1,6 +1,6 @@
 package com.swiftdrop.common.enums;
 
-/** SRS 6.2 parcel owner type (values to be verified against the SRS). */
+/** SRS 6.2 parcel owner type. */
 public enum OwnerType {
     CUSTOMER, MERCHANT
 }
