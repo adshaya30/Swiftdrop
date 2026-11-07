@@ -107,3 +107,4 @@ erDiagram
 5. **Transient OAuth States**:
    - `oauth_login_states` records have no foreign keys to `users` because they are generated before authentication completes.
    - States are purged immediately upon use or automatically 5 minutes after creation.
+

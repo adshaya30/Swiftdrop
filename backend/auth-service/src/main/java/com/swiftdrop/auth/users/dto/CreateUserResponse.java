@@ -4,3 +4,4 @@ public record CreateUserResponse(
         AdminUserSummaryResponse user,
         String temporaryPassword
 ) {}
+

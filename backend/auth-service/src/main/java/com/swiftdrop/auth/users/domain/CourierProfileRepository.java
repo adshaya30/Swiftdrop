@@ -8,3 +8,4 @@ import java.util.UUID;
 public interface CourierProfileRepository extends JpaRepository<CourierProfile, UUID> {
     Optional<CourierProfile> findByUserId(UUID userId);
 }
+

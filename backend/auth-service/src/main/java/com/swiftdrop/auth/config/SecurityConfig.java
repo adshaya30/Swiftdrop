@@ -2,7 +2,6 @@ package com.swiftdrop.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.security.JwtAuthenticationFilter;
-import com.swiftdrop.auth.security.SecurityRules;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -36,42 +38,10 @@ public class SecurityConfig {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Master Prompt Section 8.1 SecurityRules bean.
-     */
-    @Bean
-    public SecurityRules securityRules() {
-        return new SecurityRules() {
-            @Override
-            public List<String> publicPaths() {
-                return List.of(
-                        "POST /api/v1/auth/register",
-                        "POST /api/v1/auth/register-merchant",
-                        "POST /api/v1/auth/login",
-                        "POST /api/v1/auth/refresh",
-                        "POST /api/v1/auth/logout",
-                        "GET /api/v1/auth/google/login",
-                        "GET /api/v1/auth/google/callback",
-                        "GET /api/v1/auth/config",
-                        "POST /api/v1/oauth/token"
-                );
-            }
-
-            @Override
-            public List<String> passwordChangeWhitelist() {
-                return List.of(
-                        "GET /api/v1/me",
-                        "POST /api/v1/me/change-password",
-                        "POST /api/v1/auth/refresh",
-                        "POST /api/v1/auth/logout"
-                );
-            }
-        };
-    }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(eh -> eh
@@ -131,6 +101,18 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:8080"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean

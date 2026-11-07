@@ -67,7 +67,7 @@ class AuthControllerTest {
     private RefreshTokenService refreshTokenService;
 
     @MockBean
-    private com.swiftdrop.auth.login.service.JwtService jwtService;
+    private JwtService jwtService;
 
     @MockBean
     private com.swiftdrop.auth.login.service.RefreshCookieFactory refreshCookieFactory;

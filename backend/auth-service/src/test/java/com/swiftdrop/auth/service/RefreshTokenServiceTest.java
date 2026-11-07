@@ -166,9 +166,9 @@ class RefreshTokenServiceTest {
 
         RotationResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
 
-        assertThat(result.hasNewRefreshToken()).isFalse();
-        assertThat(result.newRawRefreshToken()).isNull();
-        assertThat(result.response().getAccessToken()).isEqualTo("grace-jwt-token");
+        assertThat(result.rotated()).isFalse();
+        assertThat(result.rawRefreshToken()).isNull();
+        assertThat(result.accessToken()).isEqualTo("grace-jwt-token");
         verify(refreshTokenRepository, never()).revokeFamily(any(), any());
     }
 
@@ -201,9 +201,9 @@ class RefreshTokenServiceTest {
 
         RotationResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
 
-        assertThat(result.hasNewRefreshToken()).isTrue();
-        assertThat(result.newRawRefreshToken()).isNotBlank();
-        assertThat(result.response().getAccessToken()).isEqualTo("new-access-jwt");
+        assertThat(result.rotated()).isTrue();
+        assertThat(result.rawRefreshToken()).isNotBlank();
+        assertThat(result.accessToken()).isEqualTo("new-access-jwt");
 
         // Verify old token marked used
         assertThat(token.getUsedAt()).isNotNull();

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Public authentication endpoints adhering to SRS v2.1 FR-AUTH-001 through FR-AUTH-008
- * and Master Prompt Section 8.1 (Member #1 Login Slice).
+ * and Master Prompt Section 8.1.
  */
 @RestController
 @RequestMapping("/api/v1/auth")

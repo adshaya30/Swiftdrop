@@ -33,8 +33,8 @@ public class RefreshCookieFactory {
         return ResponseCookie.from(COOKIE_NAME, rawRefreshToken)
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Strict")
-                .path(COOKIE_PATH)
+                .sameSite("Lax")
+                .path("/api/v1/auth")
                 .maxAge(MAX_AGE)
                 .build();
     }
@@ -43,8 +43,8 @@ public class RefreshCookieFactory {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Strict")
-                .path(COOKIE_PATH)
+                .sameSite("Lax")
+                .path("/api/v1/auth")
                 .maxAge(0)
                 .build();
     }

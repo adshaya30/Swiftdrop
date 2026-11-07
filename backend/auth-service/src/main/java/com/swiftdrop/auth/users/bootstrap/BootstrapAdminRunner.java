@@ -124,3 +124,4 @@ public class BootstrapAdminRunner implements ApplicationRunner {
         log.info("Bootstrap administrator account created successfully: email={}", email);
     }
 }
+

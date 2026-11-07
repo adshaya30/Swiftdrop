@@ -14,3 +14,4 @@ public record ChangePasswordRequest(
         @Size(min = 10, max = 64, message = "New password must be between 10 and 64 characters")
         String newPassword
 ) {}
+

@@ -51,8 +51,18 @@ public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
     @Autowired
     public DefaultGoogleOidcVerifier(
             @Value("${auth.google.client-id:${GOOGLE_CLIENT_ID:}}") String clientId,
-            @Value("${auth.google.jwks-url:" + DEFAULT_GOOGLE_JWKS_URL + "}") String jwksUrl,
-            @Autowired(required = false) JWKSource<SecurityContext> customJwkSource) {
+            @Value("${auth.google.jwks-url:" + DEFAULT_GOOGLE_JWKS_URL + "}") String jwksUrl) {
+        this(clientId, jwksUrl, null);
+    }
+
+    public DefaultGoogleOidcVerifier(String clientId, JWKSource<SecurityContext> customJwkSource) {
+        this(clientId, DEFAULT_GOOGLE_JWKS_URL, customJwkSource);
+    }
+
+    public DefaultGoogleOidcVerifier(
+            String clientId,
+            String jwksUrl,
+            JWKSource<SecurityContext> customJwkSource) {
         this.clientId = clientId;
         this.jwtProcessor = new DefaultJWTProcessor<>();
 

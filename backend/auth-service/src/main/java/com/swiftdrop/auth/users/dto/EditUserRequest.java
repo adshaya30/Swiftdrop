@@ -14,3 +14,4 @@ public record EditUserRequest(
         @Size(max = 30, message = "Vehicle number must not exceed 30 characters")
         String vehicleNumber
 ) {}
+

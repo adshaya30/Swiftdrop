@@ -7,3 +7,4 @@ public record GoogleUserClaims(
         String name,
         String picture
 ) {}
+

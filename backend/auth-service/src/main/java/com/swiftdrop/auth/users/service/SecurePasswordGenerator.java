@@ -64,3 +64,4 @@ public final class SecurePasswordGenerator {
         return "TempPass#" + RANDOM.nextInt(100000, 999999);
     }
 }
+

@@ -4,3 +4,4 @@ public record ResetPasswordResponse(
         String temporaryPassword,
         String message
 ) {}
+

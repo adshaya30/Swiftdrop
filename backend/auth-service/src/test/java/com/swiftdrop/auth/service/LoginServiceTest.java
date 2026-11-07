@@ -86,6 +86,10 @@ class LoginServiceTest {
         sampleUser.setPasswordHash(passwordHash);
         sampleUser.setFailedLoginCount(0);
         sampleUser.setLockedUntil(null);
+
+        when(refreshTokenService.issue(any())).thenReturn(
+                new RefreshTokenService.IssuedRefresh("mocked.refresh.token", UUID.randomUUID(), Instant.now().plusSeconds(3600), new RefreshToken())
+        );
     }
 
     @Test
@@ -280,7 +284,6 @@ class LoginServiceTest {
         LoginResult result = loginService.login(request, "127.0.0.1", "Mozilla/5.0");
 
         verify(refreshTokenService).issue(sampleUser);
-        assertThat(result.getRawRefreshToken()).isEqualTo("raw-refresh-token-mock");
+        assertThat(result.getRawRefreshToken()).isEqualTo("mocked.refresh.token");
     }
 }
-

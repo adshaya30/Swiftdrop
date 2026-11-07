@@ -3,7 +3,7 @@ package com.swiftdrop.auth.login.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.domain.Merchant;
 import com.swiftdrop.auth.domain.User;
-import com.swiftdrop.auth.security.JwtPublicKeyProvider;
+import com.swiftdrop.common.security.JwtPublicKeyProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +49,7 @@ public class JwtService implements JwtPublicKeyProvider {
         this(privateKeyPath, 15L, objectMapper);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
     public JwtService(
             @Value("${jwt.private-key-path:${JWT_PRIVATE_KEY_PATH:}}") String privateKeyPath,
             @Value("${jwt.access-ttl-minutes:15}") long accessTokenTtlMinutes,
@@ -191,8 +192,13 @@ public class JwtService implements JwtPublicKeyProvider {
         }
     }
 
-    @Override
     public RSAPublicKey getPublicKey() {
+        return publicKey;
+    }
+
+    /** Satisfies {@link com.swiftdrop.common.security.JwtPublicKeyProvider} used by common-lib SecurityAutoConfiguration. */
+    @Override
+    public RSAPublicKey publicKey() {
         return publicKey;
     }
 

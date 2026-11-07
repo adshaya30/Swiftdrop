@@ -27,3 +27,4 @@ public interface OAuthLoginStateRepository extends JpaRepository<OAuthLoginState
     @Query("DELETE FROM OAuthLoginState s WHERE s.expiresAt <= :cutoff")
     int deleteExpiredStatesBefore(@Param("cutoff") Instant cutoff);
 }
+

@@ -24,3 +24,4 @@ public record AdminUserSummaryResponse(
         CourierProfileSummaryResponse courierProfile,
         MerchantSummaryResponse merchant
 ) {}
+

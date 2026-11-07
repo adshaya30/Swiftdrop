@@ -4,3 +4,4 @@ public record GoogleLoginInitResult(
         String authorizationUrl,
         String rawState
 ) {}
+

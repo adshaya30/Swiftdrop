@@ -24,6 +24,7 @@ public class RefreshToken {
     @Column(name = "family_id", nullable = false)
     private UUID familyId;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.CHAR)
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 

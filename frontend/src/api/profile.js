@@ -18,3 +18,4 @@ export async function changePassword({ currentPassword, newPassword }) {
     body: { currentPassword, newPassword },
   });
 }
+
