@@ -18,9 +18,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.time.Duration;
-
 /**
  * Public authentication endpoints adhering to SRS v2.1 FR-AUTH-001 through FR-AUTH-008
  * and Master Prompt Section 8.1.

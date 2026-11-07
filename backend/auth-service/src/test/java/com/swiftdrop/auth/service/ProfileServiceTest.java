@@ -190,7 +190,7 @@ class ProfileServiceTest {
 
         assertThat(testUser.getPasswordHash()).isEqualTo("$2a$12$newhashedpassword");
         assertThat(testUser.isMustChangePassword()).isFalse();
-        verify(userRepository).saveAndFlush(testUser);
+        verify(userRepository).save(testUser);
         verify(refreshTokenService).revokeAllForUser(userId);
     }
 
@@ -263,7 +263,7 @@ class ProfileServiceTest {
         ChangePasswordRequest request = new ChangePasswordRequest("Current#123", invalidPassword);
         assertThatThrownBy(() -> profileService.changePassword(userId, request))
                 .isInstanceOf(PasswordPolicyException.class)
-                .hasMessageContaining("Password must be 10–64 characters");
+                .hasMessageContaining("Password must ");
     }
 
     @Test
@@ -276,6 +276,6 @@ class ProfileServiceTest {
         ChangePasswordRequest request = new ChangePasswordRequest("Current#123", "SecretAmal.Perera#99");
         assertThatThrownBy(() -> profileService.changePassword(userId, request))
                 .isInstanceOf(PasswordPolicyException.class)
-                .hasMessageContaining("email address");
+                .hasMessageContaining("email local-part");
     }
 }

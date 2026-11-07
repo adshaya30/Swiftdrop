@@ -1,6 +1,6 @@
 # MEMBER #2: Google login, profile and admin users (2 prompts)
 
-The master prompt (v2.2) and the SRS are already loaded in your session.
+The master prompt (v3.0) and the SRS are already loaded in your session.
 
 | Prompt | Title | Blocks others? |
 |---|---|---|
@@ -74,4 +74,3 @@ Callback success and failure, profile form validation and server errors, change-
 
 ### Done when
 All four pages work against the running auth-service, `npm test -- --coverage` and `npm run build` pass, diagrams committed, report sent.
-

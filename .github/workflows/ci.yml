@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - fix/gate1
   pull_request:
     branches:
       - main
