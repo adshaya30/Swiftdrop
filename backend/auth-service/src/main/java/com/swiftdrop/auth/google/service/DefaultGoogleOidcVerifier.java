@@ -55,10 +55,6 @@ public class DefaultGoogleOidcVerifier implements GoogleOidcVerifier {
         this(clientId, jwksUrl, null);
     }
 
-    public DefaultGoogleOidcVerifier(String clientId, JWKSource<SecurityContext> customJwkSource) {
-        this(clientId, DEFAULT_GOOGLE_JWKS_URL, customJwkSource);
-    }
-
     public DefaultGoogleOidcVerifier(
             String clientId,
             String jwksUrl,
