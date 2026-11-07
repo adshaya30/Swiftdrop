@@ -1,10 +1,11 @@
 package com.swiftdrop.auth;
 
+import com.swiftdrop.common.security.SecurityAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
 @EnableScheduling
 public class AuthServiceApplication {
 

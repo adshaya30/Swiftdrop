@@ -13,19 +13,16 @@ import java.util.UUID;
 public class CourierProfile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "vehicle_type", nullable = false, length = 50)
+    @Column(name = "vehicle_type", nullable = false, length = 20)
     private String vehicleType;
 
-    @Column(name = "vehicle_number", nullable = false, length = 30)
+    @Column(name = "vehicle_number", nullable = false, length = 20)
     private String vehicleNumber;
 
-    @Column(name = "status", nullable = false, length = 20)
+    @Transient
     private String status = "ACTIVE";
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -55,8 +52,8 @@ public class CourierProfile {
         this.status = status;
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() { return userId; }
+    public void setId(UUID id) { this.userId = id; }
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }

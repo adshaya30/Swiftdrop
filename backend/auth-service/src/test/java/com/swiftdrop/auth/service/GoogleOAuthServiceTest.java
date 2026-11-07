@@ -69,7 +69,6 @@ class GoogleOAuthServiceTest {
                 userRepository,
                 refreshTokenService,
                 googleOidcVerifier,
-                RestClient.builder(),
                 objectMapper
         );
     }
@@ -99,7 +98,6 @@ class GoogleOAuthServiceTest {
                     userRepository,
                     refreshTokenService,
                     googleOidcVerifier,
-                    RestClient.builder(),
                     objectMapper
             );
             assertThat(service.isGoogleEnabled()).isFalse();
@@ -125,7 +123,6 @@ class GoogleOAuthServiceTest {
                     userRepository,
                     refreshTokenService,
                     googleOidcVerifier,
-                    RestClient.builder(),
                     objectMapper
             );
 

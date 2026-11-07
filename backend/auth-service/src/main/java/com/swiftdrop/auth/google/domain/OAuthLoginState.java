@@ -1,6 +1,8 @@
 package com.swiftdrop.auth.google.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 
 /**
@@ -12,6 +14,7 @@ import java.time.Instant;
 public class OAuthLoginState {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "state_hash", length = 64, nullable = false)
     private String stateHash;
 

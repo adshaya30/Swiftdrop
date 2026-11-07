@@ -17,3 +17,4 @@ public record UserProfileResponse(
         Instant createdAt,
         MerchantSummaryResponse merchant
 ) {}
+

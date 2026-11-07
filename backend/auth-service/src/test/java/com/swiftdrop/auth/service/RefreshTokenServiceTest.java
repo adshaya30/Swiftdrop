@@ -13,7 +13,7 @@ import com.swiftdrop.auth.login.service.PasswordPolicy;
 import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.swiftdrop.auth.dto.response.LoginResponse;
-import com.swiftdrop.auth.dto.response.RefreshResult;
+import com.swiftdrop.auth.login.dto.RotationResult;
 import com.swiftdrop.auth.domain.Merchant;
 import com.swiftdrop.auth.entity.MerchantStatus;
 import com.swiftdrop.auth.domain.RefreshToken;
@@ -74,8 +74,9 @@ class RefreshTokenServiceTest {
                 userRepository,
                 merchantRepository,
                 jwtService,
-                GRACE_SECONDS,
-                FAMILY_MAX_DAYS
+                7,
+                FAMILY_MAX_DAYS,
+                GRACE_SECONDS
         );
 
         userId = UUID.randomUUID();
@@ -163,11 +164,11 @@ class RefreshTokenServiceTest {
         when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
                 .thenReturn("grace-jwt-token");
 
-        RefreshResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
+        RotationResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
 
-        assertThat(result.hasNewRefreshToken()).isFalse();
-        assertThat(result.newRawRefreshToken()).isNull();
-        assertThat(result.response().getAccessToken()).isEqualTo("grace-jwt-token");
+        assertThat(result.rotated()).isFalse();
+        assertThat(result.rawRefreshToken()).isNull();
+        assertThat(result.accessToken()).isEqualTo("grace-jwt-token");
         verify(refreshTokenRepository, never()).revokeFamily(any(), any());
     }
 
@@ -198,11 +199,11 @@ class RefreshTokenServiceTest {
         when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
                 .thenReturn("new-access-jwt");
 
-        RefreshResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
+        RotationResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
 
-        assertThat(result.hasNewRefreshToken()).isTrue();
-        assertThat(result.newRawRefreshToken()).isNotBlank();
-        assertThat(result.response().getAccessToken()).isEqualTo("new-access-jwt");
+        assertThat(result.rotated()).isTrue();
+        assertThat(result.rawRefreshToken()).isNotBlank();
+        assertThat(result.accessToken()).isEqualTo("new-access-jwt");
 
         // Verify old token marked used
         assertThat(token.getUsedAt()).isNotNull();

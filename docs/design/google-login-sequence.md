@@ -107,3 +107,4 @@ sequenceDiagram
 | `google_failed` | State mismatch, expired state, network failure, ID token verification failure, or unverified email | "Google sign-in could not be completed. Please try again." |
 | `account_exists` | Email already registered with password/local auth (`auth_provider=LOCAL`). No auto-merge allowed | "An account with this email already exists. Please log in with your email and password." |
 | `account_deactivated` | User account has been deactivated by an administrator | "Your account is deactivated. Please contact customer support." |
+

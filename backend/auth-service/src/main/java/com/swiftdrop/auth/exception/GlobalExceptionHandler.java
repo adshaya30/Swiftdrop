@@ -24,7 +24,9 @@ import java.util.stream.Collectors;
  * Converts domain exceptions to RFC 9457 Problem Details responses.
  * SRS v2.1 – Section 7.2
  */
-@RestControllerAdvice
+@org.springframework.stereotype.Component("authGlobalExceptionHandler")
+@RestControllerAdvice(basePackages = "com.swiftdrop.auth")
+@org.springframework.core.annotation.Order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);

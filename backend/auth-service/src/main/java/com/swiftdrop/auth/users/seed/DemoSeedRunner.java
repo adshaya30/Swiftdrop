@@ -133,3 +133,4 @@ public class DemoSeedRunner implements ApplicationRunner {
 
     private record CourierSeedData(String email, String fullName, String vehicleType, String vehicleNumber) {}
 }
+

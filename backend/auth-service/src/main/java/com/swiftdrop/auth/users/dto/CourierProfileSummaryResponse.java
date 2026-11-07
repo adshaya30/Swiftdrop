@@ -8,3 +8,4 @@ public record CourierProfileSummaryResponse(
         String vehicleNumber,
         String status
 ) {}
+
