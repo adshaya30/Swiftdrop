@@ -218,6 +218,11 @@ public class RefreshTokenService {
         }
     }
 
+    @Transactional
+    public void logout(String rawToken) {
+        revokeFamily(rawToken);
+    }
+
     /**
      * Revokes all active refresh tokens for the given user.
      */

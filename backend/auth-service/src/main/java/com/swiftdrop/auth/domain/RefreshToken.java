@@ -24,6 +24,7 @@ public class RefreshToken {
     @Column(name = "family_id", nullable = false)
     private UUID familyId;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.CHAR)
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
@@ -88,6 +89,9 @@ public class RefreshToken {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getIssuedAt() { return createdAt; }
+    public void setIssuedAt(Instant issuedAt) { this.createdAt = issuedAt; }
 
     public String getUserAgent() { return userAgent; }
     public void setUserAgent(String userAgent) { this.userAgent = userAgent; }

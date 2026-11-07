@@ -50,6 +50,7 @@ export function GoogleLoginButton({ disabled = false, text = 'Continue with Goog
         </Divider>
       )}
       <Button
+        type="button"
         fullWidth
         variant="outlined"
         disabled={disabled}

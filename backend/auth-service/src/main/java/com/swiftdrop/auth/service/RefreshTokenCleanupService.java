@@ -1,6 +1,6 @@
 package com.swiftdrop.auth.service;
 
-import com.swiftdrop.auth.repository.OAuthLoginStateRepository;
+import com.swiftdrop.auth.google.domain.OAuthLoginStateRepository;
 import com.swiftdrop.auth.domain.RefreshTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ public class RefreshTokenCleanupService {
     @Autowired
     public RefreshTokenCleanupService(
             RefreshTokenRepository refreshTokenRepository,
-            @Autowired(required = false) OAuthLoginStateRepository oAuthLoginStateRepository,
+            OAuthLoginStateRepository oAuthLoginStateRepository,
             Clock clock,
             @Value("${auth.cleanup.refresh-tokens.retention-days:7}") int retentionDays,
             @Value("${auth.cleanup.refresh-tokens.batch-size:1000}") int batchSize,

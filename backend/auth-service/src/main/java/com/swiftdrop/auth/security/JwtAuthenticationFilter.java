@@ -2,6 +2,7 @@ package com.swiftdrop.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.common.security.SecurityRules;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

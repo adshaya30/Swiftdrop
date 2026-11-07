@@ -97,6 +97,14 @@ public class GoogleAuthController {
                 .maxAge(Duration.ZERO)
                 .build();
 
+        ResponseCookie clearRootRefreshCookie = ResponseCookie.from("sd_refresh", "")
+                .httpOnly(true)
+                .secure(googleOAuthService.isCookieSecure())
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
+
         if (error != null && !error.isBlank()) {
             String errorParam = "access_denied".equalsIgnoreCase(error) ? "google_denied" : "google_failed";
             log.warn("Google returned OAuth error: {}", error);
@@ -110,6 +118,7 @@ public class GoogleAuthController {
 
         var responseBuilder = ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.SET_COOKIE, clearOauthCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, clearRootRefreshCookie.toString())
                 .location(URI.create(outcome.redirectUrl()));
 
         if (outcome.refreshCookie() != null) {
@@ -119,3 +128,4 @@ public class GoogleAuthController {
         return responseBuilder.build();
     }
 }
+

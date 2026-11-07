@@ -40,3 +40,4 @@ export async function activateUser(id) {
 export async function resetPassword(id) {
   return apiRequest('POST', `/api/v1/admin/users/${id}/reset-password`);
 }
+

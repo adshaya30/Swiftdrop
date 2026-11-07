@@ -10,3 +10,4 @@ public record MerchantSummaryResponse(
         MerchantStatus status,
         BigDecimal discountPercent
 ) {}
+

@@ -139,7 +139,9 @@ public class GoogleOAuthService {
                 .queryParam("nonce", nonce)
                 .queryParam("code_challenge", codeChallenge)
                 .queryParam("code_challenge_method", "S256")
+                .queryParam("prompt", "select_account")
                 .build()
+                .encode()
                 .toUriString();
 
         return new GoogleLoginInitResult(authorizationUrl, rawState);
@@ -259,11 +261,11 @@ public class GoogleOAuthService {
         }
 
         // 6. Issue refresh token and session cookie
-        String rawRefreshToken = refreshTokenService.createRefreshToken(authenticatedUser.getId());
+        String rawRefreshToken = refreshTokenService.issue(authenticatedUser).rawToken();
         ResponseCookie refreshCookie = ResponseCookie.from("sd_refresh", rawRefreshToken)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .path("/api/v1/auth")
                 .maxAge(7 * 24 * 3600)
                 .build();
@@ -306,3 +308,4 @@ public class GoogleOAuthService {
         }
     }
 }
+

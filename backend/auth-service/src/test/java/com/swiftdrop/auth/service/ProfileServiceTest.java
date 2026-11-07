@@ -184,7 +184,6 @@ class ProfileServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("OldPassword#123", "$2a$12$hashedpassword")).thenReturn(true);
         when(passwordEncoder.encode("NewSecret#2026")).thenReturn("$2a$12$newhashedpassword");
-        when(refreshTokenRepository.revokeAllByUserId(eq(userId), any(Instant.class))).thenReturn(2);
 
         ChangePasswordRequest request = new ChangePasswordRequest("OldPassword#123", "NewSecret#2026");
         profileService.changePassword(userId, request);
