@@ -7,6 +7,7 @@ import com.swiftdrop.common.security.SecurityAutoConfiguration;
 import com.swiftdrop.pricing.support.PricingTestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +15,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static com.swiftdrop.pricing.support.PricingTestConfiguration.TOKENS;
 
-@WebMvcTest(properties = "INTERNAL_API_KEY=pricing-foundation-test-key-32-characters")
+@WebMvcTest(controllers = PricingSecurityConfigurationTests.ProbeController.class,
+        properties = "INTERNAL_API_KEY=pricing-foundation-test-key-32-characters")
 @Import({PricingSecurityConfiguration.class, SecurityAutoConfiguration.class, PricingTestConfiguration.class,
         PricingSecurityConfigurationTests.ProbeController.class})
 class PricingSecurityConfigurationTests {
@@ -63,6 +65,7 @@ class PricingSecurityConfigurationTests {
 
     /** Test-only responses exercise filter wiring; production pricing endpoints belong to PR B. */
     @RestController
+    @TestComponent
     static class ProbeController {
         @GetMapping({"/api/v1/public/districts", "/api/v1/foundation-protected", "/internal/v1/foundation"})
         String getProbe() { return "ok"; }
