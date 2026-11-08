@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import javax.sql.DataSource;
+import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -26,8 +28,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Events part of common-lib (SRS 3.4, 3.5). A service gets, with no extra wiring:
  * <ul>
  *   <li>with RabbitMQ: the {@link EventTopology} declarations (declared on every (re)connection, so a missing or down
- *       broker never stops start-up) and publisher confirms and returns on the connection factory;</li>
- *   <li>with a DataSource: {@link OutboxService} and {@link AuditEvents};</li>
+ *       broker never stops start-up), publisher confirms and returns on the connection factory, the listener defaults
+ *       of SRS 3.5 and {@link EventConsumerSupport};</li>
+ *   <li>with a DataSource: {@link OutboxService}, {@link AuditEvents} and {@link ProcessedEvents};</li>
  *   <li>with both: the {@link OutboxPublisher} (idle in services that have no {@code outbox_events} table).</li>
  * </ul>
  */
@@ -42,6 +45,8 @@ public class EventsAutoConfiguration {
 
     static final String POLL_INTERVAL_PROPERTY = "OUTBOX_POLL_INTERVAL_MS";
     static final long DEFAULT_POLL_INTERVAL_MS = 1000;
+    /** For tests only: shortens the 1 s and 5 s consumer retry waits (the second wait is always five times the first). */
+    public static final String RETRY_DELAY_PROPERTY = "swiftdrop.events.retry.initial-delay-ms";
 
     /** Publisher confirms and returns are required by the outbox publisher (SRS 3.5). */
     @Bean
@@ -61,6 +66,27 @@ public class EventsAutoConfiguration {
         };
     }
 
+    /**
+     * SRS 3.5: every {@code @RabbitListener} runs with manual acknowledgement and prefetch 10, and missing queues never
+     * stop a service from starting. Applied to Spring Boot's own factory so that a listener needs no extra attribute.
+     */
+    @Bean
+    @ConditionalOnClass(SimpleRabbitListenerContainerFactory.class)
+    static BeanPostProcessor swiftDropListenerDefaults() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessBeforeInitialization(Object bean, String beanName) {
+                if (bean instanceof SimpleRabbitListenerContainerFactory factory) {
+                    factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
+                    factory.setPrefetchCount(EventConsumerSupport.PREFETCH);
+                    factory.setMissingQueuesFatal(false);
+                    factory.setDefaultRequeueRejected(false);
+                }
+                return bean;
+            }
+        };
+    }
+
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnBean(ConnectionFactory.class)
     static class TopologyConfiguration {
@@ -68,6 +94,15 @@ public class EventsAutoConfiguration {
         @Bean
         Declarables swiftDropEventTopology() {
             return EventTopology.declarables();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        EventConsumerSupport swiftDropEventConsumerSupport(ObjectProvider<ObjectMapper> objectMapper, Environment env) {
+            long initialDelay = env.getProperty(RETRY_DELAY_PROPERTY, Long.class,
+                    EventConsumerSupport.DEFAULT_INITIAL_DELAY_MS);
+            return new EventConsumerSupport(objectMapper.getIfAvailable(EventsAutoConfiguration::defaultMapper),
+                    initialDelay);
         }
     }
 
@@ -92,6 +127,12 @@ public class EventsAutoConfiguration {
         @ConditionalOnMissingBean
         AuditEvents swiftDropAuditEvents(OutboxService outboxService, Environment env) {
             return new AuditEvents(outboxService, env.getProperty("spring.application.name"), Clock.systemUTC());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        ProcessedEvents swiftDropProcessedEvents(DataSource dataSource) {
+            return new ProcessedEvents(new JdbcTemplate(dataSource), Clock.systemUTC());
         }
 
         @Bean
