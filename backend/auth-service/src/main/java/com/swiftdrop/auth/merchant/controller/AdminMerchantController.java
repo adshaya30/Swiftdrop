@@ -4,6 +4,7 @@ import com.swiftdrop.auth.merchant.dto.AdminMerchantDetail;
 import com.swiftdrop.auth.merchant.dto.AdminMerchantSummary;
 import com.swiftdrop.auth.merchant.dto.DiscountRequest;
 import com.swiftdrop.auth.merchant.dto.StatusReasonRequest;
+import com.swiftdrop.auth.merchant.security.RoleGuard;
 import com.swiftdrop.auth.merchant.service.MerchantAdminService;
 import com.swiftdrop.auth.security.AuthenticatedUser;
 import com.swiftdrop.common.paging.Pagination;
@@ -23,12 +24,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Merchant administration for ADMIN users (FR-AUTH-017). The role check runs before anything else (BR-25). */
+/**
+ * Merchant administration for ADMIN users (FR-AUTH-017). The role check runs before anything else (BR-25): it is
+ * done by {@link RoleGuard} (and by auth's URL rule for /admin/**), plus {@code @PreAuthorize} once method security
+ * is active in auth-service.
+ */
 @RestController
 @RequestMapping("/api/v1/admin/merchants")
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin merchants")
 public class AdminMerchantController {
+
+    private static final String ADMIN = "ADMIN";
 
     private final MerchantAdminService service;
 
@@ -39,17 +46,20 @@ public class AdminMerchantController {
     @GetMapping
     @Operation(summary = "List merchants (filters: status, q = business name prefix)")
     public Pagination<AdminMerchantSummary> list(
+            @AuthenticationPrincipal AuthenticatedUser admin,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
             @RequestParam(name = "sort", required = false) String sort) {
+        RoleGuard.require(admin, ADMIN);
         return service.list(status, q, page, size, sort);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Merchant details")
-    public AdminMerchantDetail get(@PathVariable("id") UUID id) {
+    public AdminMerchantDetail get(@PathVariable("id") UUID id, @AuthenticationPrincipal AuthenticatedUser admin) {
+        RoleGuard.require(admin, ADMIN);
         return service.get(id);
     }
 
@@ -57,6 +67,7 @@ public class AdminMerchantController {
     @Operation(summary = "Approve (from PENDING or REJECTED)")
     public ResponseEntity<AdminMerchantDetail> approve(@PathVariable("id") UUID id,
                                                        @AuthenticationPrincipal AuthenticatedUser admin) {
+        RoleGuard.require(admin, ADMIN);
         return ResponseEntity.ok(service.approve(id, admin.userId()));
     }
 
@@ -65,6 +76,7 @@ public class AdminMerchantController {
     public ResponseEntity<AdminMerchantDetail> reject(@PathVariable("id") UUID id,
                                                       @AuthenticationPrincipal AuthenticatedUser admin,
                                                       @Valid @RequestBody StatusReasonRequest request) {
+        RoleGuard.require(admin, ADMIN);
         return ResponseEntity.ok(service.reject(id, admin.userId(), request.reason()));
     }
 
@@ -73,6 +85,7 @@ public class AdminMerchantController {
     public ResponseEntity<AdminMerchantDetail> suspend(@PathVariable("id") UUID id,
                                                        @AuthenticationPrincipal AuthenticatedUser admin,
                                                        @Valid @RequestBody StatusReasonRequest request) {
+        RoleGuard.require(admin, ADMIN);
         return ResponseEntity.ok(service.suspend(id, admin.userId(), request.reason()));
     }
 
@@ -80,6 +93,7 @@ public class AdminMerchantController {
     @Operation(summary = "Reinstate (from SUSPENDED)")
     public ResponseEntity<AdminMerchantDetail> reinstate(@PathVariable("id") UUID id,
                                                          @AuthenticationPrincipal AuthenticatedUser admin) {
+        RoleGuard.require(admin, ADMIN);
         return ResponseEntity.ok(service.reinstate(id, admin.userId()));
     }
 
@@ -88,6 +102,7 @@ public class AdminMerchantController {
     public ResponseEntity<AdminMerchantDetail> discount(@PathVariable("id") UUID id,
                                                         @AuthenticationPrincipal AuthenticatedUser admin,
                                                         @Valid @RequestBody DiscountRequest request) {
+        RoleGuard.require(admin, ADMIN);
         return ResponseEntity.ok(service.setDiscount(id, admin.userId(), request.discountPercent()));
     }
 }
