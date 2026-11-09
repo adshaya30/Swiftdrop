@@ -95,6 +95,12 @@ public class MerchantAdminService {
                 page, size, result.getTotalElements());
     }
 
+    /** FR-AUTH-024: merchants waiting for approval. */
+    @Transactional(readOnly = true)
+    public long pendingCount() {
+        return merchantRepository.countByStatus(MerchantStatus.PENDING);
+    }
+
     @Transactional(readOnly = true)
     public AdminMerchantDetail get(UUID id) {
         return detail(merchantRepository.findById(id).orElseThrow(MerchantAdminService::notFound));

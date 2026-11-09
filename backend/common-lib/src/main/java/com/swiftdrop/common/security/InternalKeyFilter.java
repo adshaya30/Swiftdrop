@@ -17,12 +17,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** /internal/** is secured only by X-Internal-Key, compared in constant time. JWTs are not used here. */
-class InternalKeyFilter extends OncePerRequestFilter {
+public class InternalKeyFilter extends OncePerRequestFilter {
 
     private final InternalApiKey key;
     private final ProblemWriter writer;
 
-    InternalKeyFilter(InternalApiKey key, ProblemWriter writer) {
+    public InternalKeyFilter(InternalApiKey key, ProblemWriter writer) {
         this.key = key;
         this.writer = writer;
     }
