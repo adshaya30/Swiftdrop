@@ -45,6 +45,7 @@ class EventsAutoConfigurationTest {
             CachingConnectionFactory factory = ctx.getBean(CachingConnectionFactory.class);
             assertThat(factory.isPublisherConfirms()).isTrue();
             assertThat(factory.isPublisherReturns()).isTrue();
+            assertThat(ctx).hasSingleBean(EventConsumerSupport.class);
             assertThat(ctx).doesNotHaveBean(OutboxService.class);
         });
     }
@@ -59,6 +60,7 @@ class EventsAutoConfigurationTest {
                     assertThat(ctx).hasSingleBean(OutboxService.class);
                     assertThat(ctx).hasSingleBean(AuditEvents.class);
                     assertThat(ctx).hasSingleBean(OutboxEventRepository.class);
+                    assertThat(ctx).hasSingleBean(ProcessedEvents.class);
                     assertThat(ctx).doesNotHaveBean(OutboxPublisher.class);
                 });
     }
