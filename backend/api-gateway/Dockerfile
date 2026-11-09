@@ -11,5 +11,5 @@ RUN apk add --no-cache wget \
 WORKDIR /app
 COPY --from=build --chown=app:app /workspace/target/*.jar app.jar
 USER app
-EXPOSE 8080
+EXPOSE 8080 8090
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

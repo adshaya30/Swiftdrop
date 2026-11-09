@@ -89,7 +89,7 @@ public class SecurityConfig {
                         "/api/v1/auth/google/callback"
                 ).permitAll()
                 // Actuator health for orchestration
-                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 // Protected profile & change-password endpoints
                 .requestMatchers("/api/v1/me/**").authenticated()
                 // Admin user management endpoints (FR-AUTH-015, FR-AUTH-020, FR-AUTH-021)
