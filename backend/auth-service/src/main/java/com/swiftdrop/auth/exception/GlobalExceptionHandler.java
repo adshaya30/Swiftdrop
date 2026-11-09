@@ -1,6 +1,7 @@
 package com.swiftdrop.auth.exception;
 
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.swiftdrop.common.error.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,9 @@ import java.util.stream.Collectors;
  * Converts domain exceptions to RFC 9457 Problem Details responses.
  * SRS v2.1 – Section 7.2
  */
-@RestControllerAdvice
+@org.springframework.stereotype.Component("authGlobalExceptionHandler")
+@RestControllerAdvice(basePackages = "com.swiftdrop.auth")
+@org.springframework.core.annotation.Order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -335,7 +338,7 @@ public class GlobalExceptionHandler {
     }
 
     // -----------------------------------------------------------------------
-    // HTTP 400 – Cannot Deactivate Self (FR-AUTH-020)
+    // HTTP 403 – Cannot Deactivate Self (SRS gap: answered 403 ACCESS_DENIED per MEMBER_02.md)
     // -----------------------------------------------------------------------
 
     @ExceptionHandler(CannotDeactivateSelfException.class)
@@ -343,10 +346,10 @@ public class GlobalExceptionHandler {
             CannotDeactivateSelfException ex, HttpServletRequest request) {
 
         log.warn("Admin attempted self-deactivation at {}", request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(problem(
-                        HttpStatus.BAD_REQUEST,
-                        "CANNOT_DEACTIVATE_OWN_ACCOUNT",
+                        HttpStatus.FORBIDDEN,
+                        "ACCESS_DENIED",
                         ex.getMessage(),
                         request.getRequestURI(),
                         null));
@@ -386,6 +389,27 @@ public class GlobalExceptionHandler {
                         ex.getMessage(),
                         request.getRequestURI(),
                         null));
+    }
+
+    // -----------------------------------------------------------------------
+    // DomainException (RFC 7807)
+    // -----------------------------------------------------------------------
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<Map<String, Object>> handleDomain(
+            DomainException ex, HttpServletRequest request) {
+
+        List<Map<String, String>> fieldErrors = ex.errors().stream()
+                .map(e -> Map.of("field", e.field(), "message", e.message()))
+                .toList();
+
+        return ResponseEntity.status(ex.code().status())
+                .body(problem(
+                        HttpStatus.valueOf(ex.code().status()),
+                        ex.code().name(),
+                        ex.detail(),
+                        request.getRequestURI(),
+                        fieldErrors.isEmpty() ? null : fieldErrors));
     }
 
     // -----------------------------------------------------------------------

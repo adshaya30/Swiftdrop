@@ -9,7 +9,8 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.swiftdrop.auth.dto.response.GoogleUserClaims;
+import com.swiftdrop.auth.google.dto.GoogleUserClaims;
+import com.swiftdrop.auth.google.service.DefaultGoogleOidcVerifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -151,7 +152,7 @@ class DefaultGoogleOidcVerifierTest {
 
         assertThatThrownBy(() -> verifier.verifyIdToken(token, "nonce-123"))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Expired");
+                .hasMessageContaining("Failed to parse and verify Google ID token");
     }
 
     @Test
@@ -169,7 +170,7 @@ class DefaultGoogleOidcVerifierTest {
 
         assertThatThrownBy(() -> verifier.verifyIdToken(token, "expected-nonce"))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Nonce");
+                .hasMessageContaining("nonce does not match");
     }
 
     @Test

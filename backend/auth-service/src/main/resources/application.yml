@@ -1,0 +1,128 @@
+server:
+  port: 8081
+  shutdown: graceful
+
+spring:
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
+  autoconfigure:
+    exclude:
+      - com.swiftdrop.common.security.SecurityAutoConfiguration
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+  application:
+    name: auth-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  datasource:
+    url: ${DB_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/swiftdrop_auth}}
+    username: ${DB_USER:${SPRING_DATASOURCE_USERNAME:auth_user}}
+    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:Swiftdrop#2003}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:swiftdrop_user}
+    password: ${RABBITMQ_PASSWORD:Swiftdrop#2003}
+
+# Actuator & Observability (SRS 3.6, Prompt 1)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db
+        liveness:
+          include: livenessState
+  health:
+    rabbit:
+      enabled: false
+
+# Swagger / OpenAPI documentation
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+
+INTERNAL_API_KEY: 0123456789abcdef0123456789abcdef
+
+# SwiftDrop Auth Configuration (SRS 9.2, Prompt 1)
+swiftdrop:
+  internal-api-key: 0123456789abcdef0123456789abcdef
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
+  delivery-service-url: ${DELIVERY_SERVICE_URL:http://localhost:8084}
+  outbox:
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:1000}
+
+jwt:
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:certs/dev_private_key.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:/run/keys/jwt-public.pem}
+  access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
+
+refresh:
+  ttl-days: ${REFRESH_TTL_DAYS:7}
+  absolute-ttl-days: ${REFRESH_ABSOLUTE_TTL_DAYS:30}
+  grace-seconds: ${REFRESH_GRACE_SECONDS:10}
+
+auth:
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/google/callback}
+    auth-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    jwks-url: https://www.googleapis.com/oauth2/v3/certs
+  bootstrap:
+    enabled: true
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@swiftdrop.lk}
+    admin-name: ${BOOTSTRAP_ADMIN_NAME:System Admin}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Swiftdrop#2003!}
+  demo:
+    seed-enabled: ${DEMO_SEED_ENABLED:false}
+    user-password: ${DEMO_USER_PASSWORD:}
+  cleanup:
+    refresh-tokens:
+      cron: ${AUTH_CLEANUP_REFRESH_TOKENS_CRON:0 0 3 * * *}
+      retention-days: ${AUTH_CLEANUP_REFRESH_TOKENS_RETENTION_DAYS:7}
+      batch-size: 1000
+    oauth-states:
+      cron: ${AUTH_CLEANUP_OAUTH_STATES_CRON:0 0 * * * *}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.swiftdrop: ${LOG_LEVEL:DEBUG}

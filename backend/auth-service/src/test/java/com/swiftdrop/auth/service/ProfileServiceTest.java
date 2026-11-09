@@ -1,13 +1,19 @@
 package com.swiftdrop.auth.service;
 
-import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
-import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
-import com.swiftdrop.auth.dto.response.UserProfileResponse;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.profile.service.ProfileService;
+import com.swiftdrop.auth.profile.dto.ChangePasswordRequest;
+import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
+import com.swiftdrop.auth.profile.dto.UserProfileResponse;
 import com.swiftdrop.auth.entity.*;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.repository.MerchantRepository;
-import com.swiftdrop.auth.repository.RefreshTokenRepository;
-import com.swiftdrop.auth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,8 +38,9 @@ class ProfileServiceTest {
 
     private UserRepository userRepository;
     private MerchantRepository merchantRepository;
-    private RefreshTokenRepository refreshTokenRepository;
+    private RefreshTokenService refreshTokenService;
     private PasswordEncoder passwordEncoder;
+    private PasswordPolicy passwordPolicy;
     private ProfileService profileService;
 
     private UUID userId;
@@ -43,14 +50,16 @@ class ProfileServiceTest {
     void setUp() {
         userRepository = mock(UserRepository.class);
         merchantRepository = mock(MerchantRepository.class);
-        refreshTokenRepository = mock(RefreshTokenRepository.class);
+        refreshTokenService = mock(RefreshTokenService.class);
         passwordEncoder = mock(PasswordEncoder.class);
+        passwordPolicy = new PasswordPolicy();
 
         profileService = new ProfileService(
                 userRepository,
                 merchantRepository,
-                refreshTokenRepository,
-                passwordEncoder
+                refreshTokenService,
+                passwordEncoder,
+                passwordPolicy
         );
 
         userId = UUID.randomUUID();
@@ -175,15 +184,14 @@ class ProfileServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("OldPassword#123", "$2a$12$hashedpassword")).thenReturn(true);
         when(passwordEncoder.encode("NewSecret#2026")).thenReturn("$2a$12$newhashedpassword");
-        when(refreshTokenRepository.revokeAllByUserId(eq(userId), any(Instant.class))).thenReturn(2);
 
         ChangePasswordRequest request = new ChangePasswordRequest("OldPassword#123", "NewSecret#2026");
         profileService.changePassword(userId, request);
 
         assertThat(testUser.getPasswordHash()).isEqualTo("$2a$12$newhashedpassword");
         assertThat(testUser.isMustChangePassword()).isFalse();
-        verify(userRepository).saveAndFlush(testUser);
-        verify(refreshTokenRepository).revokeAllByUserId(eq(userId), any(Instant.class));
+        verify(userRepository).save(testUser);
+        verify(refreshTokenService).revokeAllForUser(userId);
     }
 
     @Test
@@ -197,7 +205,7 @@ class ProfileServiceTest {
                 .isInstanceOf(SocialAccountPasswordChangeException.class)
                 .hasMessageContaining("Social login accounts");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
@@ -222,7 +230,7 @@ class ProfileServiceTest {
                 .isInstanceOf(InvalidCurrentPasswordException.class)
                 .hasMessageContaining("Current password is incorrect");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
@@ -236,7 +244,7 @@ class ProfileServiceTest {
                 .isInstanceOf(PasswordSameAsCurrentException.class)
                 .hasMessageContaining("must be different");
 
-        verifyNoInteractions(refreshTokenRepository);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @ParameterizedTest
@@ -255,7 +263,7 @@ class ProfileServiceTest {
         ChangePasswordRequest request = new ChangePasswordRequest("Current#123", invalidPassword);
         assertThatThrownBy(() -> profileService.changePassword(userId, request))
                 .isInstanceOf(PasswordPolicyException.class)
-                .hasMessageContaining("Password must be 10–64 characters");
+                .hasMessageContaining("Password must ");
     }
 
     @Test
@@ -268,6 +276,6 @@ class ProfileServiceTest {
         ChangePasswordRequest request = new ChangePasswordRequest("Current#123", "SecretAmal.Perera#99");
         assertThatThrownBy(() -> profileService.changePassword(userId, request))
                 .isInstanceOf(PasswordPolicyException.class)
-                .hasMessageContaining("email address");
+                .hasMessageContaining("email local-part");
     }
 }

@@ -1,4 +1,16 @@
 package com.swiftdrop.auth.service;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.swiftdrop.auth.exception.InvalidPhoneException;
 import org.junit.jupiter.api.DisplayName;
@@ -12,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.swiftdrop.auth.exception.PasswordPolicyException;
-import com.swiftdrop.auth.repository.UserRepository;
+import com.swiftdrop.auth.domain.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**

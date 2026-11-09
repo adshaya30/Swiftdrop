@@ -2,15 +2,16 @@ package com.swiftdrop.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.auth.config.SecurityConfig;
-import com.swiftdrop.auth.dto.request.ChangePasswordRequest;
-import com.swiftdrop.auth.dto.request.UpdateProfileRequest;
-import com.swiftdrop.auth.dto.response.UserProfileResponse;
+import com.swiftdrop.auth.profile.controller.ProfileController;
+import com.swiftdrop.auth.profile.dto.ChangePasswordRequest;
+import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
+import com.swiftdrop.auth.profile.dto.UserProfileResponse;
+import com.swiftdrop.auth.profile.service.ProfileService;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.security.JwtAuthenticationFilter;
-import com.swiftdrop.auth.service.JwtTokenService;
-import com.swiftdrop.auth.service.ProfileService;
+import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ class ProfileControllerTest {
     private ProfileService profileService;
 
     @MockBean
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
 
     private UUID userId;
     private UserProfileResponse defaultProfileResponse;
@@ -77,20 +78,20 @@ class ProfileControllerTest {
         validClaims.put("role", "CUSTOMER");
         validClaims.put("pwc", false);
         validClaims.put("exp", Instant.now().getEpochSecond() + 3600);
-        when(jwtTokenService.parseAndVerifyToken("valid-token")).thenReturn(validClaims);
+        when(jwtService.parseAndVerifyToken("valid-token")).thenReturn(validClaims);
 
         // Token with forced password change (pwc=true)
         Map<String, Object> pwcClaims = new LinkedHashMap<>(validClaims);
         pwcClaims.put("pwc", true);
-        when(jwtTokenService.parseAndVerifyToken("pwc-token")).thenReturn(pwcClaims);
+        when(jwtService.parseAndVerifyToken("pwc-token")).thenReturn(pwcClaims);
 
         // Client credentials token (typ=client)
         Map<String, Object> clientClaims = new LinkedHashMap<>(validClaims);
         clientClaims.put("typ", "client");
-        when(jwtTokenService.parseAndVerifyToken("client-token")).thenReturn(clientClaims);
+        when(jwtService.parseAndVerifyToken("client-token")).thenReturn(clientClaims);
 
         // Invalid token
-        when(jwtTokenService.parseAndVerifyToken("invalid-token"))
+        when(jwtService.parseAndVerifyToken("invalid-token"))
                 .thenThrow(new RuntimeException("Signature verification failed"));
     }
 

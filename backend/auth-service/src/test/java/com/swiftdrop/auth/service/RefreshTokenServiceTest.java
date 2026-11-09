@@ -1,17 +1,29 @@
 package com.swiftdrop.auth.service;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.swiftdrop.auth.dto.response.LoginResponse;
-import com.swiftdrop.auth.dto.response.RefreshResult;
-import com.swiftdrop.auth.entity.Merchant;
+import com.swiftdrop.auth.login.dto.RotationResult;
+import com.swiftdrop.auth.domain.Merchant;
 import com.swiftdrop.auth.entity.MerchantStatus;
-import com.swiftdrop.auth.entity.RefreshToken;
-import com.swiftdrop.auth.entity.User;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.exception.UnauthenticatedException;
-import com.swiftdrop.auth.repository.MerchantRepository;
-import com.swiftdrop.auth.repository.RefreshTokenRepository;
-import com.swiftdrop.auth.repository.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.domain.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +56,7 @@ class RefreshTokenServiceTest {
     private MerchantRepository merchantRepository;
 
     @Mock
-    private JwtTokenService jwtTokenService;
+    private JwtService jwtService;
 
     private RefreshTokenService refreshTokenService;
 
@@ -61,9 +73,10 @@ class RefreshTokenServiceTest {
                 refreshTokenRepository,
                 userRepository,
                 merchantRepository,
-                jwtTokenService,
-                GRACE_SECONDS,
-                FAMILY_MAX_DAYS
+                jwtService,
+                7,
+                FAMILY_MAX_DAYS,
+                GRACE_SECONDS
         );
 
         userId = UUID.randomUUID();
@@ -148,14 +161,14 @@ class RefreshTokenServiceTest {
 
         when(refreshTokenRepository.findByTokenHashWithLock(anyString())).thenReturn(Optional.of(token));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(jwtTokenService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(jwtService.issueUserToken(any(com.swiftdrop.auth.domain.User.class), isNull()))
                 .thenReturn("grace-jwt-token");
 
-        RefreshResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
+        RotationResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
 
-        assertThat(result.hasNewRefreshToken()).isFalse();
-        assertThat(result.newRawRefreshToken()).isNull();
-        assertThat(result.response().getAccessToken()).isEqualTo("grace-jwt-token");
+        assertThat(result.rotated()).isFalse();
+        assertThat(result.rawRefreshToken()).isNull();
+        assertThat(result.accessToken()).isEqualTo("grace-jwt-token");
         verify(refreshTokenRepository, never()).revokeFamily(any(), any());
     }
 
@@ -183,14 +196,14 @@ class RefreshTokenServiceTest {
 
         when(refreshTokenRepository.findByTokenHashWithLock(anyString())).thenReturn(Optional.of(token));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(jwtTokenService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(jwtService.issueUserToken(any(com.swiftdrop.auth.domain.User.class), isNull()))
                 .thenReturn("new-access-jwt");
 
-        RefreshResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
+        RotationResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
 
-        assertThat(result.hasNewRefreshToken()).isTrue();
-        assertThat(result.newRawRefreshToken()).isNotBlank();
-        assertThat(result.response().getAccessToken()).isEqualTo("new-access-jwt");
+        assertThat(result.rotated()).isTrue();
+        assertThat(result.rawRefreshToken()).isNotBlank();
+        assertThat(result.accessToken()).isEqualTo("new-access-jwt");
 
         // Verify old token marked used
         assertThat(token.getUsedAt()).isNotNull();
@@ -241,7 +254,7 @@ class RefreshTokenServiceTest {
         RefreshToken token = createSampleToken();
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
 
-        refreshTokenService.logout("raw-token-to-logout");
+        refreshTokenService.revokeFamily("raw-token-to-logout");
 
         verify(refreshTokenRepository).revokeFamily(eq(familyId), any(Instant.class));
     }
@@ -249,8 +262,8 @@ class RefreshTokenServiceTest {
     @Test
     @DisplayName("Logout with null or blank token does nothing")
     void logout_emptyToken_doesNothing() {
-        refreshTokenService.logout(null);
-        refreshTokenService.logout("   ");
+        refreshTokenService.revokeFamily(null);
+        refreshTokenService.revokeFamily("   ");
 
         verifyNoInteractions(refreshTokenRepository);
     }
@@ -262,7 +275,6 @@ class RefreshTokenServiceTest {
         t.setFamilyId(familyId);
         t.setTokenHash("dummy-sha256-hash");
         t.setCreatedAt(Instant.now());
-        t.setIssuedAt(Instant.now());
         t.setFamilyCreatedAt(Instant.now().minus(2, ChronoUnit.DAYS));
         t.setExpiresAt(Instant.now().plus(5, ChronoUnit.DAYS));
         return t;

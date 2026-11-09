@@ -1,172 +1,461 @@
-x-database-environment: &database-environment
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-swiftdrop}
-  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
-  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+# ============================================================
+# compose.yaml  –  Full-Stack SwiftDrop Deployment
+# ============================================================
+# DEP-004: `docker compose up -d --build` starts the whole system.
+# DEP-005: Healthy order: postgres + rabbitmq → mailpit → 6 backend services
+#          → frontend → api-gateway. Backend services do not depend on each other.
+# DEP-006: Named volumes pgdata and rabbitmqdata survive `docker compose down`.
+# DEP-007: Only the gateway (8080) is published for users; all others bind to 127.0.0.1.
+#
+# NOTE: Use compose.infra.yaml during development (runs only postgres, rabbitmq, mailpit).
+# ============================================================
 
-x-database-rabbit-environment: &database-rabbit-environment
-  <<: *database-environment
-  SPRING_RABBITMQ_HOST: rabbitmq
-  SPRING_RABBITMQ_PORT: "5672"
-  SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
-  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+networks:
+  swiftdrop-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  rabbitmqdata:
 
 services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
   postgres:
-    image: postgres:17
+    image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-swiftdrop}
-      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_USER: ${POSTGRES_USER:-swiftdrop_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
+      PARCEL_DB_PASSWORD: ${PARCEL_DB_PASSWORD:?Set PARCEL_DB_PASSWORD in .env}
+      PRICING_DB_PASSWORD: ${PRICING_DB_PASSWORD:?Set PRICING_DB_PASSWORD in .env}
+      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?Set DELIVERY_DB_PASSWORD in .env}
+      TRACKING_DB_PASSWORD: ${TRACKING_DB_PASSWORD:?Set TRACKING_DB_PASSWORD in .env}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS in .env}
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmqdata:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  # ── Backend Services ────────────────────────────────────────────────────────
+  # DEP-001: Build context is backend/; dockerfile is <service>/Dockerfile.
+  # DEP-003: Images tagged swiftdrop/<service>:1.0.0 and latest.
+  # DEP-005: Readiness healthcheck only (database); no dependency on each other.
+  # DEP-013: JWT keys mounted read-only at /run/keys/; private key ONLY into auth-service.
+
+  auth-service:
+    build:
+      context: backend/
+      dockerfile: auth-service/Dockerfile
+    image: swiftdrop/auth-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8081"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_auth
+      DB_USER: auth_user
+      DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      JWT_PRIVATE_KEY_PATH: /run/keys/swiftdrop_private.pem
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-15}
+      REFRESH_TTL_DAYS: ${REFRESH_TTL_DAYS:-7}
+      REFRESH_ABSOLUTE_TTL_DAYS: ${REFRESH_ABSOLUTE_TTL_DAYS:-30}
+      REFRESH_GRACE_SECONDS: ${REFRESH_GRACE_SECONDS:-10}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      DELIVERY_SERVICE_URL: http://delivery-service:8084
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${PUBLIC_BASE_URL:-http://localhost:8080}/api/v1/auth/google/callback
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@swiftdrop.lk}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-System Admin}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Set BOOTSTRAP_ADMIN_PASSWORD in .env}
+      DEMO_SEED_ENABLED: ${DEMO_SEED_ENABLED:-false}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_private.pem:/run/keys/swiftdrop_private.pem:ro
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  parcel-service:
+    build:
+      context: backend/
+      dockerfile: parcel-service/Dockerfile
+    image: swiftdrop/parcel-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8082"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_parcel
+      DB_USER: parcel_user
+      DB_PASSWORD: ${PARCEL_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+      PRICING_SERVICE_URL: http://pricing-service:8083
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  pricing-service:
+    build:
+      context: backend/
+      dockerfile: pricing-service/Dockerfile
+    image: swiftdrop/pricing-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8083"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_pricing
+      DB_USER: pricing_user
+      DB_PASSWORD: ${PRICING_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+      MAX_PARCEL_WEIGHT_KG: ${MAX_PARCEL_WEIGHT_KG:-30}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  delivery-service:
+    build:
+      context: backend/
+      dockerfile: delivery-service/Dockerfile
+    image: swiftdrop/delivery-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8084"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_delivery
+      DB_USER: delivery_user
+      DB_PASSWORD: ${DELIVERY_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+      PARCEL_SERVICE_URL: http://parcel-service:8082
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      MAX_STORED_PHOTO_MB: ${MAX_STORED_PHOTO_MB:-5}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8084/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  tracking-service:
+    build:
+      context: backend/
+      dockerfile: tracking-service/Dockerfile
+    image: swiftdrop/tracking-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8085"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_tracking
+      DB_USER: tracking_user
+      DB_PASSWORD: ${TRACKING_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  notification-service:
+    build:
+      context: backend/
+      dockerfile: notification-service/Dockerfile
+    image: swiftdrop/notification-service:1.0.0
+    environment:
+      TZ: UTC
+      SERVER_PORT: "8086"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/swiftdrop_notification
+      DB_USER: notification_user
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      JWT_PUBLIC_KEY_PATH: /run/keys/swiftdrop_public.pem
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-swiftdrop_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PARCEL_SERVICE_URL: http://parcel-service:8082
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@swiftdrop.example}
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      WEBHOOK_SECRET_ENCRYPTION_KEY: ${WEBHOOK_SECRET_ENCRYPTION_KEY:?Set WEBHOOK_SECRET_ENCRYPTION_KEY in .env}
+      WEBHOOK_ALLOW_PRIVATE_TARGETS: ${WEBHOOK_ALLOW_PRIVATE_TARGETS:-true}
+      WEBHOOK_ALLOW_HTTP: ${WEBHOOK_ALLOW_HTTP:-true}
+      WEBHOOK_TIMEOUT_SECONDS: ${WEBHOOK_TIMEOUT_SECONDS:-10}
+      WEBHOOK_MAX_ATTEMPTS: ${WEBHOOK_MAX_ATTEMPTS:-6}
+      WEBHOOK_RETRY_DELAYS: ${WEBHOOK_RETRY_DELAYS:-PT1M,PT5M,PT30M,PT2H,PT6H}
+    volumes:
+      - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
+    ports:
+      - "127.0.0.1:8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: frontend/
+      dockerfile: Dockerfile
+    image: swiftdrop/frontend:1.0.0
+    environment:
+      TZ: UTC
+    ports:
+      - "127.0.0.1:5173:8080"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      parcel-service:
+        condition: service_healthy
+      pricing-service:
+        condition: service_healthy
+      delivery-service:
+        condition: service_healthy
+      tracking-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+
+  # ── API Gateway ─────────────────────────────────────────────────────────────
+  # DEP-005: Gateway healthcheck uses management port 8090, never 8080.
+  # DEP-007: Only the gateway exposes port 8080 to external users (no 127.0.0.1 binding).
 
   api-gateway:
     build:
-      context: ./backend/api-gateway
-    ports:
-      - "127.0.0.1:8080:8080"
+      context: backend/
+      dockerfile: api-gateway/Dockerfile
+    image: swiftdrop/api-gateway:1.0.0
     environment:
-      SERVER_PORT: "8080"
-      MANAGEMENT_SERVER_PORT: "8090"
-    healthcheck: &app-healthcheck
+      TZ: UTC
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MANAGEMENT_SERVER_PORT: ${MANAGEMENT_SERVER_PORT:-8090}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PARCEL_SERVICE_URL: http://parcel-service:8082
+      PRICING_SERVICE_URL: http://pricing-service:8083
+      DELIVERY_SERVICE_URL: http://delivery-service:8084
+      TRACKING_SERVICE_URL: http://tracking-service:8085
+      NOTIFICATION_SERVICE_URL: http://notification-service:8086
+      FRONTEND_URL: http://frontend:8080
+      AI_ASSISTANT_URL: ${AI_ASSISTANT_URL:-http://ai-assistant:8000}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      HSTS_ENABLED: ${HSTS_ENABLED:-false}
+    ports:
+      - "8080:8080"
+      # Management port 8090 is NEVER published (DEP-007).
+    depends_on:
+      frontend:
+        condition: service_started
+    healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 30s
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
 
-  auth-service:
+  # ── Mock Merchant (demo profile only) ──────────────────────────────────────
+  # DEP-016: Runs only when DEMO_SEED_ENABLED=true (profile demo).
+  # Receives webhooks from notification-service at http://mock-merchant:9000.
+
+  mock-merchant:
     build:
-      context: ./backend/auth-service
-    ports:
-      - "127.0.0.1:8081:8081"
+      context: tools/mock-merchant/
+      dockerfile: Dockerfile
+    image: swiftdrop/mock-merchant:1.0.0
     environment:
-      <<: *database-environment
-      SERVER_PORT: "8081"
-      DELIVERY_SERVICE_URL: http://delivery-service:8084
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health/readiness"]
-
-  parcel-service:
-    build:
-      context: ./backend/parcel-service
+      TZ: UTC
     ports:
-      - "127.0.0.1:8082:8082"
-    environment:
-      <<: *database-rabbit-environment
-      SERVER_PORT: "8082"
-    depends_on: &database-rabbit-dependencies
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health/readiness"]
-
-  pricing-service:
-    build:
-      context: ./backend/pricing-service
-    ports:
-      - "127.0.0.1:8083:8083"
-    environment:
-      <<: *database-environment
-      SERVER_PORT: "8083"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health/readiness"]
-
-  delivery-service:
-    build:
-      context: ./backend/delivery-service
-    ports:
-      - "127.0.0.1:8084:8084"
-    environment:
-      <<: *database-rabbit-environment
-      SERVER_PORT: "8084"
-    depends_on: *database-rabbit-dependencies
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8084/actuator/health/readiness"]
-
-  tracking-service:
-    build:
-      context: ./backend/tracking-service
-    ports:
-      - "127.0.0.1:8085:8085"
-    environment:
-      <<: *database-rabbit-environment
-      SERVER_PORT: "8085"
-    depends_on: *database-rabbit-dependencies
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health/readiness"]
-
- 
-  notification-service:
-    build:
-      context: ./backend/notification-service
-    ports:
-      - "127.0.0.1:8086:8086"
-    environment:
-      SERVER_PORT: "8086"
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
-      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      <<: *app-healthcheck
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/actuator/health/readiness"]
-
-    
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "127.0.0.1:5173:8080"
-    environment:
-      VITE_API_BASE_URL: http://localhost:8080
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - api-gateway
-
-
-volumes:
-  postgres_data:
-  rabbitmq_data:
+      - "127.0.0.1:9090:9000"
+    restart: unless-stopped
+    networks:
+      - swiftdrop-net
+    profiles:
+      - demo

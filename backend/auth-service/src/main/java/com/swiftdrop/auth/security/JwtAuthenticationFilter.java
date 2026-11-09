@@ -1,7 +1,8 @@
 package com.swiftdrop.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.swiftdrop.auth.service.JwtTokenService;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.common.security.SecurityRules;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,11 +37,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String REQUIRED_AUDIENCE = "swiftdrop-api";
     private static final String REQUIRED_TYPE = "user";
 
-    private final JwtTokenService jwtTokenService;
+    private final JwtService jwtService;
+    private final SecurityRules securityRules;
     private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtTokenService jwtTokenService, ObjectMapper objectMapper) {
-        this.jwtTokenService = jwtTokenService;
+    public JwtAuthenticationFilter(JwtService jwtService, SecurityRules securityRules, ObjectMapper objectMapper) {
+        this.jwtService = jwtService;
+        this.securityRules = securityRules;
         this.objectMapper = objectMapper;
     }
 
@@ -65,7 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         Map<String, Object> claims;
         try {
-            claims = jwtTokenService.parseAndVerifyToken(rawToken);
+            claims = jwtService.parseAndVerifyToken(rawToken);
         } catch (Exception e) {
             log.warn("Bearer token verification failed for {}: {}", request.getRequestURI(), e.getMessage());
             writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid, expired, or untrusted access token", request.getRequestURI());
@@ -89,7 +92,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Validate token type (typ=user required for /me and user endpoints)
+        // Validate token type
         String typ = (String) claims.get("typ");
         if ("client".equalsIgnoreCase(typ)) {
             log.warn("Client-credentials token rejected from user endpoint at {}", request.getRequestURI());
@@ -135,7 +138,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // FR-AUTH-014: Forced password change enforcement
         if (mustChangePassword) {
             String uri = request.getRequestURI();
-            boolean isAllowed = isAllowedDuringForcedPasswordChange(uri, request.getMethod());
+            String method = request.getMethod();
+            String target = method.toUpperCase() + " " + uri;
+            boolean isAllowed = securityRules.passwordChangeWhitelist().contains(target);
             if (!isAllowed) {
                 log.warn("User {} blocked by forced-password-change gate on {}", userId, uri);
                 writeProblemDetails(response, HttpStatus.FORBIDDEN, "PASSWORD_CHANGE_REQUIRED",
@@ -152,23 +157,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
-    }
-
-    private boolean isAllowedDuringForcedPasswordChange(String uri, String method) {
-        // Permit GET /api/v1/me, POST /api/v1/me/change-password, POST /api/v1/auth/refresh, POST /api/v1/auth/logout
-        if ("/api/v1/me".equals(uri) && "GET".equalsIgnoreCase(method)) {
-            return true;
-        }
-        if ("/api/v1/me/change-password".equals(uri) && "POST".equalsIgnoreCase(method)) {
-            return true;
-        }
-        if ("/api/v1/auth/refresh".equals(uri) && "POST".equalsIgnoreCase(method)) {
-            return true;
-        }
-        if ("/api/v1/auth/logout".equals(uri) && "POST".equalsIgnoreCase(method)) {
-            return true;
-        }
-        return false;
     }
 
     private void writeProblemDetails(

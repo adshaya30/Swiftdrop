@@ -15,33 +15,33 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Security configuration for the auth-service.
- * Public endpoints: register, login, refresh, logout, OAuth, actuator health.
- * Protected endpoints: /api/v1/me/**
- * SRS v2.1 – FR-AUTH-001, FR-AUTH-003, FR-AUTH-007, FR-AUTH-008, FR-AUTH-012, FR-AUTH-013, FR-AUTH-014
+ * Security configuration for auth-service adhering to Master Prompt Section 8.1.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(eh -> eh
@@ -75,26 +75,27 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                // Public authentication endpoints (do not require Bearer JWT)
+                // Public authentication endpoints
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/auth/register",
+                        "/api/v1/auth/register-merchant",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
-                        "/api/v1/auth/logout"
+                        "/api/v1/auth/logout",
+                        "/api/v1/oauth/token"
                 ).permitAll()
-                // Public OAuth & auth config endpoints (FR-AUTH-009, FR-AUTH-011)
+                // Public OAuth & auth config endpoints
                 .requestMatchers(HttpMethod.GET,
                         "/api/v1/auth/config",
                         "/api/v1/auth/google/login",
                         "/api/v1/auth/google/callback"
                 ).permitAll()
-                // Actuator health for orchestration
-                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                // Protected profile & change-password endpoints
+                // Actuator health & readiness
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/prometheus").permitAll()
+                // Protected profile endpoints
                 .requestMatchers("/api/v1/me/**").authenticated()
-                // Admin user management endpoints (FR-AUTH-015, FR-AUTH-020, FR-AUTH-021)
+                // Admin endpoints
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -102,9 +103,18 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * BCrypt with cost factor 12 as required by SRS v2.1 FR-AUTH-001.
-     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:8080"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);

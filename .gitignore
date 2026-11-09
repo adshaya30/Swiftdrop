@@ -1,16 +1,24 @@
+# Environment files
 .env
 .env.*
 !.env.example
 !.env.*.example
 **/.env
+
+# Dependencies & Build artifacts
 node_modules/
+**/node_modules/
+dist/
+**/dist/
 frontend/dist/
 frontend/.vite/
+target/
 **/target/
+build/
 **/build/
-**/node_modules/
-**/dist/
 *.class
+
+# IDE and OS files
 .idea/
 .vscode/
 *.iml
@@ -19,9 +27,12 @@ Thumbs.db
 *.log
 logs/
 
-# Cryptographic keys and private PEM certs (keep secrets out of VCS)
+# Cryptographic keys and private PEM certs
 *.pem
 *.key
+infrastructure/keys/*.pem
+!infrastructure/keys/.gitkeep
 **/certs/*private*.pem
-!backend/auth-service/src/test/resources/certs/test_*.pem
-!backend/auth-service/src/main/resources/certs/dev_*.pem
+
+# Docs test reports (ensure reports are not ignored except temporary files)
+!docs/test-reports/**/html/

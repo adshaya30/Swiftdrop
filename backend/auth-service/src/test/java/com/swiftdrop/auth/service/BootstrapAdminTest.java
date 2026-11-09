@@ -1,10 +1,12 @@
 package com.swiftdrop.auth.service;
 
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.AuthProvider;
-import com.swiftdrop.auth.entity.User;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
-import com.swiftdrop.auth.repository.UserRepository;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.users.bootstrap.BootstrapAdminRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BootstrapAdminService Unit Tests")
+@DisplayName("BootstrapAdminRunner Unit Tests")
 class BootstrapAdminTest {
 
     @Mock
@@ -36,10 +38,12 @@ class BootstrapAdminTest {
     private OutboxService outboxService;
 
     private PasswordEncoder passwordEncoder;
+    private PasswordPolicy passwordPolicy;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder(12);
+        passwordPolicy = new PasswordPolicy();
     }
 
     @Test
@@ -47,12 +51,12 @@ class BootstrapAdminTest {
     void whenAdminExists_thenSkipCreation() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(true);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
-        service.run(mock(ApplicationArguments.class));
+        runner.run(mock(ApplicationArguments.class));
 
         verify(userRepository, never()).save(any(User.class));
         verify(outboxService, never()).recordAuditEvent(any(), any(), any(), any(), any());
@@ -62,7 +66,6 @@ class BootstrapAdminTest {
     @DisplayName("Should create bootstrap admin successfully with BCrypt and mustChangePassword=true")
     void whenNoAdminExists_thenCreateBootstrapAdmin() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
-        when(userRepository.existsByEmailIgnoreCase("admin@swiftdrop.lk")).thenReturn(false);
 
         User savedUser = new User();
         savedUser.setId(UUID.randomUUID());
@@ -72,12 +75,12 @@ class BootstrapAdminTest {
         savedUser.setStatus(UserStatus.ACTIVE);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
-        service.run(mock(ApplicationArguments.class));
+        runner.run(mock(ApplicationArguments.class));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -92,7 +95,7 @@ class BootstrapAdminTest {
         assertThat(passwordEncoder.matches("ValidSecret123!", created.getPasswordHash())).isTrue();
 
         verify(outboxService).recordAuditEvent(
-                eq("BOOTSTRAP_ADMIN_CREATED"),
+                eq("USER_CREATED"),
                 eq(savedUser.getId()),
                 eq(savedUser.getId()),
                 eq("ADMIN"),
@@ -103,12 +106,12 @@ class BootstrapAdminTest {
     @Test
     @DisplayName("Should do nothing when bootstrap is disabled")
     void whenDisabled_thenDoNothing() {
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 false, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
-        service.run(mock(ApplicationArguments.class));
+        runner.run(mock(ApplicationArguments.class));
 
         verify(userRepository, never()).existsByRole(any());
         verify(userRepository, never()).save(any());
@@ -119,14 +122,14 @@ class BootstrapAdminTest {
     void whenCredentialsMissing_thenThrowException() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "", "", ""
         );
 
-        assertThatThrownBy(() -> service.run(mock(ApplicationArguments.class)))
+        assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Bootstrap administrator credentials");
+                .hasMessageContaining("Bootstrap admin configuration missing");
     }
 
     @Test
@@ -134,12 +137,12 @@ class BootstrapAdminTest {
     void whenEmailInvalid_thenThrowException() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "invalid-email", "System Admin", "ValidSecret123!"
         );
 
-        assertThatThrownBy(() -> service.run(mock(ApplicationArguments.class)))
+        assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("invalid or exceeds 254 characters");
     }
@@ -149,12 +152,12 @@ class BootstrapAdminTest {
     void whenPasswordWeak_thenThrowException() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "admin@swiftdrop.lk", "System Admin", "weakpass"
         );
 
-        assertThatThrownBy(() -> service.run(mock(ApplicationArguments.class)))
+        assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("complexity requirements");
     }
@@ -164,13 +167,13 @@ class BootstrapAdminTest {
     void whenPasswordContainsEmailLocalPart_thenThrowException() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
-        BootstrapAdminService service = new BootstrapAdminService(
-                userRepository, passwordEncoder, outboxService,
+        BootstrapAdminRunner runner = new BootstrapAdminRunner(
+                userRepository, passwordEncoder, passwordPolicy, outboxService,
                 true, "admin@swiftdrop.lk", "System Admin", "Admin!Swiftdrop12345"
         );
 
-        assertThatThrownBy(() -> service.run(mock(ApplicationArguments.class)))
+        assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("must not contain the email address username");
+                .hasMessageContaining("email local-part");
     }
 }

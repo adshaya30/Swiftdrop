@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - fix/gate1
   pull_request:
     branches:
       - main
@@ -87,8 +88,8 @@ jobs:
           cache-dependency-path: backend/${{ matrix.service }}/pom.xml
 
       - name: Build and test ${{ matrix.service }}
-        working-directory: backend/${{ matrix.service }}
-        run: bash ./mvnw --batch-mode --no-transfer-progress verify
+        working-directory: backend
+        run: bash ./mvnw --batch-mode --no-transfer-progress -pl ${{ matrix.service }} -am verify
 
   compose-validation:
     name: Validate Docker Compose configuration
@@ -105,6 +106,15 @@ jobs:
           # values are used only for config validation and are never written to disk.
           export POSTGRES_USER="${GITHUB_REPOSITORY_OWNER:-ci}"
           export POSTGRES_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          export RABBITMQ_USER="${GITHUB_REPOSITORY_OWNER:-ci}"
-          export RABBITMQ_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export AUTH_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export PARCEL_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export PRICING_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export DELIVERY_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export TRACKING_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export NOTIFICATION_DB_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export RABBITMQ_DEFAULT_USER="${GITHUB_REPOSITORY_OWNER:-ci}"
+          export RABBITMQ_DEFAULT_PASS="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export INTERNAL_API_KEY="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-internal-api-key"
+          export BOOTSTRAP_ADMIN_PASSWORD="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export WEBHOOK_SECRET_ENCRYPTION_KEY="$(printf '%s' "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | sha256sum | xxd -r -p | base64)"
           docker compose --file compose.yaml config --quiet

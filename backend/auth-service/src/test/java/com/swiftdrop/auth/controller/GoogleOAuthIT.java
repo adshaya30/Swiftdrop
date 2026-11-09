@@ -1,16 +1,28 @@
 package com.swiftdrop.auth.controller;
+import com.swiftdrop.auth.domain.User;
+import com.swiftdrop.auth.domain.Merchant;
+import com.swiftdrop.auth.domain.RefreshToken;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.domain.MerchantRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.login.service.JwtService;
+import com.swiftdrop.auth.login.service.LoginService;
+import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.service.PasswordHasher;
+import com.swiftdrop.auth.login.service.PasswordPolicy;
+import com.swiftdrop.auth.login.controller.AuthController;
 
 import com.swiftdrop.auth.AbstractIntegrationTest;
-import com.swiftdrop.auth.dto.response.GoogleUserClaims;
+import com.swiftdrop.auth.google.dto.GoogleUserClaims;
 import com.swiftdrop.auth.entity.AuthProvider;
-import com.swiftdrop.auth.entity.User;
+import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
-import com.swiftdrop.auth.repository.OAuthLoginStateRepository;
-import com.swiftdrop.auth.repository.RefreshTokenRepository;
-import com.swiftdrop.auth.repository.UserRepository;
-import com.swiftdrop.auth.service.GoogleOAuthService;
-import com.swiftdrop.auth.service.GoogleOidcVerifier;
+import com.swiftdrop.auth.google.domain.OAuthLoginStateRepository;
+import com.swiftdrop.auth.domain.RefreshTokenRepository;
+import com.swiftdrop.auth.domain.UserRepository;
+import com.swiftdrop.auth.google.service.GoogleOAuthService;
+import com.swiftdrop.auth.google.service.GoogleOidcVerifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -136,8 +148,9 @@ class GoogleOAuthIT extends AbstractIntegrationTest {
         GoogleUserClaims claims = new GoogleUserClaims(
                 "google-sub-kasun-101",
                 "kasun.test@gmail.com",
+                true,
                 "Kasun Test",
-                true
+                null
         );
         when(googleOidcVerifier.verifyIdToken(eq("mock-google-id-token"), any()))
                 .thenReturn(claims);
@@ -227,8 +240,9 @@ class GoogleOAuthIT extends AbstractIntegrationTest {
         GoogleUserClaims claims = new GoogleUserClaims(
                 "google-sub-attacker-999",
                 "kasun.perera@example.lk",
+                true,
                 "Kasun Attacker",
-                true
+                null
         );
         when(googleOidcVerifier.verifyIdToken(eq("mock-google-id-token"), any()))
                 .thenReturn(claims);
