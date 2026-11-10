@@ -5,6 +5,10 @@ import com.swiftdrop.auth.profile.dto.UpdateProfileRequest;
 import com.swiftdrop.auth.profile.dto.UserProfileResponse;
 import com.swiftdrop.auth.profile.service.ProfileService;
 import com.swiftdrop.auth.security.AuthenticatedUser;
+import com.swiftdrop.common.error.DomainException;
+import com.swiftdrop.common.error.ErrorCode;
+import com.swiftdrop.common.error.FieldError;
+import com.swiftdrop.common.util.PhoneNumberNormalizer;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Endpoints for user profile management and password change.
@@ -54,6 +59,14 @@ public class ProfileController {
     public ResponseEntity<UserProfileResponse> updateProfile(
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody UpdateProfileRequest request) {
+        if (request.phone() != null && !request.phone().isBlank()) {
+            if (PhoneNumberNormalizer.normalize(request.phone()).isEmpty()) {
+                throw new DomainException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "Request validation failed.",
+                        List.of(new FieldError("phone", "Must be a valid Sri Lankan phone number")));
+            }
+        }
         UserProfileResponse response = profileService.updateProfile(user.userId(), request);
         return ResponseEntity.ok(response);
     }

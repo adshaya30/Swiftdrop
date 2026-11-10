@@ -1,0 +1,82 @@
+server:
+  port: 8084
+  shutdown: graceful
+
+spring:
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
+  application:
+    name: delivery-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/swiftdrop_delivery}
+    username: ${DB_USER:delivery_user}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:}
+    password: ${RABBITMQ_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_MB:10}MB
+      max-request-size: 11MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db
+        liveness:
+          include: livenessState
+  health:
+    rabbit:
+      enabled: false
+
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+
+swiftdrop:
+  parcel-service-url: ${PARCEL_SERVICE_URL:http://parcel-service:8082}
+  max-upload-mb: ${MAX_UPLOAD_MB:10}
+  max-stored-photo-mb: ${MAX_STORED_PHOTO_MB:5}
+  internal-api-key: ${INTERNAL_API_KEY}
+  outbox:
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:1000}
+
+JWT_PUBLIC_KEY_PATH: /run/keys/jwt-public.pem
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  structured:
+    format:
+      console: logstash

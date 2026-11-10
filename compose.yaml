@@ -91,6 +91,7 @@ services:
     image: swiftdrop/auth-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8081"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -124,7 +125,7 @@ services:
       - ./infrastructure/keys/swiftdrop_private.pem:/run/keys/swiftdrop_private.pem:ro
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -133,7 +134,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -149,6 +150,7 @@ services:
     image: swiftdrop/parcel-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8082"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -168,7 +170,7 @@ services:
     volumes:
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8082:8080"
+      - "127.0.0.1:8082:8082"
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,7 +179,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -193,6 +195,7 @@ services:
     image: swiftdrop/pricing-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8083"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -210,7 +213,7 @@ services:
     volumes:
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8083:8080"
+      - "127.0.0.1:8083:8083"
     depends_on:
       postgres:
         condition: service_healthy
@@ -219,7 +222,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -235,6 +238,7 @@ services:
     image: swiftdrop/delivery-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8084"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -254,7 +258,7 @@ services:
     volumes:
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8084:8080"
+      - "127.0.0.1:8084:8084"
     depends_on:
       postgres:
         condition: service_healthy
@@ -263,7 +267,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8084/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -279,6 +283,7 @@ services:
     image: swiftdrop/tracking-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8085"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -294,7 +299,7 @@ services:
     volumes:
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8085:8080"
+      - "127.0.0.1:8085:8085"
     depends_on:
       postgres:
         condition: service_healthy
@@ -303,7 +308,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -319,6 +324,7 @@ services:
     image: swiftdrop/notification-service:1.0.0
     environment:
       TZ: UTC
+      SERVER_PORT: "8086"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
@@ -349,7 +355,7 @@ services:
     volumes:
       - ./infrastructure/keys/swiftdrop_public.pem:/run/keys/swiftdrop_public.pem:ro
     ports:
-      - "127.0.0.1:8086:8080"
+      - "127.0.0.1:8086:8086"
     depends_on:
       postgres:
         condition: service_healthy
@@ -358,7 +364,7 @@ services:
       mailpit:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 12

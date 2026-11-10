@@ -161,7 +161,7 @@ class RefreshTokenServiceTest {
 
         when(refreshTokenRepository.findByTokenHashWithLock(anyString())).thenReturn(Optional.of(token));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(jwtService.issueUserToken(any(com.swiftdrop.auth.domain.User.class), isNull()))
                 .thenReturn("grace-jwt-token");
 
         RotationResult result = refreshTokenService.rotate("raw-token", "UA", "127.0.0.1");
@@ -196,7 +196,7 @@ class RefreshTokenServiceTest {
 
         when(refreshTokenRepository.findByTokenHashWithLock(anyString())).thenReturn(Optional.of(token));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(jwtService.issueAccessToken(eq(userId), eq("CUSTOMER"), eq(false), isNull()))
+        when(jwtService.issueUserToken(any(com.swiftdrop.auth.domain.User.class), isNull()))
                 .thenReturn("new-access-jwt");
 
         RotationResult result = refreshTokenService.rotate("valid-raw-token", "Mozilla/5.0", "192.168.1.1");
@@ -254,7 +254,7 @@ class RefreshTokenServiceTest {
         RefreshToken token = createSampleToken();
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
 
-        refreshTokenService.logout("raw-token-to-logout");
+        refreshTokenService.revokeFamily("raw-token-to-logout");
 
         verify(refreshTokenRepository).revokeFamily(eq(familyId), any(Instant.class));
     }
@@ -262,8 +262,8 @@ class RefreshTokenServiceTest {
     @Test
     @DisplayName("Logout with null or blank token does nothing")
     void logout_emptyToken_doesNothing() {
-        refreshTokenService.logout(null);
-        refreshTokenService.logout("   ");
+        refreshTokenService.revokeFamily(null);
+        refreshTokenService.revokeFamily("   ");
 
         verifyNoInteractions(refreshTokenRepository);
     }
@@ -275,7 +275,6 @@ class RefreshTokenServiceTest {
         t.setFamilyId(familyId);
         t.setTokenHash("dummy-sha256-hash");
         t.setCreatedAt(Instant.now());
-        t.setIssuedAt(Instant.now());
         t.setFamilyCreatedAt(Instant.now().minus(2, ChronoUnit.DAYS));
         t.setExpiresAt(Instant.now().plus(5, ChronoUnit.DAYS));
         return t;

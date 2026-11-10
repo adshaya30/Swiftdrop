@@ -24,6 +24,7 @@ import com.swiftdrop.auth.domain.MerchantRepository;
 import com.swiftdrop.auth.domain.RefreshTokenRepository;
 import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.UserRole;
+import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.login.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;

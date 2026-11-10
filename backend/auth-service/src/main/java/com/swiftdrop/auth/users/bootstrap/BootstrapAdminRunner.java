@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Bootstraps initial administrator account at startup per FR-AUTH-015 and DEP-010.
@@ -27,6 +28,10 @@ import java.util.Map;
 public class BootstrapAdminRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BootstrapAdminRunner.class);
+
+    // RFC 5321 / RFC 5322 simple structural check: local@domain, max 254 chars
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -81,6 +86,11 @@ public class BootstrapAdminRunner implements ApplicationRunner {
         }
 
         String email = adminEmail.trim().toLowerCase();
+        if (email.length() > 254 || !EMAIL_PATTERN.matcher(email).matches()) {
+            throw new IllegalStateException(
+                    "Bootstrap admin email is invalid or exceeds 254 characters: " + adminEmail);
+        }
+
         String name = adminName.trim();
         if (name.length() < 2 || name.length() > 100) {
             throw new IllegalStateException("Bootstrap administrator name must be between 2 and 100 characters.");
@@ -89,7 +99,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
         List<String> policyViolations = passwordPolicy.check(adminPassword, email);
         if (!policyViolations.isEmpty()) {
             throw new IllegalStateException(
-                    "Bootstrap admin password does not satisfy password policy: " + String.join("; ", policyViolations));
+                    "Bootstrap admin password does not satisfy complexity requirements: " + String.join("; ", policyViolations));
         }
 
         User adminUser = new User();

@@ -21,9 +21,10 @@ import com.swiftdrop.auth.dto.response.LoginResult;
 import com.swiftdrop.auth.dto.response.LoginUserSummary;
 import com.swiftdrop.auth.dto.response.UserResponse;
 import com.swiftdrop.auth.exception.*;
-import com.swiftdrop.auth.dto.response.RefreshResult;
+import com.swiftdrop.auth.login.dto.RotationResult;
 import com.swiftdrop.auth.login.service.LoginService;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.google.service.GoogleOAuthService;
 import jakarta.servlet.http.Cookie;
 import com.swiftdrop.auth.service.RegistrationService;
 import org.junit.jupiter.api.DisplayName;
@@ -67,6 +68,27 @@ class AuthControllerTest {
 
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private com.swiftdrop.auth.login.service.RefreshCookieFactory refreshCookieFactory;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUpCookies() {
+        when(refreshCookieFactory.create(any())).thenAnswer(inv -> {
+            String val = inv.getArgument(0);
+            return org.springframework.http.ResponseCookie.from("sd_refresh", val != null ? val : "")
+                    .path("/api/v1/auth")
+                    .httpOnly(true)
+                    .build();
+        });
+        when(refreshCookieFactory.clear()).thenReturn(
+                org.springframework.http.ResponseCookie.from("sd_refresh", "")
+                        .path("/api/v1/auth")
+                        .httpOnly(true)
+                        .maxAge(0)
+                        .build()
+        );
+    }
 
     @Test
     @DisplayName("POST /api/v1/auth/register - 201 Created with valid payload")
@@ -347,7 +369,7 @@ class AuthControllerTest {
         UUID userId = UUID.randomUUID();
         LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
         LoginResponse response = new LoginResponse("new-jwt-token", 900, summary);
-        RefreshResult result = new RefreshResult(response, "new-opaque-refresh-token");
+        RotationResult result = new RotationResult(response, "new-opaque-refresh-token", false);
 
         when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
 
@@ -368,7 +390,7 @@ class AuthControllerTest {
         UUID userId = UUID.randomUUID();
         LoginUserSummary summary = new LoginUserSummary(userId, "Kasun Perera", "CUSTOMER", false, null, null);
         LoginResponse response = new LoginResponse("grace-jwt-token", 900, summary);
-        RefreshResult result = new RefreshResult(response, null); // null indicates grace window hit
+        RotationResult result = new RotationResult(response, null, true); // null indicates grace window hit
 
         when(refreshTokenService.rotate(any(), any(), any())).thenReturn(result);
 

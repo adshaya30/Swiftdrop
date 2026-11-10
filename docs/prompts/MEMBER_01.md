@@ -1,6 +1,6 @@
 # MEMBER #1: Login and sessions (3 prompts)
 
-Paste each prompt into your AI session when its turn comes. The master prompt (v2.2) and the SRS are already loaded in your session.
+Paste each prompt into your AI session when its turn comes. The master prompt (v3.0) and the SRS are already loaded in your session.
 
 | Prompt | Title | Blocks others? |
 |---|---|---|
@@ -93,4 +93,3 @@ You are **Member #1**. Build the auth-service login slice on top of Prompt 1. Pa
 
 ### Done when
 `mvn -pl backend/auth-service -am verify` green with coverage gate, login/register pages from Prompt 2 work against the running service, report sent.
-

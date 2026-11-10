@@ -1,0 +1,7 @@
+# Overrides backend/.dockerignore for this Dockerfile: the wrapper is required.
+**/target/
+**/.git/
+**/.idea/
+**/*.log
+**/*.pem
+**/.env

@@ -116,7 +116,7 @@ class RegistrationControllerIT extends AbstractIntegrationTest {
     void bcryptHashStored() {
         post(validPayload());
 
-        com.swiftdrop.auth.entity.User saved = userRepository.findByEmailIgnoreCase("test@example.com").orElseThrow();
+        com.swiftdrop.auth.domain.User saved = userRepository.findByEmailIgnoreCase("test@example.com").orElseThrow();
         String hash = saved.getPasswordHash();
         assertThat(hash).isNotNull();
         assertThat(hash).startsWith("$2a$");

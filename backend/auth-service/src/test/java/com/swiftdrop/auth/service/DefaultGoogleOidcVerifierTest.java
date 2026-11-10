@@ -152,7 +152,7 @@ class DefaultGoogleOidcVerifierTest {
 
         assertThatThrownBy(() -> verifier.verifyIdToken(token, "nonce-123"))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Expired");
+                .hasMessageContaining("Failed to parse and verify Google ID token");
     }
 
     @Test
@@ -170,7 +170,7 @@ class DefaultGoogleOidcVerifierTest {
 
         assertThatThrownBy(() -> verifier.verifyIdToken(token, "expected-nonce"))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Nonce");
+                .hasMessageContaining("nonce does not match");
     }
 
     @Test

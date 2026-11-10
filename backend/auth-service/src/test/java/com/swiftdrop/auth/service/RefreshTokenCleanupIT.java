@@ -152,7 +152,6 @@ class RefreshTokenCleanupIT extends AbstractIntegrationTest {
         token.setTokenHash(UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""));
         token.setFamilyId(UUID.randomUUID());
         token.setFamilyCreatedAt(issuedAt);
-        token.setIssuedAt(issuedAt);
         token.setExpiresAt(expiresAt);
         token.setUsedAt(usedAt);
         token.setRevokedAt(revokedAt);

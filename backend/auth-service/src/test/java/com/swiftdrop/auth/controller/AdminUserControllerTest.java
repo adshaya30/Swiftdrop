@@ -300,15 +300,15 @@ class AdminUserControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users/{id}/deactivate - 400 Bad Request when admin deactivates self")
-    void deactivateUser_self_returns400() throws Exception {
+    @DisplayName("POST /api/v1/admin/users/{id}/deactivate - 403 Forbidden when admin deactivates self")
+    void deactivateUser_self_returns403() throws Exception {
         when(adminUserService.deactivateUser(eq(adminId), eq(adminId)))
                 .thenThrow(new CannotDeactivateSelfException());
 
         mockMvc.perform(post("/api/v1/admin/users/" + adminId + "/deactivate")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer admin-token"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CANNOT_DEACTIVATE_OWN_ACCOUNT"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
     @Test

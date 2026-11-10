@@ -40,7 +40,7 @@ class JwtServiceTest {
     }
 
     @Test
-    @DisplayName("RS256 JWT header has alg=RS256, typ=JWT, kid=swiftdrop-1")
+    @DisplayName("RS256 JWT header has alg=RS256, typ=JWT, kid=swiftdrop1")
     void tokenHeader_hasCorrectAttributes() throws Exception {
         UUID userId = UUID.randomUUID();
         String token = jwtService.issueAccessToken(userId, "CUSTOMER", false, null);
@@ -54,7 +54,7 @@ class JwtServiceTest {
 
         assertThat(header.get("alg")).isEqualTo("RS256");
         assertThat(header.get("typ")).isEqualTo("JWT");
-        assertThat(header.get("kid")).isEqualTo("swiftdrop-1");
+        assertThat(header.get("kid")).isEqualTo("swiftdrop1");
     }
 
     @Test

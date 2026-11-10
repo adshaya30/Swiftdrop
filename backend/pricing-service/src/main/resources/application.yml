@@ -1,0 +1,77 @@
+# SRS 9.2; shared security/events consume the uppercase properties below.
+# Environment property sources override these defaults without circular placeholders.
+JWT_PUBLIC_KEY_PATH: /run/keys/jwt-public.pem
+OUTBOX_POLL_INTERVAL_MS: 1000
+swiftdrop:
+  internal-api-key: ${INTERNAL_API_KEY}
+server:
+  port: 8083
+  shutdown: graceful
+spring:
+  application:
+    name: pricing-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/swiftdrop_pricing}
+    username: ${DB_USER:pricing_user}
+    password: ${DB_PASSWORD}
+    hikari:
+      initialization-fail-timeout: 120000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  jackson:
+    time-zone: UTC
+    deserialization:
+      fail-on-unknown-properties: true
+      use-big-decimal-for-floats: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:swiftdrop_user}
+    password: ${RABBITMQ_PASSWORD}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db
+        liveness:
+          include: livenessState
+  health:
+    rabbit:
+      enabled: false
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  structured:
+    format:
+      console: logstash
+    json:
+      add:
+        service: ${spring.application.name}
+pricing:
+  max-parcel-weight-kg: ${MAX_PARCEL_WEIGHT_KG:30}

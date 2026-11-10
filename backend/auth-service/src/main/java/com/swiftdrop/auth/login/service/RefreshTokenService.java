@@ -99,6 +99,16 @@ public class RefreshTokenService {
     }
 
     /**
+     * Backward-compatible token issuance helper by userId.
+     */
+    @Transactional
+    public String createRefreshToken(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthenticatedException("User not found"));
+        return issue(user).rawToken();
+    }
+
+    /**
      * Rotates an existing refresh token with pessimistic write locking, replay detection,
      * and concurrent grace window handling per Master Prompt 8.1.
      */

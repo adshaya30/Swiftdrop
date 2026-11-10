@@ -66,7 +66,6 @@ class BootstrapAdminTest {
     @DisplayName("Should create bootstrap admin successfully with BCrypt and mustChangePassword=true")
     void whenNoAdminExists_thenCreateBootstrapAdmin() {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
-        when(userRepository.existsByEmailIgnoreCase("admin@swiftdrop.lk")).thenReturn(false);
 
         User savedUser = new User();
         savedUser.setId(UUID.randomUUID());
@@ -96,7 +95,7 @@ class BootstrapAdminTest {
         assertThat(passwordEncoder.matches("ValidSecret123!", created.getPasswordHash())).isTrue();
 
         verify(outboxService).recordAuditEvent(
-                eq("BOOTSTRAP_ADMIN_CREATED"),
+                eq("USER_CREATED"),
                 eq(savedUser.getId()),
                 eq(savedUser.getId()),
                 eq("ADMIN"),
@@ -130,7 +129,7 @@ class BootstrapAdminTest {
 
         assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Bootstrap administrator credentials");
+                .hasMessageContaining("Bootstrap admin configuration missing");
     }
 
     @Test
@@ -175,6 +174,6 @@ class BootstrapAdminTest {
 
         assertThatThrownBy(() -> runner.run(mock(ApplicationArguments.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("must not contain the email address username");
+                .hasMessageContaining("email local-part");
     }
 }
