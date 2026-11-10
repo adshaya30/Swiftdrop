@@ -1,5 +1,6 @@
 package com.swiftdrop.tracking.controller;
 
+import com.swiftdrop.common.enums.Role;
 import com.swiftdrop.common.error.DomainException;
 import com.swiftdrop.common.error.ErrorCode;
 import com.swiftdrop.common.security.CurrentUser;
@@ -39,32 +40,32 @@ public class TimelineController {
             @AuthenticationPrincipal Jwt jwt) {
 
         CurrentUser user = CurrentUsers.from(jwt);
-        String role = user.role();
+        Role role = user.role();
 
         TrackingParcel parcel = parcelRepo.findByParcelId(parcelId)
                 .orElseThrow(() -> new DomainException(ErrorCode.NOT_FOUND, "Parcel not found"));
 
         // Role-based ownership check (FR-TRK-004)
         switch (role) {
-            case "CUSTOMER" -> {
+            case CUSTOMER -> {
                 if (parcel.getCustomerId() == null ||
                         !parcel.getCustomerId().equals(user.userId())) {
                     throw new DomainException(ErrorCode.NOT_FOUND, "Parcel not found");
                 }
             }
-            case "MERCHANT" -> {
+            case MERCHANT -> {
                 if (parcel.getMerchantId() == null ||
-                        !parcel.getMerchantId().equals(user.merchantId())) {
+                        !parcel.getMerchantId().equals(user.mid())) {
                     throw new DomainException(ErrorCode.NOT_FOUND, "Parcel not found");
                 }
             }
-            case "COURIER" -> {
+            case COURIER -> {
                 if (parcel.getCourierId() == null ||
                         !parcel.getCourierId().equals(user.userId())) {
                     throw new DomainException(ErrorCode.NOT_FOUND, "Parcel not found");
                 }
             }
-            case "ADMIN" -> { /* admin can see any parcel */ }
+            case ADMIN -> { /* admin can see any parcel */ }
             default -> throw new DomainException(ErrorCode.ACCESS_DENIED, "Access denied");
         }
 
@@ -74,11 +75,10 @@ public class TimelineController {
         // Customer/Merchant: courierFirstName visible, courierId hidden
         // Admin: both visible
         // Courier: neither visible
-        boolean showCourierName = "CUSTOMER".equals(role) || "MERCHANT".equals(role) || "ADMIN".equals(role);
-        boolean showCourierId = "ADMIN".equals(role);
+        boolean showCourierName = role == Role.CUSTOMER || role == Role.MERCHANT || role == Role.ADMIN;
+        boolean showCourierId = role == Role.ADMIN;
 
         TimelineResponse response = TimelineResponse.from(parcel, events, showCourierName, showCourierId);
         return ResponseEntity.ok(response);
     }
 }
-
