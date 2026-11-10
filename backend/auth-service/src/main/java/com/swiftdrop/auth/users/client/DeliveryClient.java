@@ -31,7 +31,7 @@ public class DeliveryClient {
     private final String internalApiKey;
 
     public DeliveryClient(
-            @Value("${delivery.service.url:${DELIVERY_SERVICE_URL:http://localhost:8083}}") String deliveryServiceUrl,
+            @Value("${delivery.service.url:${DELIVERY_SERVICE_URL:http://localhost:8084}}") String deliveryServiceUrl,
             @Value("${internal.api.key:${INTERNAL_API_KEY:swiftdrop-internal-secret-key}}") String internalApiKey) {
         this.deliveryServiceUrl = deliveryServiceUrl.endsWith("/") ? deliveryServiceUrl.substring(0, deliveryServiceUrl.length() - 1) : deliveryServiceUrl;
         this.internalApiKey = internalApiKey;
@@ -71,4 +71,3 @@ public class DeliveryClient {
         }
     }
 }
-
