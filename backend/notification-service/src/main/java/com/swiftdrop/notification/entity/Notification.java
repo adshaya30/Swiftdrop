@@ -55,7 +55,7 @@ public class Notification {
     @Column(name = "sent_at")
     private Instant sentAt;
 
-    protected Notification() {}
+    public Notification() {}
 
     public UUID getId() { return id; }
     public UUID getEventId() { return eventId; }
@@ -90,4 +90,3 @@ public class Notification {
         if (createdAt == null) createdAt = Instant.now();
     }
 }
-

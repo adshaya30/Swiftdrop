@@ -45,7 +45,7 @@ public class AuditLog {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected AuditLog() {}
+    public AuditLog() {}
 
     public Long getId() { return id; }
     public UUID getEventId() { return eventId; }
@@ -74,4 +74,3 @@ public class AuditLog {
         if (createdAt == null) createdAt = Instant.now();
     }
 }
-

@@ -45,7 +45,7 @@ public class TrackingEvent {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected TrackingEvent() {}
+    public TrackingEvent() {}
 
     public Long getId() { return id; }
     public UUID getParcelId() { return parcelId; }
@@ -74,4 +74,3 @@ public class TrackingEvent {
         if (createdAt == null) createdAt = Instant.now();
     }
 }
-

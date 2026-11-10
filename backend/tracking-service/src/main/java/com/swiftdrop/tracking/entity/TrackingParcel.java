@@ -57,7 +57,7 @@ public class TrackingParcel {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected TrackingParcel() {}
+    public TrackingParcel() {}
 
     public UUID getParcelId() { return parcelId; }
     public void setParcelId(UUID parcelId) { this.parcelId = parcelId; }
@@ -90,4 +90,3 @@ public class TrackingParcel {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
-
