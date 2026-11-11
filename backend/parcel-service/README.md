@@ -12,7 +12,7 @@ Environment variables follow SRS 9.2 in `application.yml`. `PricingClient` uses 
 
 ## Prompt 2 Phase 3 APIs and reuse
 
-The CUSTOMER-only endpoints are `POST /api/v1/customer/parcels`, `GET /api/v1/customer/parcels` and `GET /api/v1/customer/parcels/{id}`. Creation takes the validated SRS 7.5 body and optional `Idempotency-Key`; owner identity comes exclusively from the authenticated user's `sub`. A new creation returns 201 with `Location`; replay returns the original status/body with `Idempotent-Replay: true`. Lists use the standard pagination envelope, owner filtering, inclusive Asia/Colombo dates and whitelisted sorting. Details exclude history, courier and proof. Cancellation and the optional dashboard are not implemented in this phase.
+The CUSTOMER-only endpoints are `POST /api/v1/customer/parcels`, `GET /api/v1/customer/parcels` and `GET /api/v1/customer/parcels/{id}`. Creation takes the validated SRS 7.5 body and optional `Idempotency-Key`; owner identity comes exclusively from the authenticated user's `sub`. A new creation returns 201 with `Location`; replay returns the original status/body with `Idempotent-Replay: true`. Lists use the standard pagination envelope, owner filtering, inclusive Asia/Colombo dates and whitelisted sorting. Details exclude history, courier and proof. Cancellation is integrated below; the optional dashboard remains deferred.
 
 Member #6 can inject `create.service.ParcelCreationService` and call `create(CreationRequest)` using the Master 8.1 records in `create.dto`. The default implementation checks idempotency before discount resolution or pricing, compares `expectedFee` when present, and uses pricing's authoritative snapshots and fees. Supply the complete validated body's canonical hash, the trusted owner identity, discount resolver and response builder. Customer creation requires `expectedFee`; merchant callers may omit it under FR-PAR-007. The customer controller uses `CustomerParcelCreatedResponse`; merchant callers provide their own response builder.
 
@@ -24,9 +24,13 @@ The Phase 3 PostgreSQL/MockMvc/WireMock tests exercise AT-08/09, collision retri
 
 `create.mapper.ParcelDetailMapper` now exposes `toDetail(Parcel)`, `toAdminDetail(Parcel)` and `toInternalDetail(Parcel)`. `AdminParcelDetailDto` has the customer detail fields plus `customerId` and `merchantId`; `InternalParcelDetailDto` has the admin fields plus `statusSequence` (Master 8.1 / SRS 7.4). All views use the same nested snapshot/fee contracts. The existing customer response shape is unchanged. Mapping does not authorize access: endpoint owners must apply their role and ownership checks before returning these views. No admin or internal endpoint is added here.
 
-Customer cancellation is blocked: neither this branch nor the fetched `origin/develop` contains Member #5's `lifecycle.service.ParcelAccessPolicy.requireAccessible(UUID, CurrentUser)`, `ParcelTransitionService.cancelAsOwner(UUID, CurrentUser, String)` or agreed `TransitionResult(parcelId, trackingNumber, status, sequence, statusChangedAt)`. No substitute lifecycle classes or cancellation endpoint have been introduced. Request to Member #5: publish these contracts and implementations so Member #4 can wire owner cancellation without duplicating transition logic.
+Customer cancellation is integrated with Member #5: `POST /api/v1/customer/parcels/{id}/cancel` requires a CUSTOMER user token and obtains the caller from `CurrentUsers.get()`. It calls `lifecycle.service.ParcelTransitionService.cancelAsOwner(UUID, CurrentUser, String)`, which invokes `lifecycle.security.ParcelAccessPolicy.requireAccessible(UUID, CurrentUser)` before applying the authoritative transition. No lifecycle rules are duplicated. `TransitionResult.parcelId()` maps to response `id`; sequence stays internal. The response is `{id, trackingNumber, status, statusChangedAt}`.
 
-Remaining cancellation checks are AT-25 and the cancellation portion of TST-031: cancel CREATED, reject later statuses with `INVALID_STATUS_TRANSITION`, foreign-owner 404, wrong-role/client-token 403, unauthenticated 401, optional reason up to 300 characters, and the success body `{id, trackingNumber, status, statusChangedAt}`. These checks cannot be reported as passing until the integration is available. The optional dashboard remains deferred because this Must integration is incomplete.
+The request body may be absent or contain an optional `reason` of at most 300 characters. Bean Validation rejects longer reasons. Real lifecycle integration tests cover CREATED cancellation, post-pickup rejection, ownership concealment, role/token authentication and reason boundaries. Creation tests also verify pricing's maximum-weight error passthrough, creation without a key, and rollback after an actual outbox insert.
+
+Springdoc annotations describe all four customer operations, JWT authentication, schemas, creation success headers and error responses. `ParcelOpenApiTests` inspects the generated specification and exports it to `target/generated-openapi/parcel-service.json`. The parcel POM checks each matching service, messaging and security PACKAGE separately against the inherited 70% LINE minimum; its selectors use dotted Java package names (slash paths do not match PACKAGE rules), and violations halt the build.
+
+The optional FR-PAR-015 dashboard remains deferred.
 
 ## Verification
 
@@ -43,3 +47,26 @@ Build the image with `backend/` as context and `parcel-service/Dockerfile`. Its 
 ## Request to owner: Member #8
 
 Please change the existing Java/compiler version values and compiler-plugin release from 17 to 21 in `backend/pom.xml` (SRS D-30, Master section 3). The parent is unchanged by PR A; running Maven on Java 21 currently still compiles with release 17.
+
+## Final cancellation verification (2026-11-11)
+
+The exact clean command below completed with BUILD SUCCESS on Temurin Java 21.0.13 and Docker Engine 29.9.2. Set JAVA_HOME to the installed Java 21 JDK first: this workstation's default JAVA_HOME points to Java 25.
+
+```powershell
+.\backend\mvnw.cmd -f backend/pom.xml -B -ntp -pl pricing-service,parcel-service -am clean verify
+```
+
+| Module | Passed | Failed | Errored | Skipped |
+|---|---:|---:|---:|---:|
+| common-core | 19 | 0 | 0 | 0 |
+| common-lib | 127 | 0 | 0 | 0 |
+| parcel-service | 209 | 0 | 0 | 0 |
+| pricing-service | 87 | 0 | 0 | 0 |
+
+AT-08/09, the customer AT-25 cases, cancellation TST-031 checks, reason boundaries, above-maximum pricing error passthrough, keyless creation and rollback after a real outbox insertion all pass. Rollback assertions leave zero parcel, idempotency and outbox rows for the request owner. The generated OpenAPI test passes and exports `target/generated-openapi/parcel-service.json`.
+
+Parcel PACKAGE LINE coverage: create.service 93.53% (159/170), create.security 100% (4/4), lifecycle.service 92.31% (132/143), lifecycle.security 90% (9/10). There is currently no parcel messaging package. The normal 70% gate passes. Running `jacoco:check@check -Djacoco.line.minimum=1.00` against the same coverage intentionally exits 1 with named PACKAGE violations for create.service, lifecycle.service and lifecycle.security. This proves selectors actually match; it changes no source threshold or test configuration. Local ignored evidence: `verification.log` and `coverage-gate-proof.log`.
+
+Request to owner / follow-up outside this task's permitted files: pricing-service/pom.xml also uses slash-separated PACKAGE selectors, which do not match JaCoCo's dotted package names. Replace them with `com.swiftdrop.pricing.core.service` and `com.swiftdrop.pricing.core.security`; keep the existing threshold. Measured pricing coverage is 100% in both packages. Pricing and the parent POM were left unchanged. The pre-existing parent Java 17 compiler-release request above also remains open. The optional FR-PAR-015 dashboard is deferred; no required cancellation integration remains.
+
+All seven changed files belong to Member #4 within parcel-service. Member #5 lifecycle files and Member #6 order files are unchanged. No commit, push or pull request was created.

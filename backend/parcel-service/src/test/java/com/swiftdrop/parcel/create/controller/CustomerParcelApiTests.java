@@ -344,6 +344,71 @@ class CustomerParcelApiTests extends AbstractParcelDatabaseTest {
         assertNoCommittedCreation();
     }
 
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.NullSource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"{}", "{\"reason\":\"Changed plans\"}"})
+    @DisplayName("AT-25 FR-PAR-009: CREATED cancellation uses the real lifecycle")
+    void AT25CancelsCreatedThroughRealLifecycle(String body) throws Exception {
+        var saved = parcels.saveAndFlush(parcel(new TrackingNumberGenerator().generate(), owner, null, null));
+        var request = post(PATH + "/" + saved.getId() + "/cancel")
+                .header("Authorization", TOKENS.customer().userId(owner).bearer());
+        if (body != null) request.contentType("application/json").content(body);
+        mvc.perform(request).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+                .andExpect(jsonPath("$.trackingNumber").value(saved.getTrackingNumber()))
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.statusChangedAt").isNotEmpty())
+                .andExpect(jsonPath("$.sequence").doesNotExist());
+        var cancelled = parcels.findById(saved.getId()).orElseThrow();
+        assertThat(cancelled.getStatus()).isEqualTo(ParcelStatus.CANCELLED);
+        assertThat(cancelled.getStatusSequence()).isEqualTo(2);
+        assertThat(cancelled.getTerminalAt()).isNotNull();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM outbox_events WHERE event_type='parcel.status.changed' "
+                + "AND payload->'data'->>'parcelId'=?", Integer.class, saved.getId().toString())).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("TST-031 FR-PAR-009: post-pickup cancellation is 409 and a foreign owner gets 404")
+    void cancellationAfterPickupAndForeignOwnershipAreRejected() throws Exception {
+        var saved = parcels.saveAndFlush(parcel(new TrackingNumberGenerator().generate(), owner, null, null));
+        jdbc.update("UPDATE parcels SET status='PICKED_UP' WHERE id=?", saved.getId());
+        mvc.perform(post(PATH + "/" + saved.getId() + "/cancel")
+                .header("Authorization", TOKENS.customer().userId(owner).bearer()))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_STATUS_TRANSITION"));
+        mvc.perform(post(PATH + "/" + saved.getId() + "/cancel")
+                .header("Authorization", TOKENS.customer().userId(foreign).bearer()))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        assertThat(parcels.findById(saved.getId()).orElseThrow().getStatus()).isEqualTo(ParcelStatus.PICKED_UP);
+    }
+
+    @Test
+    @DisplayName("TST-031 FR-PAR-009: cancellation requires a CUSTOMER user token")
+    void cancellationRequiresCustomerUserToken() throws Exception {
+        String path = PATH + "/" + UUID.randomUUID() + "/cancel";
+        for (String token : List.of(TOKENS.admin().bearer(), TOKENS.courier().bearer(),
+                TOKENS.merchant(UUID.randomUUID()).bearer(), TOKENS.client(UUID.randomUUID(), "orders:write").bearer())) {
+            mvc.perform(post(path).header("Authorization", token)).andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("TST-021 FR-PAR-009: optional cancellation reason has a 300-character limit")
+    void cancellationReasonAccepts300AndRejects301Characters() throws Exception {
+        var saved = parcels.saveAndFlush(parcel(new TrackingNumberGenerator().generate(), owner, null, null));
+        String path = PATH + "/" + saved.getId() + "/cancel";
+        mvc.perform(post(path).header("Authorization", TOKENS.customer().userId(owner).bearer())
+                .contentType("application/json").content(json.writeValueAsString(Map.of("reason", "a".repeat(301)))))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors[0].field").value("reason"));
+        assertThat(parcels.findById(saved.getId()).orElseThrow().getStatus()).isEqualTo(ParcelStatus.CREATED);
+        mvc.perform(post(path).header("Authorization", TOKENS.customer().userId(owner).bearer())
+                .contentType("application/json").content(json.writeValueAsString(Map.of("reason", "a".repeat(300)))))
+                .andExpect(status().isOk());
+    }
+
     private void assertNoCommittedCreation() {
         assertThat(parcelCount()).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM idempotency_keys WHERE owner_id=?", Integer.class, owner))

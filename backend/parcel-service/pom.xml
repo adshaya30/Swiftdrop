@@ -134,17 +134,18 @@
                     <execution>
                         <id>check</id>
                         <configuration>
-                            <!-- TST-001: check each required package, not the bundle name. -->
+                            <haltOnFailure>true</haltOnFailure>
+                            <!-- TST-001: PACKAGE rules match dotted Java names, not class-file paths. -->
                             <rules combine.self="override">
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
-                                        <include>com/swiftdrop/parcel/service*</include>
-                                        <include>com/swiftdrop/parcel/messaging*</include>
-                                        <include>com/swiftdrop/parcel/security*</include>
-                                        <include>com/swiftdrop/parcel/*/service*</include>
-                                        <include>com/swiftdrop/parcel/*/messaging*</include>
-                                        <include>com/swiftdrop/parcel/*/security*</include>
+                                        <include>com.swiftdrop.parcel.service*</include>
+                                        <include>com.swiftdrop.parcel.messaging*</include>
+                                        <include>com.swiftdrop.parcel.security*</include>
+                                        <include>com.swiftdrop.parcel.*.service*</include>
+                                        <include>com.swiftdrop.parcel.*.messaging*</include>
+                                        <include>com.swiftdrop.parcel.*.security*</include>
                                     </includes>
                                     <limits>
                                         <limit>
