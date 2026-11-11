@@ -22,5 +22,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     List<Notification> findRecent(@Param("limit") int limit);
 
     List<Notification> findTop50ByOrderByCreatedAtDesc();
+
+    /**
+     * (S) FR-WHK-010: retention cleanup of notifications older than 90 days.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Notification n WHERE n.createdAt < :cutoff")
+    int deleteOlderThan(@Param("cutoff") java.time.Instant cutoff);
 }
 
