@@ -20,6 +20,15 @@
 			<artifactId>common-core</artifactId>
 		</dependency>
 		<dependency>
+    		<groupId>com.swiftdrop</groupId>
+    		<artifactId>common-lib</artifactId>
+    		<type>test-jar</type>
+   			<classifier>tests</classifier>
+    		<version>${project.version}</version>
+    		<scope>test</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>

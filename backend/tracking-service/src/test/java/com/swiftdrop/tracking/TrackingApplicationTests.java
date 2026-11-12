@@ -17,6 +17,10 @@ class TrackingApplicationTests {
 	private AuditLogRepository auditLogRepository;
 
 	@MockitoBean
+	private com.swiftdrop.tracking.audit.repository.AuditLogQueryRepository auditLogQueryRepository;
+
+
+	@MockitoBean
 	private TrackingEventRepository trackingEventRepository;
 
 	@MockitoBean
