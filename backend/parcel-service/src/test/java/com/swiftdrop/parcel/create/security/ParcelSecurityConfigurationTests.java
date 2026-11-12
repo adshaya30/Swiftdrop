@@ -14,7 +14,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static com.swiftdrop.parcel.support.ParcelTestConfiguration.TOKENS;
 
-@WebMvcTest(properties = "INTERNAL_API_KEY=parcel-foundation-test-key-32-characters")
+@WebMvcTest(controllers = ParcelSecurityConfigurationTests.ProbeController.class,
+        properties = "INTERNAL_API_KEY=parcel-foundation-test-key-32-characters")
 @Import({ParcelSecurityConfiguration.class, SecurityAutoConfiguration.class, ParcelTestConfiguration.class,
         ParcelSecurityConfigurationTests.ProbeController.class})
 class ParcelSecurityConfigurationTests {
