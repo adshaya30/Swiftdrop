@@ -5,6 +5,7 @@ import com.swiftdrop.tracking.dto.response.PublicTrackingResponse;
 import com.swiftdrop.tracking.entity.TrackingEvent;
 import com.swiftdrop.tracking.entity.TrackingParcel;
 import com.swiftdrop.tracking.repository.TrackingEventRepository;
+import com.swiftdrop.tracking.repository.TrackingParcelRepository;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -26,40 +27,44 @@ public class SseEmitterService {
     private static final long STREAM_TIMEOUT_MS = 30 * 60 * 1000L; // 30 minutes
 
     private final Map<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
+    private final Map<String, Object> streamLocks = new ConcurrentHashMap<>();
     private final TrackingEventRepository eventRepo;
+    private final TrackingParcelRepository parcelRepo;
 
-    public SseEmitterService(TrackingEventRepository eventRepo) {
+    public SseEmitterService(TrackingEventRepository eventRepo, TrackingParcelRepository parcelRepo) {
         this.eventRepo = eventRepo;
+        this.parcelRepo = parcelRepo;
     }
 
     /**
      * Register a new SSE emitter for a tracking number.
-     * Registers BEFORE sending the snapshot so no event is lost.
+     * The emitter is registered before the snapshot is sent, and snapshot/status
+     * writes for one tracking number are ordered so a status event cannot be lost
+     * or overwritten by an older snapshot.
      */
     public SseEmitter register(String trackingNumber, TrackingParcel parcel) {
         SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MS);
 
-        // Register first, then send snapshot
-        emitters.computeIfAbsent(trackingNumber, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        synchronized (lockFor(trackingNumber)) {
+            emitters.computeIfAbsent(trackingNumber, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
-        // Cleanup callbacks
-        Runnable cleanup = () -> removeEmitter(trackingNumber, emitter);
-        emitter.onCompletion(cleanup);
-        emitter.onTimeout(cleanup);
-        emitter.onError(e -> cleanup.run());
+            Runnable cleanup = () -> removeEmitter(trackingNumber, emitter);
+            emitter.onCompletion(cleanup);
+            emitter.onTimeout(cleanup);
+            emitter.onError(e -> cleanup.run());
 
-        // Send snapshot event
-        try {
-            PublicTrackingResponse snapshot = buildPublicResponse(parcel);
-            emitter.send(SseEmitter.event().name("snapshot").data(snapshot));
+            try {
+                TrackingParcel current = parcelRepo.findByTrackingNumber(trackingNumber).orElse(parcel);
+                PublicTrackingResponse snapshot = buildPublicResponse(current);
+                emitter.send(SseEmitter.event().name("snapshot").data(snapshot));
 
-            // If already terminal, complete immediately
-            if (ParcelStatus.valueOf(parcel.getStatus()).isTerminal()) {
-                emitter.complete();
+                if (ParcelStatus.valueOf(current.getStatus()).isTerminal()) {
+                    emitter.complete();
+                }
+            } catch (IOException e) {
+                log.debug("Failed to send snapshot for {}", trackingNumber);
+                removeEmitter(trackingNumber, emitter);
             }
-        } catch (IOException e) {
-            log.debug("Failed to send snapshot for {}", trackingNumber);
-            removeEmitter(trackingNumber, emitter);
         }
 
         return emitter;
@@ -70,20 +75,23 @@ public class SseEmitterService {
      * Called after the transaction commits.
      */
     public void sendStatusUpdate(String trackingNumber, TrackingParcel parcel) {
-        var list = emitters.get(trackingNumber);
-        if (list == null || list.isEmpty()) return;
+        synchronized (lockFor(trackingNumber)) {
+            var list = emitters.get(trackingNumber);
+            if (list == null || list.isEmpty()) return;
 
-        PublicTrackingResponse data = buildPublicResponse(parcel);
-        boolean isTerminal = ParcelStatus.valueOf(parcel.getStatus()).isTerminal();
+            TrackingParcel current = parcelRepo.findByTrackingNumber(trackingNumber).orElse(parcel);
+            PublicTrackingResponse data = buildPublicResponse(current);
+            boolean isTerminal = ParcelStatus.valueOf(current.getStatus()).isTerminal();
 
-        for (SseEmitter emitter : list) {
-            try {
-                emitter.send(SseEmitter.event().name("status").data(data));
-                if (isTerminal) {
-                    emitter.complete();
+            for (SseEmitter emitter : list) {
+                try {
+                    emitter.send(SseEmitter.event().name("status").data(data));
+                    if (isTerminal) {
+                        emitter.complete();
+                    }
+                } catch (IOException e) {
+                    removeEmitter(trackingNumber, emitter);
                 }
-            } catch (IOException e) {
-                removeEmitter(trackingNumber, emitter);
             }
         }
     }
@@ -95,12 +103,16 @@ public class SseEmitterService {
         for (var entry : emitters.entrySet()) {
             for (SseEmitter emitter : entry.getValue()) {
                 try {
-                    emitter.send(SseEmitter.event().comment("heartbeat"));
+                    emitter.send(SseEmitter.event().comment(" heartbeat"));
                 } catch (IOException e) {
                     removeEmitter(entry.getKey(), emitter);
                 }
             }
         }
+    }
+
+    private Object lockFor(String trackingNumber) {
+        return streamLocks.computeIfAbsent(trackingNumber, key -> new Object());
     }
 
     private void removeEmitter(String trackingNumber, SseEmitter emitter) {
