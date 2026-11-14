@@ -38,6 +38,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    baseline-on-migrate: true
 
   jackson:
     deserialization:
