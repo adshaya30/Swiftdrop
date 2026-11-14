@@ -6,6 +6,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../theme/theme';
 import { formatDateTime, formatDate, formatMoney, applyServerErrors } from '../utils/format';
 import { setAccessToken, getAccessToken, clearAccessToken, ApiError, apiRequest } from '../api/http';
+import { setAuthToken, getAuthToken } from '../api/axios';
 import StatusChip from '../components/StatusChip';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -83,6 +84,23 @@ describe('TST-040 Memory Token Management (No LocalStorage)', () => {
 
     clearAccessToken();
     expect(getAccessToken()).toBeNull();
+  });
+
+  it('synchronizes tokens seamlessly between http.js and axios.js clients', () => {
+    setAccessToken('token-via-http');
+    expect(getAuthToken()).toBe('token-via-http');
+
+    setAuthToken('token-via-axios');
+    expect(getAccessToken()).toBe('token-via-axios');
+
+    clearAccessToken();
+    expect(getAuthToken()).toBeNull();
+    expect(getAccessToken()).toBeNull();
+
+    setAuthToken('token-2');
+    setAuthToken(null);
+    expect(getAccessToken()).toBeNull();
+    expect(getAuthToken()).toBeNull();
   });
 });
 
