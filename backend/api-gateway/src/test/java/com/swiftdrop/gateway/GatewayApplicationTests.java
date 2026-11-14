@@ -8,11 +8,15 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.cloud.gateway.route.Route;
+import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
@@ -27,6 +31,9 @@ class GatewayApplicationTests {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Autowired
+    private RouteLocator routeLocator;
 
     @LocalManagementPort
     private int managementPort;
@@ -196,5 +203,15 @@ class GatewayApplicationTests {
                 .uri("/actuator/health/readiness")
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    @DisplayName("TST-GW-007 tracking route disables response timeout for SSE streams")
+    void trackingRouteDisablesResponseTimeout() {
+        Route trackingRoute = routeLocator.getRoutes()
+                .filter(route -> "tracking".equals(route.getId()))
+                .blockFirst();
+        assertThat(trackingRoute).isNotNull();
+        assertThat(trackingRoute.getMetadata()).containsEntry("response-timeout", -1);
     }
 }

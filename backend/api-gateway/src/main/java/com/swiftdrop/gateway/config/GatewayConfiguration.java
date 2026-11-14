@@ -92,6 +92,7 @@ public class GatewayConfiguration {
                 .filters(filters -> filters
                         .removeRequestHeader(ApiHeaders.INTERNAL_KEY)
                         .filter(new GatewayProblemFilter(ErrorCode.SERVICE_UNAVAILABLE, "Service unavailable")))
+                .metadata("response-timeout", -1)
                 .uri(tracking));
         addProxyRoute(routes, "notification", notification, ErrorCode.SERVICE_UNAVAILABLE,
                 "/api/v1/merchant/webhook", "/api/v1/merchant/webhook/**");

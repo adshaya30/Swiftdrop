@@ -49,12 +49,12 @@ public class SecurityConfig {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
                     Map<String, Object> problem = new LinkedHashMap<>();
-                    problem.put("type", "https://swiftdrop.com/errors/unauthorized");
-                    problem.put("title", "Unauthorized");
+                    problem.put("type", "https://swiftdrop.com/errors/unauthenticated");
+                    problem.put("title", "Authentication required");
                     problem.put("status", 401);
                     problem.put("detail", "Authentication required to access this resource");
                     problem.put("instance", request.getRequestURI());
-                    problem.put("code", "UNAUTHORIZED");
+                    problem.put("code", "UNAUTHENTICATED");
                     problem.put("traceId", UUID.randomUUID().toString());
                     problem.put("timestamp", Instant.now().toString());
                     objectMapper.writeValue(response.getOutputStream(), problem);
@@ -63,12 +63,12 @@ public class SecurityConfig {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
                     Map<String, Object> problem = new LinkedHashMap<>();
-                    problem.put("type", "https://swiftdrop.com/errors/forbidden");
-                    problem.put("title", "Forbidden");
+                    problem.put("type", "https://swiftdrop.com/errors/access-denied");
+                    problem.put("title", "Access denied");
                     problem.put("status", 403);
                     problem.put("detail", accessDeniedException.getMessage());
                     problem.put("instance", request.getRequestURI());
-                    problem.put("code", "FORBIDDEN");
+                    problem.put("code", "ACCESS_DENIED");
                     problem.put("traceId", UUID.randomUUID().toString());
                     problem.put("timestamp", Instant.now().toString());
                     objectMapper.writeValue(response.getOutputStream(), problem);
@@ -92,6 +92,8 @@ public class SecurityConfig {
                 ).permitAll()
                 // Actuator health & readiness
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/prometheus").permitAll()
+                // Internal service-to-service endpoints guarded by X-Internal-Key filter (FR-AUTH-022)
+                .requestMatchers("/internal/**").permitAll()
                 // Protected profile endpoints
                 .requestMatchers("/api/v1/me/**").authenticated()
                 // Admin endpoints

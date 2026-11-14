@@ -62,7 +62,7 @@ export const routeTable = [
     path: '/change-password',
     title: 'Change Password',
     layout: 'dashboard',
-    pageFolder: 'auth/change-password',
+    pageFolder: 'auth/changePassword',
     roles: ['CUSTOMER', 'MERCHANT', 'COURIER', 'ADMIN'],
     allowMustChangePassword: true,
   },
