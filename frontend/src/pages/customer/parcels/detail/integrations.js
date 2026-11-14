@@ -1,12 +1,13 @@
 import ProofViewer from '../../../courier/components/ProofViewer';
+import ReceiptButton from '../../../merchant/components/ReceiptButton';
 
 // Master 8.1: only confirmed owner contracts are enabled. Swap these adapters
-// after #9 publishes getTimeline/ParcelTimeline and #6 publishes ReceiptButton.
+// after #9 publishes getTimeline/ParcelTimeline.
 export const ownerIntegrations = {
   ProofViewer,
   getTimeline: null,
   ParcelTimeline: null,
-  ReceiptButton: null,
+  ReceiptButton,
 };
 
 // #9's existing public hook ignores {onStatus}. Do not open an ineffective

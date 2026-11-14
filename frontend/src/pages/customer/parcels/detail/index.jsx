@@ -95,7 +95,7 @@ function ParcelDetail({ id }) {
       <PageHeader title={parcel.trackingNumber} action={<StatusChip status={parcel.status} />} />
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Button onClick={refresh} disabled={pending}>Refresh parcel</Button>
-        {ReceiptButton ? <ReceiptButton parcelId={id} /> : <p>Receipt download is currently unavailable.</p>}
+        {ReceiptButton ? <ReceiptButton parcelId={parcel.id} trackingNumber={parcel.trackingNumber} /> : <p>Receipt download is currently unavailable.</p>}
       </Stack>
       <p>Created: {formatDateTime(parcel.createdAt)}</p><p>Updated: {formatDateTime(parcel.updatedAt)}</p>
       {['pickup', 'dropoff'].map((side) => <section key={side} aria-label={side === 'pickup' ? 'Pickup details' : 'Drop-off details'}>

@@ -10,9 +10,14 @@ import { ownerIntegrations, useCustomerStatusStream } from '../integrations';
 import { getParcel, cancelParcel } from '../../../../../api/customerParcels';
 import { getProof, getProofPhoto } from '../../../../../api/proofs';
 import { formatDateTime } from '../../../../../utils/format';
+import ReceiptButton from '../../../../merchant/components/ReceiptButton';
+import { downloadReceipt } from '../../../../../api/receipts';
 
 vi.mock('../../../../../api/customerParcels', () => ({ getParcel: vi.fn(), cancelParcel: vi.fn() }));
 vi.mock('../../../../../api/proofs', () => ({ getProof: vi.fn(), getProofPhoto: vi.fn() }));
+vi.mock('../../../../../api/receipts', async (importOriginal) => ({
+  ...await importOriginal(), downloadReceipt: vi.fn(),
+}));
 vi.mock('../integrations', async () => {
   const { default: ProofViewer } = await import('../../../../courier/components/ProofViewer');
   return {
@@ -209,10 +214,35 @@ describe('TST-040 customer parcel detail and cancellation', () => {
     view.unmount(); expect(revoke).toHaveBeenCalledTimes(2);
   });
   it('does not request proof before delivery and can compose an isolated receipt contract', async () => {
-    ownerIntegrations.ReceiptButton = ({ parcelId }) => <button>Receipt for {parcelId}</button>;
+    const receipt = vi.fn(({ parcelId }) => <button>Receipt for {parcelId}</button>);
+    ownerIntegrations.ReceiptButton = receipt;
     mount(); await screen.findByRole('button', { name: 'Receipt for one' });
+    expect(receipt.mock.calls[0][0]).toMatchObject({ parcelId: 'one', trackingNumber: 'SD-0123456789' });
     expect(getProof).not.toHaveBeenCalled();
     expect(screen.queryByRole('region', { name: 'Delivery proof' })).not.toBeInTheDocument();
+  });
+  it('enables the actual Member #6 ReceiptButton in the production adapter', async () => {
+    const actual = await vi.importActual('../integrations');
+    expect(actual.ownerIntegrations.ReceiptButton).toBe(ReceiptButton);
+  });
+  it('uses the real ReceiptButton with the authoritative parcel id and tracking-number filename', async () => {
+    ownerIntegrations.ReceiptButton = ReceiptButton;
+    downloadReceipt.mockResolvedValue(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    const revoke = vi.fn();
+    class ReceiptURL extends URL {}
+    ReceiptURL.createObjectURL = vi.fn(() => 'blob:customer-receipt');
+    ReceiptURL.revokeObjectURL = revoke;
+    vi.stubGlobal('URL', ReceiptURL);
+    const files = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+      files.push({ href: this.href, filename: this.download });
+    });
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Download receipt' }));
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:customer-receipt'));
+    expect(downloadReceipt).toHaveBeenCalledWith('one');
+    expect(files).toEqual([{ href: 'blob:customer-receipt', filename: 'SwiftDrop-Receipt-SD-0123456789.pdf' }]);
+    expect(document.querySelector('a[href*="/api/"]')).toBeNull();
   });
   it('supports keyboard cancellation dialog focus and dismissal', async () => {
     const user = userEvent.setup(); mount(); await screen.findByText('Pickup Person');
