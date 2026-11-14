@@ -1,6 +1,9 @@
 package com.swiftdrop.tracking.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -36,8 +39,9 @@ public class AuditLog {
     @Column(name = "entity_id", nullable = false, length = 40)
     private String entityId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "details", columnDefinition = "jsonb")
-    private String details;
+    private JsonNode details;
 
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
@@ -62,8 +66,8 @@ public class AuditLog {
     public void setEntityType(String entityType) { this.entityType = entityType; }
     public String getEntityId() { return entityId; }
     public void setEntityId(String entityId) { this.entityId = entityId; }
-    public String getDetails() { return details; }
-    public void setDetails(String details) { this.details = details; }
+    public JsonNode getDetails() { return details; }
+    public void setDetails(JsonNode details) { this.details = details; }
     public Instant getOccurredAt() { return occurredAt; }
     public void setOccurredAt(Instant occurredAt) { this.occurredAt = occurredAt; }
     public Instant getCreatedAt() { return createdAt; }

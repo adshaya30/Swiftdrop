@@ -67,7 +67,7 @@ public class PublicTrackingController {
      * Cache-Control: no-store, X-Accel-Buffering: no.
      */
     @GetMapping(value = "/{trackingNumber}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamTracking(@PathVariable String trackingNumber) {
+    public ResponseEntity<SseEmitter> streamTracking(@PathVariable String trackingNumber) {
         // 404 before the stream starts for malformed numbers
         if (!TrackingNumberFormat.isValid(trackingNumber)) {
             throw new DomainException(ErrorCode.NOT_FOUND, "Parcel not found");
@@ -77,7 +77,11 @@ public class PublicTrackingController {
                 .orElseThrow(() -> new DomainException(ErrorCode.NOT_FOUND, "Parcel not found"));
 
         // Register emitter and send snapshot (FR-TRK-003)
-        return sseEmitterService.register(trackingNumber, parcel);
+        SseEmitter emitter = sseEmitterService.register(trackingNumber, parcel);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header("X-Accel-Buffering", "no")
+                .body(emitter);
     }
 }
 

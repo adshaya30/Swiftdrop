@@ -1,6 +1,5 @@
 package com.swiftdrop.tracking.messaging;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.common.events.EventEnvelope;
 import com.swiftdrop.common.events.EventTypes;
@@ -208,11 +207,7 @@ public class TrackingEventHandlers {
         auditLog.setAction(data.action());
         auditLog.setEntityType(data.entityType());
         auditLog.setEntityId(data.entityId());
-        try {
-            auditLog.setDetails(data.details() != null ? objectMapper.writeValueAsString(data.details()) : null);
-        } catch (JsonProcessingException e) {
-            auditLog.setDetails(null);
-        }
+        auditLog.setDetails(data.details() != null ? objectMapper.valueToTree(data.details()) : null);
         auditLog.setOccurredAt(data.occurredAt());
         auditRepo.save(auditLog);
 
