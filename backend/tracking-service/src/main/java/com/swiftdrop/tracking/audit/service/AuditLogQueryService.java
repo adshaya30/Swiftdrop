@@ -1,8 +1,5 @@
 package com.swiftdrop.tracking.audit.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftdrop.common.error.DomainException;
 import com.swiftdrop.common.error.ErrorCode;
 import com.swiftdrop.common.error.FieldError;
@@ -35,11 +32,9 @@ public class AuditLogQueryService {
     static final ZoneId COLOMBO = ZoneId.of("Asia/Colombo");
 
     private final AuditLogQueryRepository repository;
-    private final ObjectMapper objectMapper;
 
-    public AuditLogQueryService(AuditLogQueryRepository repository, ObjectMapper objectMapper) {
+    public AuditLogQueryService(AuditLogQueryRepository repository) {
         this.repository = repository;
-        this.objectMapper = objectMapper;
     }
 
     public Pagination<AuditLogResponse> search(String action, UUID actorId, LocalDate from, LocalDate to,
@@ -74,17 +69,7 @@ public class AuditLogQueryService {
 
     private AuditLogResponse toResponse(AuditLog a) {
         return new AuditLogResponse(a.getId(), a.getService(), a.getActorUserId(), a.getActorRole(), a.getAction(),
-                a.getEntityType(), a.getEntityId(), parse(a.getDetails()), a.getOccurredAt());
+                a.getEntityType(), a.getEntityId(), a.getDetails(), a.getOccurredAt());
     }
 
-    private JsonNode parse(String details) {
-        if (details == null || details.isBlank()) {
-            return null;
-        }
-        try {
-            return objectMapper.readTree(details);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
 }
