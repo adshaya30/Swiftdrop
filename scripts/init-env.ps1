@@ -39,6 +39,25 @@ function New-RandomBase64 {
     return [System.Convert]::ToBase64String($buf)
 }
 
+# Helper: generate a password satisfying PasswordPolicy (min 12 chars, upper, lower, digit, symbol; safe for .env/compose)
+function New-RandomPassword {
+    param([int]$Length = 16)
+    $upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    $lower = "abcdefghijkmnopqrstuvwxyz"
+    $digits = "23456789"
+    $symbols = "!@*-_=+"
+    $all = $upper + $lower + $digits
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $buf = New-Object byte[] 16
+    $rng.GetBytes($buf)
+    $u = -join (0..1 | ForEach-Object { $upper[$buf[$_] % $upper.Length] })
+    $l = -join (2..5 | ForEach-Object { $lower[$buf[$_] % $lower.Length] })
+    $d = -join (6..9 | ForEach-Object { $digits[$buf[$_] % $digits.Length] })
+    $s = -join (10..11 | ForEach-Object { $symbols[$buf[$_] % $symbols.Length] })
+    $x = -join (12..15 | ForEach-Object { $all[$buf[$_] % $all.Length] })
+    return "${u}${l}${d}${s}${x}"
+}
+
 $content = Get-Content $envFile -Raw
 
 # DB passwords and RabbitMQ password
@@ -57,12 +76,12 @@ $content = $content -replace "CHANGE_ME_INTERNAL_API_KEY", $internalKey
 $webhookKey = New-RandomBase64 -Bytes 32
 $content = $content -replace "CHANGE_ME_WEBHOOK_SECRET_ENCRYPTION_KEY", $webhookKey
 
-# Bootstrap admin password
-$adminPass = New-RandomHex -Bytes 16
+# Bootstrap admin password (must satisfy PasswordPolicy: uppercase, lowercase, digit, symbol)
+$adminPass = New-RandomPassword
 $content = $content -replace "CHANGE_ME_BOOTSTRAP_ADMIN_PASSWORD", $adminPass
 
-# Demo user password
-$demoPass = New-RandomHex -Bytes 12
+# Demo user password (must satisfy PasswordPolicy)
+$demoPass = New-RandomPassword
 $content = $content -replace "CHANGE_ME_DEMO_USER_PASSWORD", $demoPass
 
 # Write as UTF-8 without BOM (plain ASCII-safe)

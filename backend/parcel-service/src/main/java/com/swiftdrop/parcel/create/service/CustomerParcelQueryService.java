@@ -4,12 +4,14 @@ import com.swiftdrop.common.enums.ParcelStatus;
 import com.swiftdrop.common.error.DomainException;
 import com.swiftdrop.common.error.ErrorCode;
 import com.swiftdrop.common.paging.Pagination;
+import com.swiftdrop.parcel.create.dto.CustomerDashboardSummary;
 import com.swiftdrop.parcel.create.dto.ParcelDetailDto;
 import com.swiftdrop.parcel.create.mapper.ParcelDetailMapper;
 import com.swiftdrop.parcel.domain.Parcel;
 import com.swiftdrop.parcel.domain.ParcelRepository;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
@@ -60,6 +62,19 @@ public class CustomerParcelQueryService {
                 Sort.by(Sort.Direction.fromString(ordering[1]), ordering[0])));
         return Pagination.of(result.getContent().stream().map(mapper::toDetail).toList(), page, size,
                 result.getTotalElements());
+    }
+
+    /** FR-PAR-015: active and delivered counts, plus the five most recent parcels. */
+    public CustomerDashboardSummary dashboardSummary(UUID owner) {
+        long active = parcels.count(owned(owner).and((root, query, cb) ->
+                root.get("status").in(ParcelStatus.CREATED, ParcelStatus.PICKED_UP,
+                        ParcelStatus.IN_TRANSIT, ParcelStatus.OUT_FOR_DELIVERY)));
+        long delivered = parcels.count(owned(owner).and((root, query, cb) ->
+                cb.equal(root.get("status"), ParcelStatus.DELIVERED)));
+        List<ParcelDetailDto> recent = parcels.findAll(owned(owner),
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent().stream().map(mapper::toDetail).toList();
+        return new CustomerDashboardSummary(active, delivered, recent);
     }
 
     private static Specification<Parcel> owned(UUID owner) {

@@ -32,7 +32,10 @@ public class DeliveryClient {
 
     public DeliveryClient(
             @Value("${delivery.service.url:${DELIVERY_SERVICE_URL:http://localhost:8084}}") String deliveryServiceUrl,
-            @Value("${internal.api.key:${INTERNAL_API_KEY:swiftdrop-internal-secret-key}}") String internalApiKey) {
+            @Value("${INTERNAL_API_KEY:${swiftdrop.internal-api-key:${internal.api.key:}}}") String internalApiKey) {
+        if (internalApiKey == null || internalApiKey.isBlank()) {
+            throw new IllegalStateException("INTERNAL_API_KEY is required but was not provided");
+        }
         this.deliveryServiceUrl = deliveryServiceUrl.endsWith("/") ? deliveryServiceUrl.substring(0, deliveryServiceUrl.length() - 1) : deliveryServiceUrl;
         this.internalApiKey = internalApiKey;
         this.restClient = RestClient.builder().build();

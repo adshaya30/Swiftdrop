@@ -18,8 +18,10 @@ import com.swiftdrop.auth.users.client.DeliveryClient;
 import com.swiftdrop.auth.users.dto.CreateUserRequest;
 import com.swiftdrop.auth.users.dto.CreateUserResponse;
 import com.swiftdrop.auth.users.dto.ResetPasswordResponse;
-import com.swiftdrop.auth.entity.*;
-import com.swiftdrop.auth.repository.*;
+import com.swiftdrop.auth.entity.AuthProvider;
+import com.swiftdrop.auth.entity.UserRole;
+import com.swiftdrop.auth.entity.UserStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.swiftdrop.auth.users.domain.CourierProfile;
 import com.swiftdrop.auth.users.domain.CourierProfileRepository;
 import com.swiftdrop.auth.login.service.JwtService;
@@ -60,7 +62,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
     private CourierProfileRepository courierProfileRepository;
 
     @Autowired
-    private OutboxEventRepository outboxEventRepository;
+    private JdbcTemplate jdbc;
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
@@ -85,7 +87,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        outboxEventRepository.deleteAll();
+        jdbc.update("DELETE FROM outbox_events");
         courierProfileRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         merchantRepository.deleteAll();
@@ -144,11 +146,13 @@ class AdminUsersIT extends AbstractIntegrationTest {
         assertThat(passwordEncoder.matches(response.getBody().temporaryPassword(), createdDbUser.getPasswordHash())).isTrue();
 
         // Verify outbox audit event
-        List<OutboxEvent> outboxEvents = outboxEventRepository.findByEventType("audit.recorded");
-        assertThat(outboxEvents).isNotEmpty();
-        OutboxEvent audit = outboxEvents.get(0);
-        assertThat(audit.getPayload()).contains("USER_CREATED");
-        assertThat(audit.getPayload()).contains("secondadmin@swiftdrop.lk");
+        List<String> auditEvents = jdbc.queryForList(
+                "SELECT payload::text FROM outbox_events WHERE routing_key = 'audit.recorded' ORDER BY created_at",
+                String.class);
+        assertThat(auditEvents).isNotEmpty();
+        String audit = auditEvents.get(0);
+        assertThat(audit).contains("USER_CREATED");
+        assertThat(audit).contains("secondadmin@swiftdrop.lk");
     }
 
     @Test
@@ -159,7 +163,7 @@ class AdminUsersIT extends AbstractIntegrationTest {
                 "sunil@swiftdrop.lk",
                 "+94778889900",
                 "COURIER",
-                "MOTORCYCLE",
+                "MOTORBIKE",
                 "WP-BA-1234"
         );
 
@@ -177,20 +181,26 @@ class AdminUsersIT extends AbstractIntegrationTest {
         // Verify courier profile exists
         User courierUser = userRepository.findByEmailIgnoreCase("sunil@swiftdrop.lk").orElseThrow();
         CourierProfile profile = courierProfileRepository.findByUserId(courierUser.getId()).orElseThrow();
-        assertThat(profile.getVehicleType()).isEqualTo("MOTORCYCLE");
+        assertThat(profile.getVehicleType()).isEqualTo("MOTORBIKE");
         assertThat(profile.getVehicleNumber()).isEqualTo("WP-BA-1234");
         assertThat(profile.getStatus()).isEqualTo("ACTIVE");
 
         // Verify outbox events (both audit.recorded and courier.changed)
-        List<OutboxEvent> auditEvents = outboxEventRepository.findByEventType("audit.recorded");
-        List<OutboxEvent> courierEvents = outboxEventRepository.findByEventType("courier.changed");
+        List<String> auditEvents = jdbc.queryForList(
+                "SELECT payload::text FROM outbox_events WHERE routing_key = 'audit.recorded' ORDER BY created_at",
+                String.class);
+        List<String> courierEvents = jdbc.queryForList(
+                "SELECT payload::text FROM outbox_events WHERE routing_key = 'courier.changed' ORDER BY created_at",
+                String.class);
         assertThat(auditEvents).isNotEmpty();
         assertThat(courierEvents).isNotEmpty();
 
-        OutboxEvent courierEvent = courierEvents.get(0);
-        assertThat(courierEvent.getAggregateType()).isEqualTo("COURIER");
-        assertThat(courierEvent.getAggregateId()).isEqualTo(profile.getId());
-        assertThat(courierEvent.getPayload()).contains("WP-BA-1234");
+        String courierEvent = courierEvents.get(0);
+        assertThat(courierEvent).contains(courierUser.getId().toString());
+        assertThat(courierEvent).contains("WP-BA-1234");
+        assertThat(courierEvent).contains("MOTORBIKE");
+        assertThat(courierEvent).contains("\"schemaVersion\":1");
+        assertThat(courierEvent).contains("\"eventType\":\"courier.changed\"");
     }
 
     @Test
@@ -233,9 +243,11 @@ class AdminUsersIT extends AbstractIntegrationTest {
         assertThat(updatedProfile.getStatus()).isEqualTo("DEACTIVATED");
 
         // Verify courier.changed outbox event
-        List<OutboxEvent> courierEvents = outboxEventRepository.findByEventType("courier.changed");
+        List<String> courierEvents = jdbc.queryForList(
+                "SELECT payload::text FROM outbox_events WHERE routing_key = 'courier.changed' ORDER BY created_at",
+                String.class);
         assertThat(courierEvents).isNotEmpty();
-        assertThat(courierEvents.get(0).getPayload()).contains("DEACTIVATED");
+        assertThat(courierEvents.get(0)).contains("DEACTIVATED");
     }
 
     @Test
@@ -323,8 +335,10 @@ class AdminUsersIT extends AbstractIntegrationTest {
         assertThat(dbRt.getRevokedAt()).isNotNull();
 
         // Audit outbox event recorded
-        List<OutboxEvent> auditEvents = outboxEventRepository.findByEventType("audit.recorded");
+        List<String> auditEvents = jdbc.queryForList(
+                "SELECT payload::text FROM outbox_events WHERE routing_key = 'audit.recorded' ORDER BY created_at",
+                String.class);
         assertThat(auditEvents).isNotEmpty();
-        assertThat(auditEvents.get(0).getPayload()).contains("PASSWORD_RESET");
+        assertThat(auditEvents.get(0)).contains("USER_PASSWORD_RESET");
     }
 }

@@ -1,0 +1,5 @@
+@import '../../components/customer.css';
+.customer-detail section { min-width: 0; margin-block: 20px; }
+.customer-detail p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.customer-detail .customer-parcel-facts { grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); }
+.customer-detail h2 { font-size: 1.2rem; }

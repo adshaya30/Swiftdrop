@@ -1,15 +1,28 @@
-FROM maven:3.9.11-eclipse-temurin-21-alpine AS build
+# Build context: backend/ (DEP-001, SRS 9.1)
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
-COPY pom.xml .
-COPY src ./src
-RUN mvn -B -DskipTests package
+COPY mvnw pom.xml ./
+COPY .mvn/ .mvn/
+COPY common-core/ common-core/
+COPY common-lib/ common-lib/
+COPY api-gateway/ api-gateway/
+COPY auth-service/pom.xml auth-service/pom.xml
+COPY delivery-service/pom.xml delivery-service/pom.xml
+COPY notification-service/pom.xml notification-service/pom.xml
+COPY parcel-service/pom.xml parcel-service/pom.xml
+COPY pricing-service/pom.xml pricing-service/pom.xml
+COPY tracking-service/pom.xml tracking-service/pom.xml
+RUN sh ./mvnw -B -pl api-gateway -am -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
-RUN apk add --no-cache wget \
+ENV TZ=UTC
+RUN apk add --no-cache wget tzdata \
     && addgroup -S app \
     && adduser -S app -G app
 WORKDIR /app
-COPY --from=build --chown=app:app /workspace/target/*.jar app.jar
+COPY --from=build --chown=app:app /workspace/api-gateway/target/api-gateway-1.0.0.jar app.jar
 USER app
-EXPOSE 8080 8090
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD wget -q --spider http://localhost:8090/actuator/health/readiness || exit 1
+ENTRYPOINT ["java", "-Duser.timezone=UTC", "-jar", "/app/app.jar"]
