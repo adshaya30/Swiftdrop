@@ -23,6 +23,7 @@ import ErrorState from '../../../components/ErrorState';
 import { formatDate } from '../../../utils/format';
 import { listMerchants } from '../../../api/adminMerchants';
 import { MERCHANT_STATUSES, MERCHANT_STATUS_LABELS, MerchantStatusChip } from './MerchantStatusChip';
+import { MERCHANTS_QUERY_KEY } from './queryKeys';
 
 /**
  * Merchant directory for ADMIN users. SRS v2.1 - FR-AUTH-017, UC-A05.
@@ -34,7 +35,6 @@ import { MERCHANT_STATUSES, MERCHANT_STATUS_LABELS, MerchantStatusChip } from '.
 const PAGE_SIZES = [10, 20, 50];
 const DEFAULT_SIZE = 20;
 const SEARCH_DELAY_MS = 400;
-export const MERCHANTS_QUERY_KEY = ['admin', 'merchants'];
 
 const headCellSx = { fontWeight: 700, color: tokens.palette.text, whiteSpace: 'nowrap' };
 const controlSx = { '& .MuiOutlinedInput-root': { minHeight: tokens.controlHeight.standard } };
