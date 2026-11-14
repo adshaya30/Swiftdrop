@@ -122,3 +122,4 @@
    - Verify that `Mailpit` connectivity uses container hostname `mailpit:1025` within Docker Compose networks, while host testing uses `127.0.0.1:1025`.
 3. **All Backend Members**:
    - Confirm that all Flyway migrations (`V1__init.sql`) apply cleanly from cold start without requiring manual intervention or pre-existing schemas.
+

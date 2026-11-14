@@ -369,3 +369,4 @@ if ($FailedTests -eq 0) {
     Write-Host "`n>>> SMOKE TEST FAILED WITH $FailedTests ERROR(S) <<<`n" -ForegroundColor Red
     exit 1
 }
+

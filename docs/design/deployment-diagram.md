@@ -145,3 +145,4 @@ sequenceDiagram
     GW->>GW: Routes mapped, Healthcheck OK (Port 8090)
     Note over GW: Ready for User Traffic on 8080
 ```
+

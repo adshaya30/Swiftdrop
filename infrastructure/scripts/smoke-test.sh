@@ -493,3 +493,4 @@ else
     echo -e "\n${RED}>>> SMOKE TEST FAILED WITH ${FAILED_TESTS} ERROR(S) - SEE DETAILS ABOVE <<<${NC}\n"
     exit 1
 fi
+
