@@ -2,7 +2,6 @@ package com.swiftdrop.notification.controller;
 
 import com.swiftdrop.notification.entity.Notification;
 import com.swiftdrop.notification.repository.NotificationRepository;
-import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,7 +15,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/internal/v1/notifications")
-@Hidden
 public class InternalNotificationController {
 
     private final NotificationRepository notificationRepository;

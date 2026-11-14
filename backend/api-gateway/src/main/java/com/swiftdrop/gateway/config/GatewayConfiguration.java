@@ -89,10 +89,10 @@ public class GatewayConfiguration {
                 "/api/v1/admin/dashboard/dispatch", "/api/v1/proofs/**");
         routes.route("tracking", route -> route
                 .path("/api/v1/public/tracking/**", "/api/v1/tracking/**", "/api/v1/admin/audit-logs")
-                .metadata("response-timeout", -1)
                 .filters(filters -> filters
                         .removeRequestHeader(ApiHeaders.INTERNAL_KEY)
                         .filter(new GatewayProblemFilter(ErrorCode.SERVICE_UNAVAILABLE, "Service unavailable")))
+                .metadata("response-timeout", -1)
                 .uri(tracking));
         addProxyRoute(routes, "notification", notification, ErrorCode.SERVICE_UNAVAILABLE,
                 "/api/v1/merchant/webhook", "/api/v1/merchant/webhook/**");

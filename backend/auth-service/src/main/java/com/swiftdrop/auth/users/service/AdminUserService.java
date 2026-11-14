@@ -6,11 +6,11 @@ import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
+import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
 import com.swiftdrop.auth.profile.dto.MerchantSummaryResponse;
 import com.swiftdrop.common.enums.ActorRole;
-import com.swiftdrop.common.enums.UserStatus;
 import com.swiftdrop.common.enums.VehicleType;
 import com.swiftdrop.common.events.AuditEvents;
 import com.swiftdrop.common.events.EventTypes;
@@ -354,7 +354,7 @@ public class AdminUserService {
         } catch (Exception e) {
             vt = VehicleType.MOTORBIKE;
         }
-        UserStatus st = UserStatus.valueOf(user.getStatus().name());
+        com.swiftdrop.common.enums.UserStatus st = com.swiftdrop.common.enums.UserStatus.valueOf(user.getStatus().name());
         CourierChangedData data = new CourierChangedData(
                 user.getId(),
                 user.getFullName(),

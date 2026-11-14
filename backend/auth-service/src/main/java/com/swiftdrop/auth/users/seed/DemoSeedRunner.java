@@ -7,7 +7,7 @@ import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.MerchantStatus;
 import com.swiftdrop.auth.entity.UserRole;
-import com.swiftdrop.common.enums.UserStatus;
+import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.common.enums.VehicleType;
 import com.swiftdrop.common.events.EventTypes;
 import com.swiftdrop.common.events.OutboxService;
@@ -111,7 +111,7 @@ public class DemoSeedRunner implements ApplicationRunner {
                 outboxService.add(EventTypes.COURIER_CHANGED, new CourierChangedData(
                         courierUser.getId(),
                         courierUser.getFullName(),
-                        UserStatus.ACTIVE,
+                        com.swiftdrop.common.enums.UserStatus.ACTIVE,
                         vt,
                         seed.vehicleNumber()
                 ));

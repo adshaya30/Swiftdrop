@@ -42,7 +42,7 @@ public class CustomerDashboardController {
                 content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemBody.class)))
     })
     public CustomerDashboardSummary summary() {
-        return queries.dashboardSummary(CurrentUsers.require().userId());
+        return queries.dashboardSummary(CurrentUsers.get().userId());
     }
 }
 
