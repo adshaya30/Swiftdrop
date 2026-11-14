@@ -206,7 +206,14 @@ export const routeTable = [
     path: '/admin/parcels/unassigned',
     title: 'Unassigned Parcels',
     layout: 'dashboard',
-    pageFolder: 'admin/parcels/unassigned',
+    pageFolder: 'admin/dispatch',
+    roles: ['ADMIN'],
+  },
+  {
+    path: '/admin/couriers',
+    title: 'Couriers',
+    layout: 'dashboard',
+    pageFolder: 'admin/couriers',
     roles: ['ADMIN'],
   },
   {

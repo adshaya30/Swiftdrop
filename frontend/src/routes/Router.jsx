@@ -12,13 +12,13 @@ import NotBuiltYet from '../components/NotBuiltYet';
  * Dynamic page resolution via Vite's import.meta.glob per Master Prompt Section 7.4.
  * Other members will add /src/pages/<folder>/index.jsx without needing to edit this route table.
  */
-const pageModules = import.meta.glob('/src/pages/**/index.jsx');
+const pageModules = import.meta.glob('../pages/**/index.jsx');
 
 /**
  * Resolves a page component dynamically, falling back to NotBuiltYet.
  */
 export function resolvePageComponent(pageFolder, routeTitle) {
-  const globKey = `/src/pages/${pageFolder}/index.jsx`;
+  const globKey = `../pages/${pageFolder}/index.jsx`;
   if (pageModules[globKey]) {
     const LazyComponent = lazy(pageModules[globKey]);
     return function DynamicPage(props) {
