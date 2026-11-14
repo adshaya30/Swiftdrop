@@ -69,6 +69,8 @@ AMQP properties: `contentType=application/json`, `deliveryMode=2` (persistent), 
 `type=eventType`. Events carry no customer, merchant or recipient contact data; the staff note travels only in
 `parcel.status.changed` (BR-28).
 
+All events (including `courier.changed` from auth-service with `CourierChangedData`, `merchant.status.changed`, and `audit.recorded`) strictly adhere to the standard `EventEnvelope` format via common-lib's `OutboxService.add(routingKey, data)`.
+
 ## 4. Publishing: transactional outbox (D-05)
 
 ```mermaid

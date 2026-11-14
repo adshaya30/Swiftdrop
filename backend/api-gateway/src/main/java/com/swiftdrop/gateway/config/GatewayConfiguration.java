@@ -89,6 +89,7 @@ public class GatewayConfiguration {
                 "/api/v1/admin/dashboard/dispatch", "/api/v1/proofs/**");
         routes.route("tracking", route -> route
                 .path("/api/v1/public/tracking/**", "/api/v1/tracking/**", "/api/v1/admin/audit-logs")
+                .metadata("response-timeout", -1)
                 .filters(filters -> filters
                         .removeRequestHeader(ApiHeaders.INTERNAL_KEY)
                         .filter(new GatewayProblemFilter(ErrorCode.SERVICE_UNAVAILABLE, "Service unavailable")))

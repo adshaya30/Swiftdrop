@@ -6,11 +6,16 @@ import com.swiftdrop.auth.domain.User;
 import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
-import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.exception.*;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
 import com.swiftdrop.auth.profile.dto.MerchantSummaryResponse;
-import com.swiftdrop.auth.service.OutboxService;
+import com.swiftdrop.common.enums.ActorRole;
+import com.swiftdrop.common.enums.UserStatus;
+import com.swiftdrop.common.enums.VehicleType;
+import com.swiftdrop.common.events.AuditEvents;
+import com.swiftdrop.common.events.EventTypes;
+import com.swiftdrop.common.events.OutboxService;
+import com.swiftdrop.common.events.data.CourierChangedData;
 import com.swiftdrop.auth.users.client.DeliveryClient;
 import com.swiftdrop.auth.users.domain.CourierProfile;
 import com.swiftdrop.auth.users.domain.CourierProfileRepository;
@@ -47,6 +52,7 @@ public class AdminUserService {
     private final PasswordEncoder passwordEncoder;
     private final DeliveryClient deliveryClient;
     private final OutboxService outboxService;
+    private final AuditEvents auditEvents;
 
     public AdminUserService(
             UserRepository userRepository,
@@ -55,7 +61,8 @@ public class AdminUserService {
             RefreshTokenService refreshTokenService,
             PasswordEncoder passwordEncoder,
             DeliveryClient deliveryClient,
-            OutboxService outboxService) {
+            OutboxService outboxService,
+            AuditEvents auditEvents) {
         this.userRepository = userRepository;
         this.courierProfileRepository = courierProfileRepository;
         this.merchantRepository = merchantRepository;
@@ -63,6 +70,7 @@ public class AdminUserService {
         this.passwordEncoder = passwordEncoder;
         this.deliveryClient = deliveryClient;
         this.outboxService = outboxService;
+        this.auditEvents = auditEvents;
     }
 
     /**
@@ -161,14 +169,15 @@ public class AdminUserService {
                     "ACTIVE"
             );
             courierProfile = courierProfileRepository.save(courierProfile);
-            outboxService.recordCourierChangedEvent(savedUser, courierProfile);
+            publishCourierChanged(savedUser, courierProfile);
         }
 
-        outboxService.recordAuditEvent(
-                "USER_CREATED",
+        auditEvents.record(
                 actorId,
-                savedUser.getId(),
-                savedUser.getRole().name(),
+                ActorRole.ADMIN,
+                "USER_CREATED",
+                "USER",
+                savedUser.getId().toString(),
                 Map.of("role", targetRole.name())
         );
 
@@ -209,16 +218,17 @@ public class AdminUserService {
                 }
                 if (profileModified) {
                     courierProfile = courierProfileRepository.save(courierProfile);
-                    outboxService.recordCourierChangedEvent(updatedUser, courierProfile);
+                    publishCourierChanged(updatedUser, courierProfile);
                 }
             }
         }
 
-        outboxService.recordAuditEvent(
-                "USER_UPDATED",
+        auditEvents.record(
                 actorId,
-                userId,
-                user.getRole().name(),
+                ActorRole.ADMIN,
+                "USER_UPDATED",
+                "USER",
+                userId.toString(),
                 Map.of("role", user.getRole().name())
         );
 
@@ -248,11 +258,11 @@ public class AdminUserService {
             if (courierProfile != null) {
                 courierProfile.setStatus("ACTIVE");
                 courierProfile = courierProfileRepository.save(courierProfile);
-                outboxService.recordCourierChangedEvent(savedUser, courierProfile);
+                publishCourierChanged(savedUser, courierProfile);
             }
         }
 
-        outboxService.recordAuditEvent("USER_ACTIVATED", actorId, userId, user.getRole().name(), Map.of());
+        auditEvents.record(actorId, ActorRole.ADMIN, "USER_ACTIVATED", "USER", userId.toString(), Map.of());
         log.info("Admin {} activated user {}", actorId, userId);
         return toSummaryResponse(savedUser, courierProfile);
     }
@@ -296,13 +306,13 @@ public class AdminUserService {
         if (courierProfile != null) {
             courierProfile.setStatus("DEACTIVATED");
             courierProfile = courierProfileRepository.save(courierProfile);
-            outboxService.recordCourierChangedEvent(savedUser, courierProfile);
+            publishCourierChanged(savedUser, courierProfile);
         }
 
         // Revoke all active refresh tokens for the deactivated user
         refreshTokenService.revokeAllForUser(userId);
 
-        outboxService.recordAuditEvent("USER_DEACTIVATED", actorId, userId, user.getRole().name(), Map.of());
+        auditEvents.record(actorId, ActorRole.ADMIN, "USER_DEACTIVATED", "USER", userId.toString(), Map.of());
         log.info("Admin {} deactivated user {}", actorId, userId);
         return toSummaryResponse(savedUser, courierProfile);
     }
@@ -330,10 +340,29 @@ public class AdminUserService {
 
         refreshTokenService.revokeAllForUser(userId);
 
-        outboxService.recordAuditEvent("USER_PASSWORD_RESET", actorId, userId, user.getRole().name(), Map.of());
+        auditEvents.record(actorId, ActorRole.ADMIN, "USER_PASSWORD_RESET", "USER", userId.toString(), Map.of());
         log.info("Admin {} reset password for user {}", actorId, userId);
 
         return new ResetPasswordResponse(tempPassword, "Temporary password generated successfully.");
+    }
+
+    private void publishCourierChanged(User user, CourierProfile profile) {
+        if (user == null || profile == null) return;
+        VehicleType vt;
+        try {
+            vt = VehicleType.valueOf(profile.getVehicleType().trim().toUpperCase());
+        } catch (Exception e) {
+            vt = VehicleType.MOTORBIKE;
+        }
+        UserStatus st = UserStatus.valueOf(user.getStatus().name());
+        CourierChangedData data = new CourierChangedData(
+                user.getId(),
+                user.getFullName(),
+                st,
+                vt,
+                profile.getVehicleNumber()
+        );
+        outboxService.add(EventTypes.COURIER_CHANGED, data);
     }
 
     public AdminUserSummaryResponse toSummaryResponse(User user) {

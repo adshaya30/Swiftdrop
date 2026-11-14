@@ -7,8 +7,11 @@ import com.swiftdrop.auth.domain.UserRepository;
 import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.MerchantStatus;
 import com.swiftdrop.auth.entity.UserRole;
-import com.swiftdrop.auth.entity.UserStatus;
-import com.swiftdrop.auth.service.OutboxService;
+import com.swiftdrop.common.enums.UserStatus;
+import com.swiftdrop.common.enums.VehicleType;
+import com.swiftdrop.common.events.EventTypes;
+import com.swiftdrop.common.events.OutboxService;
+import com.swiftdrop.common.events.data.CourierChangedData;
 import com.swiftdrop.auth.users.domain.CourierProfile;
 import com.swiftdrop.auth.users.domain.CourierProfileRepository;
 import org.slf4j.Logger;
@@ -104,7 +107,14 @@ public class DemoSeedRunner implements ApplicationRunner {
                         "ACTIVE"
                 );
                 profile = courierProfileRepository.save(profile);
-                outboxService.recordCourierChangedEvent(courierUser, profile);
+                VehicleType vt = VehicleType.valueOf(seed.vehicleType().toUpperCase());
+                outboxService.add(EventTypes.COURIER_CHANGED, new CourierChangedData(
+                        courierUser.getId(),
+                        courierUser.getFullName(),
+                        UserStatus.ACTIVE,
+                        vt,
+                        seed.vehicleNumber()
+                ));
                 log.info("Seeded demo courier: email={}, profileId={}", seed.email, profile.getId());
             }
         }

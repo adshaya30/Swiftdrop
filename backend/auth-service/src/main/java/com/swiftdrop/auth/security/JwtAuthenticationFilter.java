@@ -71,7 +71,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             claims = jwtService.parseAndVerifyToken(rawToken);
         } catch (Exception e) {
             log.warn("Bearer token verification failed for {}: {}", request.getRequestURI(), e.getMessage());
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid, expired, or untrusted access token", request.getRequestURI());
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("expired")) {
+                writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "Access token has expired", request.getRequestURI());
+            } else {
+                writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Invalid or untrusted access token", request.getRequestURI());
+            }
             return;
         }
 
@@ -80,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String aud = (String) claims.get("aud");
         if (!REQUIRED_ISSUER.equals(iss) || !REQUIRED_AUDIENCE.equals(aud)) {
             log.warn("JWT issuer/audience mismatch: iss={}, aud={}", iss, aud);
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Token issuer or audience is invalid", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Token issuer or audience is invalid", request.getRequestURI());
             return;
         }
 
@@ -88,7 +93,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Number expNumber = (Number) claims.get("exp");
         if (expNumber == null || expNumber.longValue() < Instant.now().getEpochSecond()) {
             log.warn("JWT is expired");
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Access token has expired", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "Access token has expired", request.getRequestURI());
             return;
         }
 
@@ -96,12 +101,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String typ = (String) claims.get("typ");
         if ("client".equalsIgnoreCase(typ)) {
             log.warn("Client-credentials token rejected from user endpoint at {}", request.getRequestURI());
-            writeProblemDetails(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "Client-credentials tokens cannot access user profile endpoints", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Client-credentials tokens cannot access user profile endpoints", request.getRequestURI());
             return;
         }
         if (!REQUIRED_TYPE.equals(typ)) {
             log.warn("Invalid token type: {}", typ);
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid token type", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Invalid token type", request.getRequestURI());
             return;
         }
 
@@ -112,7 +117,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             userId = UUID.fromString(sub);
         } catch (Exception e) {
             log.warn("Invalid subject UUID in token: {}", sub);
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid user subject in token", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Invalid user subject in token", request.getRequestURI());
             return;
         }
 
@@ -120,7 +125,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String role = (String) claims.get("role");
         if (role == null || role.isBlank()) {
             log.warn("Missing role claim in token");
-            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Missing role claim in token", request.getRequestURI());
+            writeProblemDetails(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Missing role claim in token", request.getRequestURI());
             return;
         }
 

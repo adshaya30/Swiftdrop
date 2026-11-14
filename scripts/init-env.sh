@@ -40,6 +40,29 @@ rand_b64() {
   fi
 }
 
+# Helper: generate a password satisfying PasswordPolicy (min 12 chars, upper, lower, digit, symbol; safe for .env/compose)
+rand_pass() {
+  local upper="ABCDEFGHJKLMNPQRSTUVWXYZ"
+  local lower="abcdefghijkmnopqrstuvwxyz"
+  local digits="23456789"
+  local symbols="!@*-_=+"
+  local u l d s x
+  if command -v openssl &>/dev/null; then
+    u=$(openssl rand 64 | LC_ALL=C tr -dc "$upper" | head -c 2)
+    l=$(openssl rand 64 | LC_ALL=C tr -dc "$lower" | head -c 4)
+    d=$(openssl rand 64 | LC_ALL=C tr -dc "$digits" | head -c 4)
+    s=$(openssl rand 64 | LC_ALL=C tr -dc "$symbols" | head -c 2)
+    x=$(openssl rand 64 | LC_ALL=C tr -dc "${upper}${lower}${digits}" | head -c 4)
+  else
+    u=$(LC_ALL=C tr -dc "$upper" < /dev/urandom | head -c 2)
+    l=$(LC_ALL=C tr -dc "$lower" < /dev/urandom | head -c 4)
+    d=$(LC_ALL=C tr -dc "$digits" < /dev/urandom | head -c 4)
+    s=$(LC_ALL=C tr -dc "$symbols" < /dev/urandom | head -c 2)
+    x=$(LC_ALL=C tr -dc "${upper}${lower}${digits}" < /dev/urandom | head -c 4)
+  fi
+  echo "${u}${l}${d}${s}${x}"
+}
+
 # Replace each CHANGE_ME_* placeholder with a random value
 sed_inplace() {
   if sed --version 2>/dev/null | grep -q GNU; then
@@ -65,12 +88,12 @@ sed_inplace "s|CHANGE_ME_INTERNAL_API_KEY|${INTERNAL_API_KEY_VAL}|g" "$ENV_FILE"
 WEBHOOK_KEY_VAL=$(rand_b64 32 | tr -d '\n')
 sed_inplace "s|CHANGE_ME_WEBHOOK_SECRET_ENCRYPTION_KEY|${WEBHOOK_KEY_VAL}|g" "$ENV_FILE"
 
-# Bootstrap admin password
-ADMIN_PASS=$(rand_hex 16)
+# Bootstrap admin password (must satisfy PasswordPolicy: uppercase, lowercase, digit, symbol)
+ADMIN_PASS=$(rand_pass)
 sed_inplace "s|CHANGE_ME_BOOTSTRAP_ADMIN_PASSWORD|${ADMIN_PASS}|g" "$ENV_FILE"
 
-# Demo user password
-DEMO_PASS=$(rand_hex 12)
+# Demo user password (must satisfy PasswordPolicy)
+DEMO_PASS=$(rand_pass)
 sed_inplace "s|CHANGE_ME_DEMO_USER_PASSWORD|${DEMO_PASS}|g" "$ENV_FILE"
 
 echo ""

@@ -86,6 +86,12 @@ To launch the complete application stack (infrastructure, all backend services, 
 docker compose up -d --build
 ```
 
+To include the optional `mock-merchant` webhook receiver for demo flows:
+
+```bash
+docker compose --profile demo up -d --build
+```
+
 Stop stack:
 ```bash
 docker compose down

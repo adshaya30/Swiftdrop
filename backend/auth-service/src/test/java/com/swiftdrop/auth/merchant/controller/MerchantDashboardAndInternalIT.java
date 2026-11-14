@@ -159,25 +159,28 @@ class MerchantDashboardAndInternalIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("TST-033 FR-AUTH-022: without the service-wide permitAll for /internal/**, an internal call is not served (closed by default)")
+    @DisplayName("TST-033 FR-AUTH-022: internal endpoints require valid X-Internal-Key (401 without, 403 invalid, 200 with valid key)")
     void internalPathsAreClosedByDefault() {
         User user = createUser("someone@example.com", UserRole.CUSTOMER);
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Key", internalApiKey.value());
         ResponseEntity<String> response = rest.exchange("/internal/v1/users/" + user.getId() + "/contact",
                 HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        // Currently 401 from auth-service's SecurityConfig (anyRequest().authenticated()). Once Member 1 lets
-        // /internal/** through, the shared filter takes over; the contact data must never leak without that.
-        assertThat(response.getStatusCode().value()).isIn(200, 401, 403);
-        if (response.getStatusCode() == HttpStatus.OK) {
-            assertThat(response.getBody()).contains(user.getId().toString());
-        } else {
-            assertThat(String.valueOf(response.getBody())).doesNotContain("someone@example.com");
-        }
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains(user.getId().toString());
+        assertThat(response.getBody()).contains("someone@example.com");
+
         ResponseEntity<String> noKey = rest.exchange("/internal/v1/users/" + user.getId() + "/contact",
                 HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
         assertThat(noKey.getStatusCode().value()).isIn(401, 403);
         assertThat(String.valueOf(noKey.getBody())).doesNotContain("someone@example.com");
+
+        HttpHeaders badHeaders = new HttpHeaders();
+        badHeaders.set("X-Internal-Key", "invalid-key-012345678901234567890123");
+        ResponseEntity<String> badKey = rest.exchange("/internal/v1/users/" + user.getId() + "/contact",
+                HttpMethod.GET, new HttpEntity<>(badHeaders), String.class);
+        assertThat(badKey.getStatusCode().value()).isIn(401, 403);
+        assertThat(String.valueOf(badKey.getBody())).doesNotContain("someone@example.com");
     }
 
     // ------------------------------------------------------------------ helpers

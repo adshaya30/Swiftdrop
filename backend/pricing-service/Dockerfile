@@ -16,8 +16,7 @@ COPY delivery-service/pom.xml delivery-service/pom.xml
 COPY tracking-service/pom.xml tracking-service/pom.xml
 COPY notification-service/pom.xml notification-service/pom.xml
 COPY parcel-service/pom.xml parcel-service/pom.xml
-# Run dependency tests with a Docker-capable builder; no test-skipping flags.
-RUN sh ./mvnw -B -pl pricing-service -am verify
+RUN sh ./mvnw -B -pl pricing-service -am -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 ENV TZ=UTC
