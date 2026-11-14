@@ -8,6 +8,7 @@ import com.swiftdrop.auth.domain.RefreshTokenRepository;
 import com.swiftdrop.auth.login.service.JwtService;
 import com.swiftdrop.auth.login.service.LoginService;
 import com.swiftdrop.auth.login.service.RefreshTokenService;
+import com.swiftdrop.auth.login.dto.IssuedRefresh;
 import com.swiftdrop.auth.login.service.PasswordHasher;
 import com.swiftdrop.auth.login.service.PasswordPolicy;
 import com.swiftdrop.auth.login.controller.AuthController;
@@ -87,8 +88,8 @@ class LoginServiceTest {
         sampleUser.setFailedLoginCount(0);
         sampleUser.setLockedUntil(null);
 
-        when(refreshTokenService.issue(any())).thenReturn(
-                new RefreshTokenService.IssuedRefresh("mocked.refresh.token", UUID.randomUUID(), Instant.now().plusSeconds(3600), new RefreshToken())
+        org.mockito.Mockito.lenient().when(refreshTokenService.issue(any())).thenReturn(
+                new IssuedRefresh("mocked.refresh.token", UUID.randomUUID(), Instant.now().plusSeconds(3600), new RefreshToken())
         );
     }
 

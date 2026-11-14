@@ -75,6 +75,8 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
+                // Preflight OPTIONS requests handled without authentication
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public authentication endpoints
                 .requestMatchers(HttpMethod.POST,
                         "/api/v1/auth/register",

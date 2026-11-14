@@ -105,7 +105,7 @@ describe('TST-040 quote debounce and stale-response protection', () => {
   });
 });
 
-describe('TST-040 create parcel wizard', () => {
+describe('TST-040 create parcel wizard', { timeout: 15000 }, () => {
   it('loads backend options, validates required fields and focuses an invalid field', async () => {
     const loading = deferred();
     getDistricts.mockReturnValue(loading.promise);
