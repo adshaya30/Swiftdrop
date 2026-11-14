@@ -137,6 +137,13 @@ export const routeTable = [
     pageFolder: 'merchant/credentials',
     roles: ['MERCHANT'],
   },
+  {
+    path: '/merchant/webhook',
+    title: 'Webhook Settings',
+    layout: 'dashboard',
+    pageFolder: 'merchant/webhook',
+    roles: ['MERCHANT'],
+  },
 
   // ----------------------------------------------------
   // Courier Routes (layout: 'courier', roles: ['COURIER'])
