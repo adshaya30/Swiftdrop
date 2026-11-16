@@ -7,6 +7,8 @@ import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.login.service.PasswordPolicy;
 import com.swiftdrop.auth.users.bootstrap.BootstrapAdminRunner;
+import com.swiftdrop.common.enums.ActorRole;
+import com.swiftdrop.common.events.AuditEvents;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +37,7 @@ class BootstrapAdminTest {
     private UserRepository userRepository;
 
     @Mock
-    private OutboxService outboxService;
+    private AuditEvents auditEvents;
 
     private PasswordEncoder passwordEncoder;
     private PasswordPolicy passwordPolicy;
@@ -52,14 +54,14 @@ class BootstrapAdminTest {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(true);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
         runner.run(mock(ApplicationArguments.class));
 
         verify(userRepository, never()).save(any(User.class));
-        verify(outboxService, never()).recordAuditEvent(any(), any(), any(), any(), any());
+        verify(auditEvents, never()).record(any(UUID.class), any(ActorRole.class), any(), any(), any(), any());
     }
 
     @Test
@@ -76,7 +78,7 @@ class BootstrapAdminTest {
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
@@ -94,11 +96,12 @@ class BootstrapAdminTest {
         assertThat(created.isMustChangePassword()).isTrue();
         assertThat(passwordEncoder.matches("ValidSecret123!", created.getPasswordHash())).isTrue();
 
-        verify(outboxService).recordAuditEvent(
+        verify(auditEvents).record(
+                eq(savedUser.getId()),
+                eq(ActorRole.ADMIN),
                 eq("USER_CREATED"),
-                eq(savedUser.getId()),
-                eq(savedUser.getId()),
-                eq("ADMIN"),
+                eq("USER"),
+                eq(savedUser.getId().toString()),
                 any(Map.class)
         );
     }
@@ -107,7 +110,7 @@ class BootstrapAdminTest {
     @DisplayName("Should do nothing when bootstrap is disabled")
     void whenDisabled_thenDoNothing() {
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 false, "admin@swiftdrop.lk", "System Admin", "ValidSecret123!"
         );
 
@@ -123,7 +126,7 @@ class BootstrapAdminTest {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "", "", ""
         );
 
@@ -138,7 +141,7 @@ class BootstrapAdminTest {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "invalid-email", "System Admin", "ValidSecret123!"
         );
 
@@ -153,7 +156,7 @@ class BootstrapAdminTest {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "admin@swiftdrop.lk", "System Admin", "weakpass"
         );
 
@@ -168,7 +171,7 @@ class BootstrapAdminTest {
         when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(false);
 
         BootstrapAdminRunner runner = new BootstrapAdminRunner(
-                userRepository, passwordEncoder, passwordPolicy, outboxService,
+                userRepository, passwordEncoder, passwordPolicy, auditEvents,
                 true, "admin@swiftdrop.lk", "System Admin", "Admin!Swiftdrop12345"
         );
 

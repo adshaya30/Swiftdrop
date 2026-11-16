@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <property name="LOG_LEVEL" value="${LOG_LEVEL:-INFO}"/>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <timestamp>
+          <fieldName>@timestamp</fieldName>
+        </timestamp>
+        <logLevel>
+          <fieldName>level</fieldName>
+        </logLevel>
+        <loggerName>
+          <fieldName>logger</fieldName>
+        </loggerName>
+        <threadName>
+          <fieldName>thread</fieldName>
+        </threadName>
+        <message>
+          <fieldName>msg</fieldName>
+        </message>
+        <stackTrace>
+          <fieldName>stacktrace</fieldName>
+        </stackTrace>
+      </providers>
+    </encoder>
+  </appender>
+  <root level="${LOG_LEVEL}">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>

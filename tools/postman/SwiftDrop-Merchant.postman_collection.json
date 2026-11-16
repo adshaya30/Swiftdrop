@@ -1,0 +1,252 @@
+{
+  "info": {
+    "name": "SwiftDrop Merchant API",
+    "description": "DEP-015 merchant demo (Flow 4.3, AT-14). Set clientId and clientSecret in the collection variables, then run the requests in order with the Collection Runner. Orders are created through the API only (D-23).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "clientId", "value": "" },
+    { "key": "clientSecret", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "idempotencyKey", "value": "" },
+    { "key": "merchantReference", "value": "" },
+    { "key": "orderId", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('merchantReference')) {",
+          "  const run = Date.now();",
+          "  pm.collectionVariables.set('merchantReference', 'DEMO-' + run);",
+          "  pm.collectionVariables.set('idempotencyKey', 'demo-' + run);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get access token (client credentials)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with a bearer token', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.token_type).to.eql('Bearer');",
+              "  pm.collectionVariables.set('accessToken', body.access_token);",
+              "});",
+              "// New reference and key for every run of the collection.",
+              "const run = Date.now();",
+              "pm.collectionVariables.set('merchantReference', 'DEMO-' + run);",
+              "pm.collectionVariables.set('idempotencyKey', 'demo-' + run);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "grant_type", "value": "client_credentials" },
+            { "key": "client_id", "value": "{{clientId}}" },
+            { "key": "client_secret", "value": "{{clientSecret}}" },
+            { "key": "scope", "value": "orders:read orders:write" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/oauth/token", "host": ["{{baseUrl}}"], "path": ["api", "v1", "oauth", "token"] }
+      }
+    },
+    {
+      "name": "2. Create order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created with tracking number and fee', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.trackingNumber).to.match(/^SD-[0-9A-HJKMNP-TV-Z]{10}$/);",
+              "  pm.expect(body.fee.currency).to.eql('LKR');",
+              "  pm.expect(body.trackingUrl).to.include('/track/' + body.trackingNumber);",
+              "  pm.collectionVariables.set('orderId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantReference\": \"{{merchantReference}}\",\n  \"pickup\": {\"contactName\": \"Demo Store\", \"contactPhone\": \"0771234567\", \"addressLine1\": \"12 Galle Road\", \"city\": \"Colombo 03\", \"districtCode\": \"COLOMBO\", \"postalCode\": \"00300\"},\n  \"dropoff\": {\"contactName\": \"Kamala Silva\", \"contactPhone\": \"0712345678\", \"contactEmail\": \"kamala@example.com\", \"addressLine1\": \"45 Peradeniya Road\", \"city\": \"Kandy\", \"districtCode\": \"KANDY\"},\n  \"parcel\": {\"weightKg\": 1.5, \"size\": \"SMALL\", \"description\": \"Demo order\"}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/merchant/orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "merchant", "orders"] }
+      }
+    },
+    {
+      "name": "3. Replay with the same Idempotency-Key",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('original 201 replayed, no second order', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.headers.get('Idempotent-Replay')).to.eql('true');",
+              "  pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('orderId'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantReference\": \"{{merchantReference}}\",\n  \"pickup\": {\"contactName\": \"Demo Store\", \"contactPhone\": \"0771234567\", \"addressLine1\": \"12 Galle Road\", \"city\": \"Colombo 03\", \"districtCode\": \"COLOMBO\", \"postalCode\": \"00300\"},\n  \"dropoff\": {\"contactName\": \"Kamala Silva\", \"contactPhone\": \"0712345678\", \"contactEmail\": \"kamala@example.com\", \"addressLine1\": \"45 Peradeniya Road\", \"city\": \"Kandy\", \"districtCode\": \"KANDY\"},\n  \"parcel\": {\"weightKg\": 1.5, \"size\": \"SMALL\", \"description\": \"Demo order\"}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/merchant/orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "merchant", "orders"] }
+      }
+    },
+    {
+      "name": "4. Duplicate merchantReference (409)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('409 DUPLICATE_MERCHANT_REFERENCE', () => {",
+              "  pm.response.to.have.status(409);",
+              "  pm.expect(pm.response.json().code).to.eql('DUPLICATE_MERCHANT_REFERENCE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "{{idempotencyKey}}-dup" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantReference\": \"{{merchantReference}}\",\n  \"pickup\": {\"contactName\": \"Demo Store\", \"contactPhone\": \"0771234567\", \"addressLine1\": \"12 Galle Road\", \"city\": \"Colombo 03\", \"districtCode\": \"COLOMBO\"},\n  \"dropoff\": {\"contactName\": \"Kamala Silva\", \"contactPhone\": \"0712345678\", \"addressLine1\": \"45 Peradeniya Road\", \"city\": \"Kandy\", \"districtCode\": \"KANDY\"},\n  \"parcel\": {\"weightKg\": 1.5, \"size\": \"SMALL\"}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/merchant/orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "merchant", "orders"] }
+      }
+    },
+    {
+      "name": "5. Invalid district (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 VALIDATION_ERROR', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"merchantReference\": \"{{merchantReference}}-X\",\n  \"pickup\": {\"contactName\": \"Demo Store\", \"contactPhone\": \"0771234567\", \"addressLine1\": \"12 Galle Road\", \"city\": \"Colombo 03\", \"districtCode\": \"COLOMBO\"},\n  \"dropoff\": {\"contactName\": \"Kamala Silva\", \"contactPhone\": \"0712345678\", \"addressLine1\": \"45 Peradeniya Road\", \"city\": \"Kandy\", \"districtCode\": \"ATLANTIS\"},\n  \"parcel\": {\"weightKg\": 1.5, \"size\": \"SMALL\"}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/merchant/orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "merchant", "orders"] }
+      }
+    },
+    {
+      "name": "6. List orders",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 with the demo order', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().totalItems).to.be.at.least(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/merchant/orders?merchantReference={{merchantReference}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "merchant", "orders"],
+          "query": [{ "key": "merchantReference", "value": "{{merchantReference}}" }]
+        }
+      }
+    },
+    {
+      "name": "7. Cancel order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 CANCELLED', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql('CANCELLED');",
+              "});",
+              "pm.collectionVariables.set('merchantReference', '');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"reason\": \"Demo cancellation\"}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/merchant/orders/{{orderId}}/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "merchant", "orders", "{{orderId}}", "cancel"]
+        }
+      }
+    }
+  ]
+}

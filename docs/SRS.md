@@ -226,7 +226,7 @@ Microservices behind one API gateway; REST for synchronous calls, RabbitMQ for e
 | parcel-service | 8082 | Parcels, status state machine, pricing calls, idempotency, customer and merchant order APIs, receipts, admin parcel search, cancel and force-fail, reports. | `swiftdrop_parcel` |
 | pricing-service | 8083 | Zones, districts, zone price matrix, size surcharges, fee calculation, public quotes and districts list. | `swiftdrop_pricing` |
 | delivery-service | 8084 | Courier directory, assignment, courier delivery list and status updates, proof of delivery (incl. photos), workloads. | `swiftdrop_delivery` |
-| tracking-service | 8085 | Tracking read model, status history (timeline), public tracking view and SSE, audit log store and query. | `swiftdrop_tracking` |
+| tracking-service (Tracking Service) | 8085 | Tracking read model, status history (timeline), public tracking view and SSE, audit log store and query. | `swiftdrop_tracking` |
 | notification-service | 8086 | Email and mock SMS, merchant webhook configuration, signed webhook delivery with retry and log. | `swiftdrop_notification` |
 | ai-assistant (bonus) | 8000 | Chat endpoint and MCP server; calls service REST APIs as tools. | stateless |
 | postgres / rabbitmq / mailpit | 5432 (host 5433) / 5672, 15672 / 1025, 8025 | Databases / broker / SMTP sink. Volumes `pgdata`, `rabbitmqdata`. | - |

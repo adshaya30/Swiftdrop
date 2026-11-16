@@ -22,6 +22,7 @@ import StoreOutlinedIcon from '@mui/icons-material/StoreOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined';
+import WebhookOutlinedIcon from '@mui/icons-material/WebhookOutlined';
 import { tokens } from '../theme/theme';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo-white.png';
@@ -68,6 +69,7 @@ export function DashboardLayout() {
         { label: 'Dashboard', path: '/merchant/dashboard', icon: DashboardOutlinedIcon },
         { label: 'Orders', path: '/merchant/orders', icon: LocalShippingOutlinedIcon },
         { label: 'Credentials', path: '/merchant/credentials', icon: LockResetOutlinedIcon },
+        { label: 'Webhooks', path: '/merchant/webhook', icon: WebhookOutlinedIcon },
       ];
     } else if (role === 'COURIER') {
       return [

@@ -1,9 +1,19 @@
+# Build context: backend/ (DEP-001, SRS 9.1)
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
-RUN apk add --no-cache maven
-COPY pom.xml .
-COPY src ./src
-RUN mvn -B -DskipTests package
+COPY mvnw pom.xml ./
+COPY .mvn/ .mvn/
+COPY common-core/ common-core/
+COPY common-lib/ common-lib/
+COPY auth-service/ auth-service/
+# Sibling POMs required by the reactor (sources not needed)
+COPY api-gateway/pom.xml api-gateway/pom.xml
+COPY delivery-service/pom.xml delivery-service/pom.xml
+COPY notification-service/pom.xml notification-service/pom.xml
+COPY parcel-service/pom.xml parcel-service/pom.xml
+COPY pricing-service/pom.xml pricing-service/pom.xml
+COPY tracking-service/pom.xml tracking-service/pom.xml
+RUN sh ./mvnw -B -pl auth-service -am -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 ENV TZ=UTC
@@ -15,7 +25,7 @@ RUN apk add --no-cache wget tzdata \
     && adduser -S app -G app
 
 WORKDIR /app
-COPY --from=build --chown=app:app /workspace/target/*.jar app.jar
+COPY --from=build --chown=app:app /workspace/auth-service/target/auth-service-1.0.0.jar app.jar
 USER app
 
 EXPOSE 8081

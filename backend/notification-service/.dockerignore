@@ -1,0 +1,9 @@
+target/
+.git/
+**/src/main/resources/db/**
+**/src/main/resources/*.yml
+**/src/main/resources/*.yaml
+**/src/main/resources/application.properties
+Dockerfile
+.gitkeep
+

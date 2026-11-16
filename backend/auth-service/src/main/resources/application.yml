@@ -10,9 +10,6 @@ spring:
   autoconfigure:
     exclude:
       - com.swiftdrop.common.security.SecurityAutoConfiguration
-  main:
-    allow-bean-definition-overriding: true
-    allow-circular-references: true
   application:
     name: auth-service
   profiles:
@@ -23,13 +20,13 @@ spring:
   datasource:
     url: ${DB_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/swiftdrop_auth}}
     username: ${DB_USER:${SPRING_DATASOURCE_USERNAME:auth_user}}
-    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:Swiftdrop#2003}}
+    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
+      ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
@@ -48,7 +45,7 @@ spring:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:swiftdrop_user}
-    password: ${RABBITMQ_PASSWORD:Swiftdrop#2003}
+    password: ${RABBITMQ_PASSWORD}
 
 # Actuator & Observability (SRS 3.6, Prompt 1)
 management:
@@ -73,23 +70,21 @@ management:
 # Swagger / OpenAPI documentation
 springdoc:
   swagger-ui:
-    enabled: ${SWAGGER_ENABLED:true}
+    enabled: ${SWAGGER_ENABLED:false}
   api-docs:
-    enabled: ${SWAGGER_ENABLED:true}
-
-INTERNAL_API_KEY: 0123456789abcdef0123456789abcdef
+    enabled: ${SWAGGER_ENABLED:false}
 
 # SwiftDrop Auth Configuration (SRS 9.2, Prompt 1)
 swiftdrop:
-  internal-api-key: 0123456789abcdef0123456789abcdef
+  internal-api-key: ${INTERNAL_API_KEY}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
   delivery-service-url: ${DELIVERY_SERVICE_URL:http://localhost:8084}
   outbox:
     poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:1000}
 
 jwt:
-  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:certs/dev_private_key.pem}
-  public-key-path: ${JWT_PUBLIC_KEY_PATH:/run/keys/jwt-public.pem}
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:/run/keys/swiftdrop_private.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:/run/keys/swiftdrop_public.pem}
   access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
 
 refresh:
@@ -111,7 +106,7 @@ auth:
     enabled: true
     admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@swiftdrop.lk}
     admin-name: ${BOOTSTRAP_ADMIN_NAME:System Admin}
-    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Swiftdrop#2003!}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD}
   demo:
     seed-enabled: ${DEMO_SEED_ENABLED:false}
     user-password: ${DEMO_USER_PASSWORD:}

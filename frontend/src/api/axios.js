@@ -1,16 +1,20 @@
 import axios from "axios";
+import { getAccessToken, setAccessToken, clearAccessToken } from "./http";
 
-let inMemoryToken = null;
 let isRefreshing = false;
 let failedQueue = [];
 let sessionExpiredCallback = null;
 
 export const setAuthToken = (token) => {
-  inMemoryToken = token;
+  if (token) {
+    setAccessToken(token);
+  } else {
+    clearAccessToken();
+  }
 };
 
 export const getAuthToken = () => {
-  return inMemoryToken;
+  return getAccessToken();
 };
 
 export const setSessionExpiredCallback = (callback) => {
@@ -43,8 +47,9 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (inMemoryToken && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${inMemoryToken}`;
+    const token = getAccessToken();
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

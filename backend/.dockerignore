@@ -6,8 +6,4 @@ target/
 .vscode/
 *.iml
 *.log
-.mvn/
-mvnw
-mvnw.cmd
 *.md
-

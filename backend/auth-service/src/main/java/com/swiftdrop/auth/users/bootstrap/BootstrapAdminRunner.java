@@ -6,7 +6,8 @@ import com.swiftdrop.auth.entity.AuthProvider;
 import com.swiftdrop.auth.entity.UserRole;
 import com.swiftdrop.auth.entity.UserStatus;
 import com.swiftdrop.auth.login.service.PasswordPolicy;
-import com.swiftdrop.auth.service.OutboxService;
+import com.swiftdrop.common.enums.ActorRole;
+import com.swiftdrop.common.events.AuditEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +37,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
-    private final OutboxService outboxService;
+    private final AuditEvents auditEvents;
 
     private final boolean enabled;
     private final String adminEmail;
@@ -47,7 +48,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             PasswordPolicy passwordPolicy,
-            OutboxService outboxService,
+            AuditEvents auditEvents,
             @Value("${auth.bootstrap.enabled:true}") boolean enabled,
             @Value("${auth.bootstrap.admin-email:${BOOTSTRAP_ADMIN_EMAIL:}}") String adminEmail,
             @Value("${auth.bootstrap.admin-name:${BOOTSTRAP_ADMIN_NAME:}}") String adminName,
@@ -55,7 +56,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
-        this.outboxService = outboxService;
+        this.auditEvents = auditEvents;
         this.enabled = enabled;
         this.adminEmail = adminEmail;
         this.adminName = adminName;
@@ -113,11 +114,12 @@ public class BootstrapAdminRunner implements ApplicationRunner {
 
         User savedAdmin = userRepository.save(adminUser);
 
-        outboxService.recordAuditEvent(
+        auditEvents.record(
+                savedAdmin.getId(),
+                ActorRole.ADMIN,
                 "USER_CREATED",
-                savedAdmin.getId(),
-                savedAdmin.getId(),
-                "ADMIN",
+                "USER",
+                savedAdmin.getId().toString(),
                 Map.of("bootstrap", true)
         );
 

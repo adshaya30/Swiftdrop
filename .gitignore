@@ -33,6 +33,8 @@ logs/
 infrastructure/keys/*.pem
 !infrastructure/keys/.gitkeep
 **/certs/*private*.pem
+backend/auth-service/src/main/resources/certs/
+!**/src/test/resources/certs/*.pem
 
 # Docs test reports (ensure reports are not ignored except temporary files)
 !docs/test-reports/**/html/
