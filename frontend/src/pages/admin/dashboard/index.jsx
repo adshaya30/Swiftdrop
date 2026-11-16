@@ -17,8 +17,8 @@ import { PlaceholderTile, SectionBoundary } from '../parcels/detail/optionalModu
  * as its owner's pull request is merged.
  */
 const first = (modules) => Object.values(modules)[0];
-const dispatchModule = first(import.meta.glob('/src/pages/admin/dispatch/DispatchCard.jsx', { eager: true }));
-const merchantsModule = first(import.meta.glob('/src/pages/admin/merchants/PendingMerchantsCard.jsx', { eager: true }));
+const dispatchModule = first(import.meta.glob('../dispatch/DispatchCard.jsx', { eager: true }));
+const merchantsModule = first(import.meta.glob('../merchants/PendingMerchantsCard.jsx', { eager: true }));
 const DispatchCardFromOwner = dispatchModule?.default ?? dispatchModule?.DispatchCard;
 const PendingMerchantsCardFromOwner = merchantsModule?.default ?? merchantsModule?.PendingMerchantsCard;
 

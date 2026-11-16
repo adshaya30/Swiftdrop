@@ -7,9 +7,9 @@ import { useEffect, useRef } from 'react';
  */
 const first = (modules) => Object.values(modules)[0];
 
-const trackingApi = first(import.meta.glob('/src/api/tracking.js', { eager: true }));
-const timelineModule = first(import.meta.glob('/src/pages/public/components/ParcelTimeline.jsx', { eager: true }));
-const streamModule = first(import.meta.glob('/src/pages/public/hooks/useTrackingStream.js', { eager: true }));
+const trackingApi = first(import.meta.glob('../../../api/tracking.js', { eager: true }));
+const timelineModule = first(import.meta.glob('../../public/components/ParcelTimeline.jsx', { eager: true }));
+const streamModule = first(import.meta.glob('../../public/hooks/useTrackingStream.js', { eager: true }));
 
 export const getTimeline = trackingApi?.getTimeline;
 export const ParcelTimeline = timelineModule?.default ?? timelineModule?.ParcelTimeline;
