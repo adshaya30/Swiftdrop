@@ -61,7 +61,7 @@ async function executeSingleFlightRefresh() {
 
       if (!res.ok) {
         clearAccessToken();
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
           window.location.href = '/login';
         }
         throw new ApiError({
@@ -108,7 +108,12 @@ export async function apiRequest(method, path, { body, query, headers = {}, idem
     if (body !== undefined && !(body instanceof FormData)) {
       h['Content-Type'] = 'application/json';
     }
-    if (moduleAccessToken) {
+    const isAuthPath =
+      path.includes('/auth/login') ||
+      path.includes('/auth/refresh') ||
+      path.includes('/auth/logout') ||
+      path.includes('/auth/register');
+    if (moduleAccessToken && !isAuthPath) {
       h['Authorization'] = `Bearer ${moduleAccessToken}`;
     }
     if (idempotencyKey) {
@@ -129,8 +134,9 @@ export async function apiRequest(method, path, { body, query, headers = {}, idem
 
   let response = await fetch(url, reqOptions);
 
-  // Check 401 for token expiry & retry-once
-  if (response.status === 401) {
+  // Check 401 for token expiry & retry-once (skip auth endpoints)
+  const isAuthPath = path.includes('/auth/refresh') || path.includes('/auth/login') || path.includes('/auth/register');
+  if (response.status === 401 && !isAuthPath) {
     const clone = response.clone();
     let errJson = null;
     try {

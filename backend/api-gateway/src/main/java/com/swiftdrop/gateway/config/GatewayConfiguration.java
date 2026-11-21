@@ -5,8 +5,11 @@ import com.swiftdrop.common.http.ApiHeaders;
 import com.swiftdrop.gateway.filter.GatewayProblemFilter;
 import com.swiftdrop.gateway.filter.GatewayProblemWriter;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -91,6 +94,7 @@ public class GatewayConfiguration {
                 .path("/api/v1/public/tracking/**", "/api/v1/tracking/**", "/api/v1/admin/audit-logs")
                 .filters(filters -> filters
                         .removeRequestHeader(ApiHeaders.INTERNAL_KEY)
+                        .dedupeResponseHeader("Access-Control-Allow-Origin Access-Control-Allow-Credentials", "RETAIN_UNIQUE")
                         .filter(new GatewayProblemFilter(ErrorCode.SERVICE_UNAVAILABLE, "Service unavailable")))
                 .metadata("response-timeout", -1)
                 .uri(tracking));
@@ -113,6 +117,7 @@ public class GatewayConfiguration {
                 .path(paths)
                 .filters(filters -> filters
                         .removeRequestHeader(ApiHeaders.INTERNAL_KEY)
+                        .dedupeResponseHeader("Access-Control-Allow-Origin Access-Control-Allow-Credentials", "RETAIN_UNIQUE")
                         .filter(new GatewayProblemFilter(unavailableCode,
                                 unavailableCode == ErrorCode.ASSISTANT_UNAVAILABLE
                                         ? "Assistant unavailable" : "Service unavailable")))
@@ -140,6 +145,19 @@ public class GatewayConfiguration {
             ServerHttpResponse response = exchange.getResponse();
             response.beforeCommit(() -> {
                 HttpHeaders headers = response.getHeaders();
+                List<String> allowOrigins = headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
+                if (allowOrigins != null && allowOrigins.size() > 1) {
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowOrigins.get(0));
+                }
+                List<String> allowCredentials = headers.get(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS);
+                if (allowCredentials != null && allowCredentials.size() > 1) {
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, allowCredentials.get(0));
+                }
+                List<String> vary = headers.get(HttpHeaders.VARY);
+                if (vary != null && vary.size() > 1) {
+                    Set<String> uniqueVary = new LinkedHashSet<>(vary);
+                    headers.put(HttpHeaders.VARY, new ArrayList<>(uniqueVary));
+                }
                 headers.set(ApiHeaders.REQUEST_ID, finalRequestId);
                 headers.set("X-Content-Type-Options", "nosniff");
                 headers.set("X-Frame-Options", "DENY");
@@ -199,15 +217,23 @@ public class GatewayConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE + 2)
     CorsWebFilter corsWebFilter(Environment environment) {
         CorsConfiguration cors = new CorsConfiguration();
-        cors.addAllowedOrigin(environment.getProperty("PUBLIC_BASE_URL", "http://localhost:8080"));
-        if (environment.acceptsProfiles(Profiles.of("dev"))) {
+        String publicBaseUrl = environment.getProperty("PUBLIC_BASE_URL", "http://localhost:8080");
+        cors.addAllowedOrigin(publicBaseUrl);
+        String frontendUrl = environment.getProperty("FRONTEND_URL");
+        if (frontendUrl != null && !frontendUrl.isBlank()) {
+            cors.addAllowedOrigin(frontendUrl);
+        }
+        if (!cors.getAllowedOrigins().contains("http://localhost:5173")) {
             cors.addAllowedOrigin("http://localhost:5173");
         }
-        cors.setAllowCredentials(false);
+        if (!cors.getAllowedOrigins().contains("http://127.0.0.1:5173")) {
+            cors.addAllowedOrigin("http://127.0.0.1:5173");
+        }
+        cors.setAllowCredentials(true);
         cors.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("Accept", "Authorization", "Content-Type", "Idempotency-Key",
+        cors.setAllowedHeaders(List.of("Accept", "Authorization", "Content-Type", "Idempotency-Key", "Origin",
                 ApiHeaders.REQUEST_ID, ApiHeaders.REQUESTED_WITH));
-        cors.setExposedHeaders(List.of(ApiHeaders.REQUEST_ID, ApiHeaders.RETRY_AFTER));
+        cors.setExposedHeaders(List.of(ApiHeaders.REQUEST_ID, ApiHeaders.RETRY_AFTER, "Set-Cookie", "Authorization"));
         cors.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);

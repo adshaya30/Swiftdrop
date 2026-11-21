@@ -47,8 +47,14 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    const url = config.url || "";
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
+      url.includes("/auth/refresh") ||
+      url.includes("/auth/logout") ||
+      url.includes("/auth/register");
     const token = getAccessToken();
-    if (token && !config.headers.Authorization) {
+    if (token && !config.headers.Authorization && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

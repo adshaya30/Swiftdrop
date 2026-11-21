@@ -17,6 +17,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -41,10 +42,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecurityRules securityRules;
     private final ObjectMapper objectMapper;
 
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
     public JwtAuthenticationFilter(JwtService jwtService, SecurityRules securityRules, ObjectMapper objectMapper) {
         this.jwtService = jwtService;
         this.securityRules = securityRules;
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/actuator") || uri.startsWith("/internal")) {
+            return true;
+        }
+        String method = request.getMethod();
+        for (String rule : securityRules.publicPaths()) {
+            int space = rule.indexOf(' ');
+            String ruleMethod = space < 0 ? "*" : rule.substring(0, space).trim();
+            String rulePath = space < 0 ? rule.trim() : rule.substring(space + 1).trim();
+            if (("*".equals(ruleMethod) || ruleMethod.equalsIgnoreCase(method)) && PATH_MATCHER.match(rulePath, uri)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
