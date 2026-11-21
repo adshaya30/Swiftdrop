@@ -97,8 +97,10 @@ public class SecurityAutoConfiguration {
 
     private static List<String> publicRules(SecurityRules rules) {
         List<String> all = new ArrayList<>(rules.publicPaths());
-        all.add("GET /actuator/health");
-        all.add("GET /actuator/health/**");
+        all.add("* /actuator/health");
+        all.add("* /actuator/health/**");
+        all.add("* /actuator/info");
+        all.add("* /actuator/prometheus");
         return all;
     }
 
