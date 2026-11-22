@@ -1,5 +1,289 @@
 @import '../../components/customer.css';
-.customer-detail section { min-width: 0; margin-block: 20px; }
-.customer-detail p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.customer-detail .customer-parcel-facts { grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); }
-.customer-detail h2 { font-size: 1.2rem; }
+
+.customer-page.customer-detail {
+  --detail-ink: #111827;
+  --detail-muted: #4b5563;
+  --detail-border: #e1e6ee;
+  --detail-blue: #2563eb;
+  --detail-light-blue: #eaf4ff;
+  --detail-orange: #f97316;
+  --detail-padding: clamp(14px, 2.5vw, 20px);
+  display: grid;
+  gap: 14px;
+  padding-bottom: 24px;
+  color: var(--detail-ink);
+  container: parcel-detail / inline-size;
+}
+
+.customer-detail :is(a, button, textarea):focus-visible {
+  outline: 3px solid var(--detail-blue);
+  outline-offset: 3px;
+}
+
+.customer-detail-back {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--detail-blue);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.customer-detail-back:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.customer-detail-card {
+  min-width: 0;
+  padding: var(--detail-padding);
+  border: 1px solid var(--detail-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(17 24 39 / 5%);
+}
+
+.customer-detail-overview,
+.customer-detail-heading,
+.customer-detail-dates,
+.customer-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.customer-detail-overview {
+  justify-content: space-between;
+}
+
+.customer-detail-heading > h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.125rem);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.customer-detail-dates {
+  margin-top: 7px;
+  color: var(--detail-muted);
+  font-size: 0.8125rem;
+}
+
+.customer-detail :is(.customer-detail-dates, .customer-detail-actions, .customer-detail-timeline-note) p {
+  margin: 0;
+}
+
+.customer-detail .customer-detail-actions .MuiButton-outlined:not(.Mui-disabled) {
+  border-color: #6b7280;
+  color: var(--detail-ink);
+}
+
+.customer-detail .customer-detail-actions .MuiButton-outlined:not(.Mui-disabled):hover {
+  background: var(--detail-light-blue);
+  border-color: var(--detail-blue);
+}
+
+.customer-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-detail-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 15px;
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.customer-detail-icon {
+  display: grid;
+  flex: 0 0 38px;
+  place-items: center;
+  height: 38px;
+  border-radius: 9px;
+  background: var(--detail-light-blue);
+  color: var(--detail-blue);
+}
+
+.customer-detail-address > .customer-detail-card-title {
+  margin: calc(-1 * var(--detail-padding)) calc(-1 * var(--detail-padding)) 0;
+  padding: 12px var(--detail-padding);
+  border-bottom: 1px solid var(--detail-border);
+  border-radius: 13px 13px 0 0;
+}
+
+.customer-detail-address[data-destination='false'] .customer-detail-icon {
+  background: var(--detail-ink);
+  color: var(--detail-orange);
+}
+
+.customer-detail-address[data-destination='true'] > .customer-detail-card-title {
+  background: var(--detail-light-blue);
+}
+
+.customer-detail-address[data-destination='true'] .customer-detail-icon {
+  background: #fff;
+}
+
+.customer-detail-address-body {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  line-height: 1.45;
+}
+
+.customer-detail-address-body p {
+  margin: 0;
+}
+
+.customer-detail-contact {
+  font-weight: 700;
+}
+
+.customer-detail-street {
+  padding-top: 6px;
+}
+
+.customer-detail-muted {
+  color: var(--detail-muted);
+  font-size: 0.8125rem;
+}
+
+.customer-detail-facts,
+.customer-detail-fees {
+  display: grid;
+  margin: 0;
+  gap: 8px;
+}
+
+.customer-detail-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.customer-detail-facts > div {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--detail-border);
+  border-radius: 8px;
+}
+
+.customer-detail :is(.customer-detail-facts, .customer-detail-fees) dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.customer-detail-facts dt {
+  margin-bottom: 4px;
+  color: var(--detail-muted);
+  font-size: 0.8125rem;
+}
+
+.customer-detail-facts dd {
+  white-space: pre-wrap;
+}
+
+.customer-detail-fees > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--detail-border);
+  color: var(--detail-muted);
+  font-size: 0.875rem;
+}
+
+.customer-detail-fees > div > dd {
+  color: var(--detail-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.customer-detail-fees > .customer-detail-total {
+  margin-top: 3px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--detail-light-blue);
+  box-shadow: inset 3px 0 0 var(--detail-blue);
+  color: var(--detail-ink);
+  font-weight: 700;
+}
+
+.customer-detail-fees > .customer-detail-total > dd {
+  font-size: clamp(1.125rem, 3vw, 1.5rem);
+  font-weight: 700;
+}
+
+.customer-detail-timeline-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--detail-light-blue);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.customer-detail-timeline-events {
+  margin-top: 12px;
+}
+
+.customer-detail-cancellation {
+  border-color: #e9c3c3;
+}
+
+.customer-detail-cancellation .customer-detail-icon {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.customer-detail-cancellation label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.customer-detail-cancellation textarea.MuiOutlinedInput-input {
+  padding: 0;
+}
+
+.customer-detail-cancellation .MuiFormHelperText-root {
+  margin: 6px 0 0;
+}
+
+.customer-detail-cancel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+@container parcel-detail (max-width: 760px) {
+  .customer-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container parcel-detail (max-width: 460px) {
+  .customer-detail-overview,
+  .customer-detail-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-detail-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-detail-cancel-actions > button {
+    width: 100%;
+  }
+}

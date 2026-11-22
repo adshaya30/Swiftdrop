@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Box, Button, Stack, TextField } from '@mui/material';
+import { Alert, Button, TextField } from '@mui/material';
+import { ArrowLeft, Clock3, MapPin, Package, ReceiptText, RefreshCw, ShieldAlert } from 'lucide-react';
 import { getParcel, cancelParcel } from '../../../../api/customerParcels';
-import PageHeader from '../../../../components/PageHeader';
 import StatusChip from '../../../../components/StatusChip';
 import LoadingState from '../../../../components/LoadingState';
 import ErrorState from '../../../../components/ErrorState';
@@ -14,6 +14,32 @@ import { useCustomerRequest } from '../../components/useCustomerRequest';
 import { ownerIntegrations, useCustomerStatusStream, hasCustomerStatusStream } from './integrations';
 import { useParcelTimeline } from './useParcelTimeline';
 import './detail.css';
+
+const feeFields = [['baseFee', 'Base fee'], ['weightFee', 'Weight fee'], ['sizeSurcharge', 'Size surcharge'], ['discountAmount', 'Discount'], ['total', 'Total']];
+
+function CardTitle({ Icon, children }) {
+  return <h2 className="customer-detail-card-title">
+    <span className="customer-detail-icon"><Icon size={20} aria-hidden="true" /></span>
+    {children}
+  </h2>;
+}
+
+function AddressCard({ address, destination = false }) {
+  const title = destination ? 'Drop-off details' : 'Pickup details';
+  const fullAddress = [address?.addressLine1, address?.addressLine2, address?.city, address?.districtName, address?.postalCode]
+    .filter(Boolean).join(', ');
+
+  return <section className="customer-detail-card customer-detail-address" data-destination={destination} aria-label={title}>
+    <CardTitle Icon={MapPin}>{title}</CardTitle>
+    <div className="customer-detail-address-body">
+      <p className="customer-detail-contact">{address?.contactName || 'Contact name unavailable'}</p>
+      {address?.contactPhone && <p>{address.contactPhone}</p>}
+      {address?.contactEmail && <p>{address.contactEmail}</p>}
+      <p className="customer-detail-street">{fullAddress || 'Address unavailable'}</p>
+      <p className="customer-detail-muted">District code: {address?.districtCode || 'Unavailable'}</p>
+    </div>
+  </section>;
+}
 
 export default function CustomerParcelDetailPage() {
   const { id } = useParams();
@@ -84,61 +110,72 @@ function ParcelDetail({ id }) {
     }
   };
 
-  return <Box className="customer-page customer-detail">
-    <Button component={Link} to="/customer/parcels">Back to My Parcels</Button>
+  return <div className="customer-page customer-detail">
+    <Link className="customer-detail-back" to="/deliveries"><ArrowLeft size={17} aria-hidden="true" />Back to My Parcels</Link>
     {notice && <Alert severity="info" role="status">{notice}</Alert>}
-    {detail.status === 'loading' && <LoadingState message="Loading parcel details…" />}
+    {detail.status === 'loading' && <div className="customer-detail-card" role="status"><LoadingState message="Loading parcel details…" minHeight={145} /></div>}
     {detail.status === 'error' && (detail.error?.status === 404
       ? <div role="alert"><ErrorState title="Parcel not found" message="This parcel could not be found." onRetry={refresh} /></div>
       : <CustomerRequestError error={detail.error} onRetry={refresh} />)}
     {parcel && <>
-      <PageHeader title={parcel.trackingNumber} action={<StatusChip status={parcel.status} />} />
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        <Button onClick={refresh} disabled={pending}>Refresh parcel</Button>
-        {ReceiptButton ? <ReceiptButton parcelId={parcel.id} trackingNumber={parcel.trackingNumber} /> : <p>Receipt download is currently unavailable.</p>}
-      </Stack>
-      <p>Created: {formatDateTime(parcel.createdAt)}</p><p>Updated: {formatDateTime(parcel.updatedAt)}</p>
-      {['pickup', 'dropoff'].map((side) => <section key={side} aria-label={side === 'pickup' ? 'Pickup details' : 'Drop-off details'}>
-        <h2>{side === 'pickup' ? 'Pickup' : 'Drop-off'}</h2>
-        <p>{parcel[side]?.contactName}</p>
-        <p>{parcel[side]?.contactPhone}</p>
-        {parcel[side]?.contactEmail && <p>{parcel[side].contactEmail}</p>}
-        <p>{[parcel[side]?.addressLine1, parcel[side]?.addressLine2, parcel[side]?.city, parcel[side]?.districtName, parcel[side]?.postalCode].filter(Boolean).join(', ')}</p>
-        <p>District code: {parcel[side]?.districtCode || 'Unavailable'}</p>
-      </section>)}
-      <section aria-label="Parcel information"><h2>Parcel information</h2>
-        <dl className="customer-parcel-facts">
-          <dt>Weight</dt><dd>{parcel.parcel?.weightKg != null ? `${parcel.parcel.weightKg} kg` : 'Unavailable'}</dd>
-          <dt>Size</dt><dd>{parcel.parcel?.size || 'Unavailable'}</dd>
-          <dt>Description</dt><dd>{parcel.parcel?.description || 'Not supplied'}</dd>
-          <dt>Instructions</dt><dd>{parcel.deliveryInstructions || 'Not supplied'}</dd>
-          <dt>Origin zone</dt><dd>{parcel.originZone?.name || 'Unavailable'}</dd>
-          <dt>Destination zone</dt><dd>{parcel.destinationZone?.name || 'Unavailable'}</dd>
-        </dl>
-      </section>
-      <section aria-label="Delivery fees"><h2>Delivery fees</h2>
-        <dl className="customer-parcel-facts">{[['baseFee', 'Base fee'], ['weightFee', 'Weight fee'], ['sizeSurcharge', 'Size surcharge'], ['discountAmount', 'Discount'], ['total', 'Total']].map(([key, label]) => <React.Fragment key={key}><dt>{label}</dt><dd>{parcel.fee?.[key] != null ? formatMoney(parcel.fee[key]) : 'Unavailable'}</dd></React.Fragment>)}</dl>
-      </section>
-      <section aria-label="Parcel timeline"><h2>Timeline</h2>
-        {!hasCustomerStatusStream && <p>Live updates are currently unavailable. Use Refresh parcel to check for changes.</p>}
-        {timeline.status === 'unavailable' && <p>Parcel timeline is currently unavailable.</p>}
-        {timeline.status === 'loading' && <LoadingState message="Loading timeline…" />}
+      <header className="customer-detail-card customer-detail-overview">
+        <div>
+          <div className="customer-detail-heading"><h1>{parcel.trackingNumber}</h1><StatusChip status={parcel.status} /></div>
+          <div className="customer-detail-dates">
+            <p>Created: {formatDateTime(parcel.createdAt)}</p>
+            <p>Updated: {formatDateTime(parcel.updatedAt)}</p>
+          </div>
+        </div>
+        <div className="customer-detail-actions">
+          <Button variant="outlined" onClick={refresh} disabled={pending} startIcon={<RefreshCw size={17} />}>Refresh parcel</Button>
+          {ReceiptButton ? <ReceiptButton parcelId={parcel.id} trackingNumber={parcel.trackingNumber} /> : <p>Receipt download is currently unavailable.</p>}
+        </div>
+      </header>
+      <div className="customer-detail-grid">
+        <AddressCard address={parcel.pickup} />
+        <AddressCard address={parcel.dropoff} destination />
+      </div>
+      <div className="customer-detail-grid">
+        <section className="customer-detail-card" aria-label="Parcel information"><CardTitle Icon={Package}>Parcel information</CardTitle>
+          <dl className="customer-detail-facts">
+            <div><dt>Weight</dt><dd>{parcel.parcel?.weightKg != null ? `${parcel.parcel.weightKg} kg` : 'Unavailable'}</dd></div>
+            <div><dt>Size</dt><dd>{parcel.parcel?.size || 'Unavailable'}</dd></div>
+            <div><dt>Description</dt><dd>{parcel.parcel?.description || 'Not supplied'}</dd></div>
+            <div><dt>Delivery instructions</dt><dd>{parcel.deliveryInstructions || 'Not supplied'}</dd></div>
+            <div><dt>Origin zone</dt><dd>{parcel.originZone?.name || 'Unavailable'}</dd></div>
+            <div><dt>Destination zone</dt><dd>{parcel.destinationZone?.name || 'Unavailable'}</dd></div>
+          </dl>
+        </section>
+        <section className="customer-detail-card" aria-label="Delivery fees"><CardTitle Icon={ReceiptText}>Delivery fees</CardTitle>
+          <dl className="customer-detail-fees">{feeFields.map(([key, label]) => <div key={key} className={key === 'total' ? 'customer-detail-total' : undefined}>
+            <dt>{label}</dt><dd>{parcel.fee?.[key] != null ? formatMoney(parcel.fee[key]) : 'Unavailable'}</dd>
+          </div>)}</dl>
+        </section>
+      </div>
+      <section className="customer-detail-card" aria-label="Parcel timeline"><CardTitle Icon={Clock3}>Delivery timeline</CardTitle>
+        {(!hasCustomerStatusStream || timeline.status === 'unavailable') && <div className="customer-detail-timeline-note">
+          {timeline.status === 'unavailable' && <p><strong>Parcel timeline is currently unavailable.</strong></p>}
+          {!hasCustomerStatusStream && <p>Live updates are currently unavailable. Use Refresh parcel to check for changes.</p>}
+        </div>}
+        {timeline.status === 'loading' && <LoadingState message="Loading timeline…" minHeight={112} />}
         {timeline.status === 'updating' && <p role="status">Timeline updating…</p>}
-        {timeline.status === 'error' && <ErrorState title="Timeline unavailable" message="The timeline could not be loaded. Please try again." onRetry={refresh} />}
-        {timeline.status === 'success' && <ParcelTimeline timeline={timeline.data} />}
+        {timeline.status === 'error' && <ErrorState title="Timeline unavailable" message="The timeline could not be loaded. Please try again." onRetry={refresh} minHeight={146} />}
+        {timeline.status === 'success' && <div className="customer-detail-timeline-events"><ParcelTimeline timeline={timeline.data} /></div>}
       </section>
-      {parcel.status === 'DELIVERED' && <section aria-label="Delivery proof">{ProofViewer
+      {parcel.status === 'DELIVERED' && <section className="customer-detail-card" aria-label="Delivery proof">{ProofViewer
         ? <ProofViewer key={`${id}:${revision}`} parcelId={id} />
         : <p>Delivery proof is currently unavailable.</p>}</section>}
-      {parcel.status === 'CREATED' && <section aria-label="Cancellation"><h2>Cancel delivery</h2>
-        <TextField label="Cancellation reason (optional)" multiline fullWidth value={reason} disabled={pending}
+      {parcel.status === 'CREATED' && <section className="customer-detail-card customer-detail-cancellation" aria-label="Cancellation">
+        <CardTitle Icon={ShieldAlert}>Cancel delivery</CardTitle>
+        <label htmlFor="parcel-cancellation-reason">Cancellation reason (optional)</label>
+        <TextField id="parcel-cancellation-reason" multiline minRows={2} fullWidth value={reason} disabled={pending}
           onChange={(event) => { setReason(event.target.value); setReasonError(''); }}
           error={Boolean(reasonError)} helperText={reasonError || 'Maximum 300 characters'} inputProps={{ maxLength: 300 }} />
-        <Button color="error" disabled={pending} onClick={() => { if (reason.length > 300) setReasonError('Reason must be at most 300 characters.'); else setDialog(true); }}>Cancel parcel</Button>
+        <div className="customer-detail-cancel-actions"><Button variant="outlined" color="error" disabled={pending} onClick={() => { if (reason.length > 300) setReasonError('Reason must be at most 300 characters.'); else setDialog(true); }}>Cancel parcel</Button></div>
       </section>}
       <ConfirmDialog open={dialog} title="Cancel this delivery?" message="Confirm that you want to cancel this parcel."
         confirmText="Confirm cancellation" cancelText="Keep parcel" isDestructive loading={pending}
         onConfirm={cancel} onCancel={() => { if (!busy.current) setDialog(false); }} />
     </>}
-  </Box>;
+  </div>;
 }

@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Button, MenuItem, TextField } from '@mui/material';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Info, MapPin, Package, ReceiptText, RefreshCw, Truck } from 'lucide-react';
 import LoadingState from '../../../../components/LoadingState';
-import ErrorState from '../../../../components/ErrorState';
-import PageHeader from '../../../../components/PageHeader';
 import { getDistricts } from '../../../../api/quotes';
 import { createParcel } from '../../../../api/customerParcels';
 import { applyServerErrors, formatMoney } from '../../../../utils/format';
@@ -13,15 +12,48 @@ import { useDeliveryQuote } from './useDeliveryQuote';
 import './wizard.css';
 
 const steps = ['Details', 'Quote', 'Confirm'];
+const addressSections = [
+  { key: 'pickup', title: 'Pickup', Icon: Truck },
+  { key: 'dropoff', title: 'Drop-off', Icon: MapPin },
+];
 const addressDefaults = { contactName: '', contactPhone: '', addressLine1: '', addressLine2: '', city: '', districtCode: '', postalCode: '' };
-const feeFields = [['baseFee', 'Base fee'], ['weightFee', 'Weight fee'], ['sizeSurcharge', 'Size surcharge'], ['discountAmount', 'Discount'], ['total', 'Total']];
-const completeFee = (fee) => fee?.currency === 'LKR' && feeFields.every(([field]) =>
+const feeFields = [['baseFee', 'Base fee'], ['weightFee', 'Weight fee'], ['sizeSurcharge', 'Size surcharge'], ['discountAmount', 'Discount']];
+const completeFee = (fee) => fee?.currency === 'LKR' && [...feeFields.map(([field]) => field), 'total'].every((field) =>
   (typeof fee[field] === 'string' || typeof fee[field] === 'number') && /^\d+(\.\d{1,2})?$/.test(String(fee[field])));
 
-function FeeBreakdown({ fee }) {
-  return <dl className="customer-wizard-fees">{feeFields.map(([field, label]) => <React.Fragment key={field}>
-    <dt>{label}</dt><dd>{formatMoney(fee[field])}</dd>
-  </React.Fragment>)}</dl>;
+function SectionTitle({ Icon, children, kind = 'blue' }) {
+  return <span className="customer-wizard-section-title" data-kind={kind}>
+    <span className="customer-wizard-icon"><Icon size={20} aria-hidden="true" /></span>
+    {children}
+  </span>;
+}
+
+function WizardNotice({ title, children, onRetry, attention = false }) {
+  const Icon = attention ? CircleAlert : Info;
+  return <div className="customer-wizard-notice" role="alert">
+    <Icon size={20} aria-hidden="true" />
+    <div>
+      {title && <h3>{title}</h3>}
+      <p>{children}</p>
+      {onRetry && <div className="customer-wizard-actions">
+        <Button variant="outlined" type="button" onClick={onRetry}>Try Again</Button>
+      </div>}
+    </div>
+  </div>;
+}
+
+function FeeBreakdown({ fee, confirmation = false }) {
+  return <section className={`customer-wizard-card customer-wizard-price${confirmation ? ' customer-wizard-price-final' : ''}`}>
+    <h3><SectionTitle Icon={ReceiptText}>{confirmation ? 'Final price' : 'Quotation summary'}</SectionTitle></h3>
+    <dl className="customer-wizard-fees">
+      {feeFields.map(([field, label]) => <div key={field} className="customer-wizard-fee-row">
+        <dt>{label}</dt><dd>{formatMoney(fee[field])}</dd>
+      </div>)}
+      <div className="customer-wizard-fee-row customer-wizard-total">
+        <dt>Total</dt><dd>{formatMoney(fee.total)}</dd>
+      </div>
+    </dl>
+  </section>;
 }
 
 function quoteMessage(error) {
@@ -45,8 +77,12 @@ export default function NewParcelPage() {
     }).catch((failure) => { if (current) setError(failure); });
     return () => { current = false; };
   }, [load]);
-  if (error) return <ErrorState title="Delivery options unavailable" message="We could not load the delivery options. Please try again." onRetry={() => setLoad((value) => value + 1)} />;
-  if (!reference) return <LoadingState message="Loading delivery options…" />;
+  if (error || !reference) return <div className="customer-wizard">
+    <h1 className="customer-wizard-title">New delivery</h1>
+    {error ? <WizardNotice title="Delivery options unavailable" attention onRetry={() => setLoad((value) => value + 1)}>
+      We could not load the delivery options. Please try again.
+    </WizardNotice> : <div className="customer-wizard-card" role="status"><LoadingState message="Loading delivery options…" minHeight={120} /></div>}
+  </div>;
   return <DeliveryWizard reference={reference} />;
 }
 
@@ -144,62 +180,94 @@ function DeliveryWizard({ reference }) {
   const field = (path, label, options = {}) => {
     const problem = path.split('.').reduce((object, key) => object?.[key], errors);
     return <TextField key={path} {...register(path)} label={label} fullWidth variant="outlined"
+      className="customer-wizard-field" slotProps={{
+        input: { notched: false },
+        select: { MenuProps: { slotProps: { paper: { className: 'customer-wizard-menu' } } } },
+      }}
       {...options} error={Boolean(problem)} helperText={problem?.message || options.helperText} />;
   };
-  const address = (prefix, title) => <fieldset><legend>{title}</legend><div className="customer-wizard-grid">
-    {field(`${prefix}.contactName`, 'Contact name', { required: true, inputProps: { maxLength: 100 } })}
-    {field(`${prefix}.contactPhone`, 'Phone', { required: true, type: 'tel' })}
-    {field(`${prefix}.addressLine1`, 'Address line 1', { required: true, inputProps: { maxLength: 150 } })}
-    {field(`${prefix}.addressLine2`, 'Address line 2 (optional)', { inputProps: { maxLength: 150 } })}
-    {field(`${prefix}.city`, 'City', { required: true, inputProps: { maxLength: 80 } })}
-    {field(`${prefix}.districtCode`, 'District', { required: true, select: true, defaultValue: '', children: reference.districts.map((district) => <MenuItem key={district.code} value={district.code}>{district.name || district.code}</MenuItem>) })}
-    {field(`${prefix}.postalCode`, 'Postal code (optional)', { inputProps: { inputMode: 'numeric', maxLength: 5 } })}
-    {prefix === 'dropoff' && field('dropoff.contactEmail', 'Email (optional)', { type: 'email', inputProps: { maxLength: 254 } })}
-  </div></fieldset>;
+  const address = ({ key: prefix, title, Icon }) => <fieldset key={prefix} className="customer-wizard-card" data-section={prefix} aria-labelledby={`delivery-${prefix}-title`}>
+    <h3 id={`delivery-${prefix}-title`}><SectionTitle Icon={prefix === 'pickup' ? MapPin : Icon} kind={prefix}>{title}</SectionTitle></h3>
+    <div className="customer-wizard-address-fields">
+      {field(`${prefix}.contactName`, 'Contact name', { required: true, inputProps: { maxLength: 100 } })}
+      {field(`${prefix}.contactPhone`, 'Phone', { required: true, type: 'tel' })}
+      {field(`${prefix}.addressLine1`, 'Address line 1', { required: true, inputProps: { maxLength: 150 } })}
+      {field(`${prefix}.addressLine2`, 'Address line 2 (optional)', { inputProps: { maxLength: 150 } })}
+      {field(`${prefix}.city`, 'City', { required: true, inputProps: { maxLength: 80 } })}
+      {field(`${prefix}.districtCode`, 'District', { required: true, select: true, defaultValue: '', children: reference.districts.map((district) => <MenuItem key={district.code} value={district.code}>{district.name || district.code}</MenuItem>) })}
+      {field(`${prefix}.postalCode`, 'Postal code (optional)', { inputProps: { inputMode: 'numeric', maxLength: 5 } })}
+      {prefix === 'dropoff' && field('dropoff.contactEmail', 'Email (optional)', { type: 'email', inputProps: { maxLength: 254 } })}
+    </div>
+  </fieldset>;
 
-  return <Box className="customer-wizard">
-    <PageHeader title="New delivery" />
-    <ol className="customer-wizard-steps" aria-label="Delivery steps">{steps.map((name, index) => <li key={name} aria-current={step === index ? 'step' : undefined}>{index + 1}. {name}</li>)}</ol>
-    <Typography variant="h5" component="h2" tabIndex={-1} ref={heading}>{steps[step]}</Typography>
-    {message && <Alert severity={uncertain ? 'warning' : 'info'} role="alert">{message}</Alert>}
-    {step === 0 && <form noValidate onSubmit={handleSubmit(showQuote)}>
-      <p>Fields marked * are required.</p>
-      {address('pickup', 'Pickup')}{address('dropoff', 'Drop-off')}
-      <fieldset><legend>Parcel</legend><div className="customer-wizard-grid">
-        {field('parcel.weightKg', 'Weight (kg)', { required: true, helperText: `Maximum ${reference.maxWeightKg} kg; up to two decimal places`, inputProps: { inputMode: 'decimal' } })}
-        {field('parcel.size', 'Parcel size', { required: true, select: true, defaultValue: '', children: reference.sizes.map((size) => <MenuItem key={size.size} value={size.size}>{size.size} — {size.description} ({formatMoney(size.surcharge)})</MenuItem>) })}
-        {field('parcel.description', 'Description (optional)', { multiline: true, inputProps: { maxLength: 200 } })}
-        {field('deliveryInstructions', 'Delivery instructions (optional)', { multiline: true, inputProps: { maxLength: 300 } })}
-      </div></fieldset>
-      <Button type="submit" variant="contained">Get quote</Button>
+  return <div className="customer-wizard">
+    <h1 className="customer-wizard-title">New delivery</h1>
+    <ol className="customer-wizard-steps" aria-label="Delivery steps" role="list">
+      {steps.map((name, index) => <li key={name} aria-current={step === index ? 'step' : undefined} data-complete={index < step}>
+        <span className="customer-wizard-step-number" aria-hidden="true">{index < step ? <Check size={18} /> : index + 1}</span>
+        <span>{name}</span>
+        {index < step && <span className="customer-wizard-sr-only"> completed</span>}
+      </li>)}
+    </ol>
+    <h2 className="customer-wizard-heading" tabIndex={-1} ref={heading}>{steps[step]}</h2>
+    {message && <WizardNotice attention={uncertain}>{message}</WizardNotice>}
+    {step === 0 && <form className="customer-wizard-content" noValidate onSubmit={handleSubmit(showQuote)}>
+      <p className="customer-wizard-note">Fields marked * are required.</p>
+      <div className="customer-wizard-details-addresses">
+        {addressSections.map(address)}
+      </div>
+      <fieldset className="customer-wizard-card" aria-labelledby="delivery-parcel-title">
+        <h3 id="delivery-parcel-title"><SectionTitle Icon={Package} kind="parcel">Parcel</SectionTitle></h3>
+        <div className="customer-wizard-grid">
+          {field('parcel.weightKg', 'Weight (kg)', { required: true, helperText: `Maximum ${reference.maxWeightKg} kg; up to two decimal places`, inputProps: { inputMode: 'decimal' } })}
+          {field('parcel.size', 'Parcel size', { required: true, select: true, defaultValue: '', children: reference.sizes.map((size) => <MenuItem key={size.size} value={size.size}>{size.size} — {size.description} ({formatMoney(size.surcharge)})</MenuItem>) })}
+          {field('parcel.description', 'Description (optional)', { multiline: true, minRows: 2, inputProps: { maxLength: 200 } })}
+          {field('deliveryInstructions', 'Delivery instructions (optional)', { multiline: true, minRows: 2, inputProps: { maxLength: 300 } })}
+        </div>
+      </fieldset>
+      <div className="customer-wizard-actions">
+        <Button type="submit" variant="contained" endIcon={<ArrowRight size={18} />}>Get quote</Button>
+      </div>
     </form>}
-    {step === 1 && <Stack spacing={2} aria-live="polite">
-      {!fee && quote.status !== 'error' && <LoadingState message="Preparing your quotation…" />}
-      {!replacementFee && quote.status === 'error' && <ErrorState title="Quotation unavailable" message={quoteMessage(quote.error)} onRetry={() => setRevision((value) => value + 1)} />}
+    {step === 1 && <div className="customer-wizard-content" aria-live="polite">
+      {!fee && quote.status !== 'error' && <div className="customer-wizard-card"><LoadingState message="Preparing your quotation…" minHeight={120} /></div>}
+      {!replacementFee && quote.status === 'error' && <WizardNotice title="Quotation unavailable" attention onRetry={() => setRevision((value) => value + 1)}>{quoteMessage(quote.error)}</WizardNotice>}
       {fee && completeFee(fee) && <FeeBreakdown fee={fee} />}
-      {fee && !completeFee(fee) && <Alert severity="error">The quotation was incomplete. Please request a new quote.</Alert>}
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        <Button onClick={backToDetails}>Edit details</Button>
-        <Button onClick={() => { setReplacementFee(null); setRevision((value) => value + 1); }}>Refresh quote</Button>
-        <Button variant="contained" disabled={!completeFee(fee)} onClick={review}>Review delivery</Button>
-      </Stack>
-    </Stack>}
-    {step === 2 && attempt && <Stack spacing={2}>
-      <Typography>Review your delivery before confirming.</Typography>
-      {['pickup', 'dropoff'].map((prefix) => <section key={prefix} aria-label={`${prefix === 'pickup' ? 'Pickup' : 'Drop-off'} summary`}>
-        <h3>{prefix === 'pickup' ? 'Pickup' : 'Drop-off'}</h3>
-        <p>{details[prefix].contactName} · {details[prefix].contactPhone}</p>
-        <p>{[details[prefix].addressLine1, details[prefix].addressLine2, details[prefix].city, reference.districts.find(({ code }) => code === details[prefix].districtCode)?.name || details[prefix].districtCode, details[prefix].postalCode].filter(Boolean).join(', ')}</p>
-        {details[prefix].contactEmail && <p>{details[prefix].contactEmail}</p>}
-      </section>)}
-      <p>{details.parcel.size} · {details.parcel.weightKg} kg</p>
-      {details.parcel.description && <p>{details.parcel.description}</p>}
-      {details.deliveryInstructions && <p>{details.deliveryInstructions}</p>}
-      <FeeBreakdown fee={attempt.fee} />
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        <Button disabled={pending || uncertain} onClick={backToDetails}>Edit details</Button>
-        <Button variant="contained" disabled={pending} onClick={submit}>{pending ? 'Submitting…' : uncertain ? 'Retry same request' : 'Confirm delivery'}</Button>
-      </Stack>
-    </Stack>}
-  </Box>;
+      {fee && !completeFee(fee) && <WizardNotice attention>The quotation was incomplete. Please request a new quote.</WizardNotice>}
+      <div className="customer-wizard-actions">
+        <Button variant="outlined" startIcon={<ArrowLeft size={18} />} onClick={backToDetails}>Edit details</Button>
+        <Button variant="outlined" startIcon={<RefreshCw size={18} />} onClick={() => { setReplacementFee(null); setRevision((value) => value + 1); }}>Refresh quote</Button>
+        <Button variant="contained" endIcon={<ArrowRight size={18} />} disabled={!completeFee(fee)} onClick={review}>Review delivery</Button>
+      </div>
+    </div>}
+    {step === 2 && attempt && <div className="customer-wizard-content">
+      <p className="customer-wizard-note">Review your delivery before confirming.</p>
+      <div className="customer-wizard-grid customer-wizard-addresses">
+        {addressSections.map(({ key, title, Icon }) => {
+          const address = details[key];
+          const district = reference.districts.find(({ code }) => code === address.districtCode);
+          return <section key={key} className="customer-wizard-card customer-wizard-address" data-section={key} aria-label={`${title} summary`}>
+            <h3><SectionTitle Icon={Icon} kind={key}>{title}</SectionTitle></h3>
+            <p><strong>{address.contactName}</strong></p>
+            <p>{address.contactPhone}{address.contactEmail && <><br />{address.contactEmail}</>}</p>
+            <p>{[address.addressLine1, address.addressLine2, address.city, district?.name || address.districtCode, address.postalCode].filter(Boolean).join(', ')}</p>
+          </section>;
+        })}
+      </div>
+      <section className="customer-wizard-card">
+        <h3><SectionTitle Icon={Package} kind="parcel">Parcel summary</SectionTitle></h3>
+        <dl className="customer-wizard-parcel">
+          <div><dt>Size</dt><dd>{details.parcel.size}</dd></div>
+          <div><dt>Weight</dt><dd>{details.parcel.weightKg} kg</dd></div>
+          {details.parcel.description && <div className="customer-wizard-parcel-note"><dt>Description</dt><dd>{details.parcel.description}</dd></div>}
+          {details.deliveryInstructions && <div className="customer-wizard-parcel-note"><dt>Delivery instructions</dt><dd>{details.deliveryInstructions}</dd></div>}
+        </dl>
+      </section>
+      <FeeBreakdown fee={attempt.fee} confirmation />
+      <div className="customer-wizard-actions">
+        <Button variant="outlined" startIcon={<ArrowLeft size={18} />} disabled={pending || uncertain} onClick={backToDetails}>Edit details</Button>
+        <Button variant="contained" endIcon={<Check size={18} />} disabled={pending} onClick={submit}>{pending ? 'Submitting…' : uncertain ? 'Retry same request' : 'Confirm delivery'}</Button>
+      </div>
+    </div>}
+  </div>;
 }

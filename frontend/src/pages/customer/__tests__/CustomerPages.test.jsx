@@ -26,15 +26,15 @@ describe('TST-040 customer dashboard', () => {
     await act(async () => pending.resolve(page(Array.from({ length: 6 }, (_, index) => parcel(String(index))))));
     expect(screen.getAllByRole('article')).toHaveLength(5);
     expect(screen.getAllByText('Unavailable')).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'SD-0' })).toHaveAttribute('href', '/customer/parcels/0');
+    expect(screen.getByRole('link', { name: 'SD-0' })).toHaveAttribute('href', '/deliveries/0');
     expect(screen.queryByRole('link', { name: 'SD-5' })).not.toBeInTheDocument();
   });
   it('provides accessible quick-action links', async () => {
     mount(Dashboard);
-    await screen.findByText('Recent parcels');
-    expect(screen.getByRole('link', { name: 'New Delivery' })).toHaveAttribute('href', '/customer/parcels/new');
+    await screen.findByRole('link', { name: 'SD-one' });
+    expect(screen.getByRole('link', { name: 'New Delivery' })).toHaveAttribute('href', '/deliveries/new');
     expect(screen.getByRole('link', { name: 'Track Parcel' })).toHaveAttribute('href', '/track');
-    expect(screen.getByRole('link', { name: 'My Parcels' })).toHaveAttribute('href', '/customer/parcels');
+    expect(screen.getByRole('link', { name: 'My Parcels' })).toHaveAttribute('href', '/deliveries');
   });
   it('handles empty fallback data', async () => {
     listParcels.mockResolvedValue(page([], 0));
@@ -42,13 +42,22 @@ describe('TST-040 customer dashboard', () => {
     await screen.findByText('No deliveries yet');
     expect(screen.getAllByText('Unavailable')).toHaveLength(2);
   });
-  it('does not guess the shape of an undocumented summary or request it', async () => {
+  it('uses the documented counts and recent parcels from the summary', async () => {
+    getDashboardSummary.mockResolvedValue({ activeCount: 0, deliveredCount: 125, recentParcels: [parcel('summary', 'DELIVERED')] });
+    mount(Dashboard);
+    expect(await screen.findByRole('link', { name: 'View details for SD-summary' })).toHaveAttribute('href', '/deliveries/summary');
+    const counts = within(screen.getByLabelText('Parcel counts'));
+    expect(counts.getByText('0')).toBeInTheDocument();
+    expect(counts.getByText('125')).toBeInTheDocument();
+    expect(listParcels).not.toHaveBeenCalled();
+  });
+  it('uses the recent list without guessing counts from an unsupported summary shape', async () => {
     getDashboardSummary.mockResolvedValue({ arbitrary: 999 });
     mount(Dashboard);
-    await screen.findByText('Recent parcels');
+    await screen.findByRole('link', { name: 'SD-one' });
     expect(screen.queryByText('999')).not.toBeInTheDocument();
     expect(screen.getAllByText('Unavailable')).toHaveLength(2);
-    expect(getDashboardSummary).not.toHaveBeenCalled();
+    expect(getDashboardSummary).toHaveBeenCalledTimes(1);
   });
   it('renders only valid authoritative count display values, including zero', () => {
     render(<DashboardCounts active={0} delivered={123} />);
@@ -62,15 +71,16 @@ describe('TST-040 customer dashboard', () => {
     listParcels.mockRejectedValueOnce(new Error('offline'));
     mount(Dashboard);
     await screen.findByRole('alert');
+    expect(screen.queryByText('No deliveries yet')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
     await screen.findByRole('link', { name: 'SD-one' });
     expect(listParcels).toHaveBeenCalledTimes(2);
   });
-  it('is independent of the optional summary service while its contract is pending', async () => {
+  it('still shows recent parcels when the summary service is unavailable', async () => {
     getDashboardSummary.mockRejectedValue({ status: 503 });
     mount(Dashboard);
-    await screen.findByText('Recent parcels');
-    expect(getDashboardSummary).not.toHaveBeenCalled();
+    await screen.findByRole('link', { name: 'SD-one' });
+    expect(getDashboardSummary).toHaveBeenCalledTimes(1);
     expect(listParcels).toHaveBeenCalledTimes(1);
   });
   it.each([401, 403])('handles authorization failure %s without showing parcels', async (status) => {
@@ -80,17 +90,25 @@ describe('TST-040 customer dashboard', () => {
     expect(listParcels).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('article')).not.toBeInTheDocument();
   });
+  it('does not bypass a summary authorization error with the list fallback', async () => {
+    getDashboardSummary.mockRejectedValue({ status: 403 });
+    mount(Dashboard);
+    expect(await screen.findByRole('alert')).toHaveTextContent('You do not have permission');
+    expect(listParcels).not.toHaveBeenCalled();
+  });
 });
 
 describe('TST-040 my parcels', () => {
   it('requests zero-based defaults and renders server data with shared formatters', async () => {
     mount(List);
-    await screen.findByRole('link', { name: 'SD-one' });
+    expect(await screen.findByRole('link', { name: 'SD-one' })).toHaveAttribute('href', '/deliveries/one');
+    expect(screen.getByRole('link', { name: 'View details for SD-one' })).toHaveAttribute('href', '/deliveries/one');
+    expect(screen.getByRole('link', { name: 'New Delivery' })).toHaveAttribute('href', '/deliveries/new');
     expect(listParcels).toHaveBeenCalledWith({ page: 0, size: 20, sort: 'createdAt,desc' });
     expect(within(screen.getByRole('article')).getByText('Created', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText(formatDateTime(parcel().createdAt))).toBeInTheDocument();
     expect(screen.getByText('LKR 650.00')).toBeInTheDocument();
-    expect(screen.getByText('Colombo, Colombo')).toBeInTheDocument();
+    expect(screen.getByText('Colombo')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
@@ -120,6 +138,7 @@ describe('TST-040 my parcels', () => {
     listParcels.mockResolvedValue(page([parcel()], 3));
     mount(List); await screen.findByRole('link', { name: 'SD-one' });
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByRole('heading', { name: 'Parcel results' })).toHaveFocus();
     await waitFor(() => expect(listParcels).toHaveBeenLastCalledWith({ page: 1, size: 20, sort: 'createdAt,desc' }));
     await screen.findByRole('link', { name: 'SD-one' });
     fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
@@ -137,7 +156,20 @@ describe('TST-040 my parcels', () => {
     fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-11-14' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
     expect(screen.getByRole('alert')).toHaveTextContent('From date');
+    expect(screen.getByLabelText('From date')).toHaveAccessibleDescription('From date must be on or before to date.');
+    expect(screen.getByLabelText('To date')).toHaveAttribute('aria-invalid', 'true');
     expect(listParcels).toHaveBeenCalledTimes(1);
+  });
+  it('jumps to a numbered server page and keeps a bounded set of page buttons', async () => {
+    listParcels.mockResolvedValue(page([parcel()], 100));
+    mount(List);
+    fireEvent.click(await screen.findByRole('button', { name: 'Page 100' }));
+    await waitFor(() => expect(listParcels).toHaveBeenLastCalledWith({ page: 99, size: 20, sort: 'createdAt,desc' }));
+    expect(await screen.findByRole('button', { name: 'Page 100' })).toHaveAttribute('aria-current', 'page');
+    const pagination = within(screen.getByRole('navigation', { name: 'Parcel pagination' }));
+    expect(pagination.getAllByRole('button', { name: /^Page \d+$/ })).toHaveLength(6);
+    expect(pagination.getByText('…')).toBeInTheDocument();
+    expect(pagination.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
   it('resets all filters and retries failures without showing raw errors', async () => {
     listParcels.mockRejectedValueOnce({ status: 500, detail: 'PRIVATE SERVER BODY' });
@@ -171,7 +203,6 @@ describe('TST-040 my parcels', () => {
   it('supports keyboard entry and form submission', async () => {
     const user = userEvent.setup(); mount(List);
     await screen.findByRole('link', { name: 'SD-one' });
-    await user.tab(); // New Delivery link
     await user.tab(); // Search input
     expect(screen.getByRole('textbox', { name: 'Tracking-number prefix' })).toHaveFocus();
     await user.keyboard('SD-KEY{Enter}');
