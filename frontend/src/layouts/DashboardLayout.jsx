@@ -96,7 +96,10 @@ export function DashboardLayout() {
       {/* Navigation list */}
       <List sx={{ px: 2, py: 3, flexGrow: 1 }}>
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+          const isActive = location.pathname === item.path ||
+            location.pathname.startsWith(item.path + '/') ||
+            (item.path === '/deliveries/new' && location.pathname === '/customer/parcels/new') ||
+            (item.path === '/deliveries' && (location.pathname === '/customer/parcels' || location.pathname.startsWith('/customer/parcels/')));
           const Icon = item.icon;
           return (
             <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>

@@ -62,9 +62,9 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 10
-      start_period: 20s
+      start_period: 30s
     restart: unless-stopped
     networks:
       - swiftdrop-net
