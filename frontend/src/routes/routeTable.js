@@ -92,6 +92,13 @@ export const routeTable = [
     roles: ['CUSTOMER'],
   },
   {
+    path: '/customer/parcels/new',
+    title: 'Create Delivery',
+    layout: 'dashboard',
+    pageFolder: 'customer/parcels/new',
+    roles: ['CUSTOMER'],
+  },
+  {
     path: '/deliveries',
     title: 'My Parcels',
     layout: 'dashboard',
@@ -99,7 +106,21 @@ export const routeTable = [
     roles: ['CUSTOMER'],
   },
   {
+    path: '/customer/parcels',
+    title: 'My Parcels',
+    layout: 'dashboard',
+    pageFolder: 'customer/parcels/list',
+    roles: ['CUSTOMER'],
+  },
+  {
     path: '/deliveries/:id',
+    title: 'Parcel Details',
+    layout: 'dashboard',
+    pageFolder: 'customer/parcels/detail',
+    roles: ['CUSTOMER'],
+  },
+  {
+    path: '/customer/parcels/:id',
     title: 'Parcel Details',
     layout: 'dashboard',
     pageFolder: 'customer/parcels/detail',
